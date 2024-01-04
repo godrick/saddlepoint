@@ -58,13 +58,13 @@ Thumbs.db
 *.so
 
 
-
+*.Rproj
 src/RcppExports.o
 src/saddlepoint.dll
 src/saddlepointMethods.o
 .Rhistory
-.Rproj.user
-saddlepoint.Rproj
+.Rproj.user/
+
 
 
 
