@@ -1,0 +1,19 @@
+CXX_STD = CXX17
+
+# Adding -g for debugging info and -O0 to disable optimizations
+PKG_CXXFLAGS = -I../inst/include -g -O0 $(SHLIB_OPENMP_CXXFLAGS)
+
+# Removing -DEIGEN_NO_DEBUG and -DNDEBUG to allow for debugging and assertions
+# PKG_CXXFLAGS = -I../inst/include  -DEIGEN_NO_DEBUG -DNDEBUG $(SHLIB_OPENMP_CXXFLAGS) #-Wno-uninitialized
+
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+
+
+
+
+#CXX_STD = CXX17
+
+#PKG_CXXFLAGS = -I../inst/include  -DEIGEN_NO_DEBUG -DNDEBUG $(SHLIB_OPENMP_CXXFLAGS) #-Wno-uninitialized
+#PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+
+
