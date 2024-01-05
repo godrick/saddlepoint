@@ -78,13 +78,13 @@ public:
     // and since P is a permutation matrix P^T = P^{-1} and this reduces to
     // Q = (L^{-1} P)^T D^{-1} L^{-1} P, i.e., A=(L^{-1}P)^T = P^T (L^T)^{-1}
     
-                                                            // auto k2ldlt = static_cast<const BasicCGF*>(this)->K2(tvec, params...).ldlt();
-                                                            // 
-                                                            // auto dim = tvec.size();
-                                                            // typedef decltype( k2ldlt.reconstructedMatrix() ) matrix_type;
-                                                            // matrix_type A = matrix_type::Identity(dim, dim) * k2ldlt.transpositionsP().transpose();
-                                                            // k2ldlt.matrixU().template solveInPlace<Eigen::OnTheRight>(A); // matrixU() provides U=L^T and solveInPlace changes A into A U^{-1}
-
+    // auto k2ldlt = static_cast<const BasicCGF*>(this)->K2(tvec, params...).ldlt();
+    // 
+    // auto dim = tvec.size();
+    // typedef decltype( k2ldlt.reconstructedMatrix() ) matrix_type;
+    // matrix_type A = matrix_type::Identity(dim, dim) * k2ldlt.transpositionsP().transpose();
+    // k2ldlt.matrixU().template solveInPlace<Eigen::OnTheRight>(A); // matrixU() provides U=L^T and solveInPlace changes A into A U^{-1}
+    
     
     // auto inverse_k2ldlt = static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse().ldlt();
     // typedef decltype( inverse_k2ldlt.reconstructedMatrix() ) matrix_type;
@@ -97,17 +97,11 @@ public:
     // auto K3K3operatorAABBCC_val = K3K3operatorAABBCC_factored(tvec, A, d, A, d, A, d, params...);
     // auto K3K3operatorABCABC_val = K3K3operatorABCABC_factored(tvec, A, d, A, d, A, d, params...);
     
-    auto K4operatorAABB_val = K4operatorAABB(tvec, 
-                                             static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(),
-                                             static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(), params...);
-    auto K3K3operatorAABBCC_val = K3K3operatorAABBCC(tvec,
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(),
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(),
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(), params...);
-    auto K3K3operatorABCABC_val = K3K3operatorABCABC(tvec,
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(),
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(),
-                                                     static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse(), params...);
+    auto inverse_k2 = static_cast<const BasicCGF*>(this)->K2(tvec, params...).inverse();
+    
+    auto K4operatorAABB_val = K4operatorAABB(tvec, inverse_k2, inverse_k2, params...);
+    auto K3K3operatorAABBCC_val = K3K3operatorAABBCC(tvec, inverse_k2, inverse_k2,inverse_k2, params...);
+    auto K3K3operatorABCABC_val = K3K3operatorABCABC(tvec,inverse_k2,inverse_k2,inverse_k2, params...);
     
     return K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12;
   }
