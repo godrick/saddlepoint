@@ -1,12 +1,12 @@
 #' @title CGF
 #'
 #' @description
-#' This class is used for demonstration purposes.
+#' Refer to the CGF() function for details.
 #'
 #' @slot .Data An externalptr object.
 #'
 #'
-#'
+#'@noRd
 setClass("CGF", slots = list(.Data = "externalptr"))
 
 #' CGF Constructor

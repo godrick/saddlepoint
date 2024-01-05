@@ -7,6 +7,7 @@
 #' @return An adaptor object.
 #'
 #'
+#'@noRd
 setClass("adaptor", slots = list(.Data = "externalptr"))
 
 #' adaptor Constructor
@@ -23,6 +24,7 @@ setClass("adaptor", slots = list(.Data = "externalptr"))
 #'   # assuming ptr is a valid externalptr object
 #'   adaptor <- adaptor(ptr)
 #' }
+#' @noRd
 adaptor <- function(ptr) {
   if (!is(ptr, "externalptr")) stop("ptr must be of type externalptr")
   if (isTRUE( identical(ptr, new("externalptr"))) ) stop("ptr is an empty externalptr object")
