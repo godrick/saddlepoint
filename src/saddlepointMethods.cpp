@@ -30,18 +30,18 @@ using namespace saddlepoint::CGFs_with_Rcpp;
 using namespace saddlepoint::atomic_funcs;
 
 /*
-// ' Create an Adaptor Using R Functions
-// '
-// ' This function creates an `adaptor` object using two R functions.
-// ' The `adaptor` object is returned as an external pointer (`XPtr`).
-// '
-// ' This function is primarily intended for internal use.
-// '
-// ' @param fn An R function for computing `h(theta)`. This function should return a vector.
-// ' @param grad_fn An R function for computing the gradient of `h(theta)` with respect to `theta`. This function should return a matrix with `length(h(theta))` rows and `length(theta)` columns.
-// '
-// ' @return An `XPtr` to an `Adaptor` object.
-// ' @keywords internal
+ // ' Create an Adaptor Using R Functions
+ // '
+ // ' This function creates an `adaptor` object using two R functions.
+ // ' The `adaptor` object is returned as an external pointer (`XPtr`).
+ // '
+ // ' This function is primarily intended for internal use.
+ // '
+ // ' @param fn An R function for computing `h(theta)`. This function should return a vector.
+ // ' @param grad_fn An R function for computing the gradient of `h(theta)` with respect to `theta`. This function should return a matrix with `length(h(theta))` rows and `length(theta)` columns.
+ // '
+ // ' @return An `XPtr` to an `Adaptor` object.
+ // ' @keywords internal
  */
 // [[Rcpp::export]]
 Rcpp::XPtr<Adaptor> makeAdaptorUsingRfunctions(Rcpp::Function fn, Rcpp::Function grad_fn)
@@ -55,149 +55,151 @@ Rcpp::XPtr<Adaptor> makeAdaptorUsingRfunctions(Rcpp::Function fn, Rcpp::Function
   return ptr;
 }
 /*
-//' Create a Subvector Adaptor
-//'
-//' This function creates an `adaptor` object that extracts a subvector of a given length, starting at a specified position.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param pos The starting position of the subvector (1-indexed).
-//' @param len The length of the subvector.
-//'
-//' @return An `XPtr` to an `adaptor` object.
-//' @keywords internal
-//'
-*/
+ //' Create a Subvector Adaptor
+ //'
+ //' This function creates an `adaptor` object that extracts a subvector of a given length, starting at a specified position.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param pos The starting position of the subvector (1-indexed).
+ //' @param len The length of the subvector.
+ //'
+ //' @return An `XPtr` to an `adaptor` object.
+ //' @keywords internal
+ //'
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<Adaptor> makeSubvectorAdaptor(Eigen::Index pos, Eigen::Index len) {
   return Rcpp::XPtr<Adaptor>(new SubvectorAdaptor(pos - 1, len));
 }
 /*
-//' Create a Vector Subset By Indices Adaptor
-//'
-//' This function creates an `adaptor` object that extracts a subset of a vector based on given indices.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param indices A vector of indices for the subset.
-//'
-//' @return An `XPtr` to an `adaptor` object.
-//' @keywords internal
-*/
+ //' Create a Vector Subset By Indices Adaptor
+ //'
+ //' This function creates an `adaptor` object that extracts a subset of a vector based on given indices.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param indices A vector of indices for the subset.
+ //'
+ //' @return An `XPtr` to an `adaptor` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<Adaptor> makeVectorSubsetByIndicesAdaptor(Eigen::Matrix<Eigen::Index, Eigen::Dynamic, 1> indices) {
   return Rcpp::XPtr<Adaptor>(new SubsetVectorByIndicesAdaptor(indices.array() - 1));
 }
 /*
-//' Create a Saved Vector Adaptor
-//'
-//' This function creates an `adaptor` object that holds fixed parameter values.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param fixed_parameter_values A vector of fixed parameter values.
-//'
-//' @return An `XPtr` to an `adaptor` object.
-//' @keywords internal
-*/
+ //' Create a Saved Vector Adaptor
+ //'
+ //' This function creates an `adaptor` object that holds fixed parameter values.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param fixed_parameter_values A vector of fixed parameter values.
+ //'
+ //' @return An `XPtr` to an `adaptor` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<Adaptor> makeSavedVectorAdaptor(vec fixed_parameter_values) {
   return Rcpp::XPtr<Adaptor>(new SavedVectorAdaptor(fixed_parameter_values));
 }
 /*
-//' Adapt a CGF Object
-//'
-//' This function attaches an `Adaptor` to a `CGF_with_AD` object.
-//' The resulting object can be used as any other `CGF_with_AD` object (e.g., to create `CppAD::ADFun` objects).
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param base_cgf An `XPtr` to a `CGF_with_AD` object.
-//' @param adaptor An `XPtr` to an `Adaptor` object.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Adapt a CGF Object
+ //'
+ //' This function attaches an `Adaptor` to a `CGF_with_AD` object.
+ //' The resulting object can be used as any other `CGF_with_AD` object (e.g., to create `CppAD::ADFun` objects).
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param base_cgf An `XPtr` to a `CGF_with_AD` object.
+ //' @param adaptor An `XPtr` to an `Adaptor` object.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> base_cgf, Rcpp::XPtr<Adaptor> adaptor)
 {
-   auto modelCGF_ptr = new parametric_submodelCGF(base_cgf, adaptor);
-   Rcpp::XPtr<CGF_with_AD> ptr(modelCGF_ptr);
-   attach_attributes(ptr, base_cgf, adaptor);
-   return ptr;
+  auto modelCGF_ptr = new parametric_submodelCGF(base_cgf, adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(modelCGF_ptr);
+  attach_attributes(ptr, base_cgf, adaptor);
+  return ptr;
 }
 /*
-//' Create an ADFun Object for K1
-//'
-//' This function creates a `CppAD::ADFun<double>` object for the K1 function of a `CGF` object.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param tvec A numeric vector.
-//' @param theta A numeric vector.
-//' @param modelCGF An `XPtr` to a `CGF_with_AD` object or of class `CGF`.
-//'
-//' @return An `XPtr` to a `CppAD::ADFun<double>` object.
-//' @keywords internal
-*/
+ //' Create an ADFun Object for K1
+ //'
+ //' This function creates a `CppAD::ADFun<double>` object for the K1 function of a `CGF` object.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param tvec A numeric vector.
+ //' @param theta A numeric vector.
+ //' @param modelCGF An `XPtr` to a `CGF_with_AD` object or of class `CGF`.
+ //'
+ //' @return An `XPtr` to a `CppAD::ADFun<double>` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr< CppAD::ADFun<double> > makeADFunK1(vec tvec,
-                                              vec theta,
-                                              Rcpp::XPtr<CGF_with_AD> modelCGF)
+                                               vec theta,
+                                               Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 {
-   vec combined_vector(tvec.size() + theta.size());
-   combined_vector << tvec, theta;
-   //----------------------
-   a_vector a_combined_vector =  combined_vector.cast<CppAD::AD<double>>();
-   //----------------------
-   CppAD::Independent(a_combined_vector);
-   a_vector a_tvec = a_combined_vector.head(tvec.size());
-   a_vector a_distributional_pars = a_combined_vector.tail(theta.size());
-   //----------------------
-   a_vector a_K1 = modelCGF->K1(a_tvec, a_distributional_pars);
-
-   CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
-   ADFun_ptr->Dependent(a_combined_vector, a_K1);
-
-   Rcpp::XPtr< CppAD::ADFun<double> > ptr(ADFun_ptr);
-   attach_attributes(ptr, modelCGF);
-   return ptr;
+  vec combined_vector(tvec.size() + theta.size());
+  combined_vector << tvec, theta;
+  //----------------------
+  a_vector a_combined_vector =  combined_vector.cast<CppAD::AD<double>>();
+  //----------------------
+  CppAD::Independent(a_combined_vector);
+  a_vector a_tvec = a_combined_vector.head(tvec.size());
+  a_vector a_distributional_pars = a_combined_vector.tail(theta.size());
+  //----------------------
+  a_vector a_K1 = modelCGF->K1(a_tvec, a_distributional_pars);
+  
+  CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
+  ADFun_ptr->Dependent(a_combined_vector, a_K1);
+  
+  Rcpp::XPtr< CppAD::ADFun<double> > ptr(ADFun_ptr);
+  attach_attributes(ptr, modelCGF);
+  return ptr;
 }
-//' Compute K1 and its gradient
-//'
-//' This function computes the K1 function and its gradient for a given combined vector of `tvec` and `theta`.
-//' The K1 function is computed using a `CppAD::ADFun<double>` object created by the `make.ADFunK1()`-R function.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-//' @param ADfunK1 An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `makeADFunK1()` function.
-//'
-//' @return A list with two elements: `fn`, the value of the K1 function, and `gr`, the gradient of the K1 function.
-//' @keywords internal
+/*
+ //' Compute K1 and its gradient
+ //'
+ //' This function computes the K1 function and its gradient for a given combined vector of `tvec` and `theta`.
+ //' The K1 function is computed using a `CppAD::ADFun<double>` object created by the `make.ADFunK1()`-R function.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
+ //' @param ADfunK1 An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `makeADFunK1()` function.
+ //'
+ //' @return A list with two elements: `fn`, the value of the K1 function, and `gr`, the gradient of the K1 function.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::List K1_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfunK1){
   return Rcpp::List::create(Rcpp::Named("fn") = ADfunK1->Forward(0, combined_vector),
                             Rcpp::Named("gr") = ADfunK1->Jacobian(combined_vector));
 }
 /*
-//' Create an ADFun Object for Saddlepoint negative log-likelihood
-//'
-//' This function creates a `CppAD::ADFun<double>` object for the negative log-likelihood function of a `CGF_with_AD` object.
-//'
-//' The function is intended for internal use.
-//'
-//' @param tvec A numeric vector.
-//' @param theta A numeric vector.
-//' @param modelCGF An `XPtr` to a `CGF_with_AD` object.
-//'
-//' @return An `XPtr` to a `CppAD::ADFun<double>` object.
-//' @keywords internal
-*/
+ //' Create an ADFun Object for Saddlepoint negative log-likelihood
+ //'
+ //' This function creates a `CppAD::ADFun<double>` object for the negative log-likelihood function of a `CGF_with_AD` object.
+ //'
+ //' The function is intended for internal use.
+ //'
+ //' @param tvec A numeric vector.
+ //' @param theta A numeric vector.
+ //' @param modelCGF An `XPtr` to a `CGF_with_AD` object.
+ //'
+ //' @return An `XPtr` to a `CppAD::ADFun<double>` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec,
                                                   vec theta,
-                                                  Rcpp::XPtr<CGF_with_AD> modelCGF)
+                                                  Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 {
   //---------
   vec combined_vector(tvec.size() + theta.size());
@@ -210,25 +212,27 @@ Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec,
   //---------
   a_vector a_neg_ll(1);
   a_neg_ll(0) = modelCGF->neg_ll(a_tvec, a_distributional_pars);
-
+  
   CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
   ADFun_ptr->Dependent(a_combined_vector, a_neg_ll);
-
+  
   Rcpp::XPtr< CppAD::ADFun<double> > ptr(ADFun_ptr);
   attach_attributes(ptr, modelCGF);
   return ptr;
 }
-//' Compute negative log-likelihood and its gradient
-//'
-//' This function computes the negative log-likelihood function and its gradient for a given combined vector of `tvec` and `theta`.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-//' @param ADfun_negll An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunNegll()`-R function.
-//'
-//' @return A list with two elements: `objective`, the value of the negative log-likelihood function, and `gradient`, the gradient of the function.
-//' @keywords internal
+/*
+ //' Compute negative log-likelihood and its gradient
+ //'
+ //' This function computes the negative log-likelihood function and its gradient for a given combined vector of `tvec` and `theta`.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
+ //' @param ADfun_negll An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunNegll()`-R function.
+ //'
+ //' @return A list with two elements: `objective`, the value of the negative log-likelihood function, and `gradient`, the gradient of the function.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::List negll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_negll)
 {
@@ -236,23 +240,23 @@ Rcpp::List negll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<dou
                             Rcpp::Named("gradient") = ADfun_negll->Jacobian(combined_vector));
 }
 /*
-//' Create an ADFun Object for inequality constraint
-//'
-//' This function creates a `CppAD::ADFun<double>` object for the inequality constraint function of a `CGF_with_AD` object.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param tvec A numeric vector.
-//' @param theta A numeric vector.
-//' @param modelCGF An `XPtr` to a `CGF_with_AD` object.
-//'
-//' @return An `XPtr` to a `CppAD::ADFun<double>` object.
-//' @keywords internal
-*/
+ //' Create an ADFun Object for inequality constraint
+ //'
+ //' This function creates a `CppAD::ADFun<double>` object for the inequality constraint function of a `CGF_with_AD` object.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param tvec A numeric vector.
+ //' @param theta A numeric vector.
+ //' @param modelCGF An `XPtr` to a `CGF_with_AD` object.
+ //'
+ //' @return An `XPtr` to a `CppAD::ADFun<double>` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr< CppAD::ADFun<double> > makeADFunIneqConstraint(vec tvec,
-                                                          vec theta,
-                                                          Rcpp::XPtr<CGF_with_AD> modelCGF)
+                                                           vec theta,
+                                                           Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 {
   vec combined_vector(tvec.size() + theta.size());
   combined_vector << tvec, theta;
@@ -264,25 +268,27 @@ Rcpp::XPtr< CppAD::ADFun<double> > makeADFunIneqConstraint(vec tvec,
   a_vector a_distributional_pars = a_combined_vector.tail(theta.size());
   //----------------------
   a_vector a_ineq_constraint = modelCGF->ineq_constraint(a_tvec, a_distributional_pars);
-
+  
   CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
   ADFun_ptr->Dependent(a_combined_vector, a_ineq_constraint);
-
+  
   Rcpp::XPtr< CppAD::ADFun<double> > ptr(ADFun_ptr);
   attach_attributes(ptr, modelCGF);
   return ptr;
 }
-//' Compute inequality constraint and its gradient
-//'
-//' This function computes the inequality constraint function and its gradient for a given combined vector of `tvec` and `theta`.
-//'
-//' This function is primarily intended for internal use.
-//'
-//' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-//' @param ADfun_ineqConstraint An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunIneqConstraint()`-R function.
-//'
-//' @return A list with two elements: `fn`, the value of the inequality constraint function, and `gr`, the gradient of the function.
-//' @keywords internal
+/*
+ //' Compute inequality constraint and its gradient
+ //'
+ //' This function computes the inequality constraint function and its gradient for a given combined vector of `tvec` and `theta`.
+ //'
+ //' This function is primarily intended for internal use.
+ //'
+ //' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
+ //' @param ADfun_ineqConstraint An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunIneqConstraint()`-R function.
+ //'
+ //' @return A list with two elements: `fn`, the value of the inequality constraint function, and `gr`, the gradient of the function.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::List ineqConstraint_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_ineqConstraint)
 {
@@ -290,66 +296,66 @@ Rcpp::List ineqConstraint_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::
                             Rcpp::Named("gr") = ADfun_ineqConstraint->Jacobian(combined_vector));
 }
 /*
-//' Create a Binomial CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the binomial CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Binomial CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the binomial CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_BinomialCGF(){
-   CGF_with_AD* CGF_base_ptr = new BinomialCGF();
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new BinomialCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
 }
 /*
-//' Create a Binomial Non-Identical CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the binomial non-identical CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Binomial Non-Identical CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the binomial non-identical CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_BinomialNonIdenticalCGF(){
-   CGF_with_AD* CGF_base_ptr = new BinomialNonIdenticalCGF();
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new BinomialNonIdenticalCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
 }
 /*
-//' Create a Binomial Model CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the binomial model CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @param n_adaptor An `XPtr` to an `Adaptor` object.
-//' @param prob_adaptor An `XPtr` to an `Adaptor` object.
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Binomial Model CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the binomial model CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @param n_adaptor An `XPtr` to an `Adaptor` object.
+ //' @param prob_adaptor An `XPtr` to an `Adaptor` object.
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_BinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_adaptor){
-   CGF_with_AD* binomial_model_cgf = new BinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), new ScalarAdaptorFromVectorAdaptor(prob_adaptor));
-   Rcpp::XPtr<CGF_with_AD> ptr(binomial_model_cgf);
-   attach_attributes(ptr, n_adaptor, prob_adaptor);
-   return ptr;
+  CGF_with_AD* binomial_model_cgf = new BinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), new ScalarAdaptorFromVectorAdaptor(prob_adaptor));
+  Rcpp::XPtr<CGF_with_AD> ptr(binomial_model_cgf);
+  attach_attributes(ptr, n_adaptor, prob_adaptor);
+  return ptr;
 }
 /*
-//' Create a Poisson CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Poisson CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Poisson CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Poisson CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_PoissonCGF(){
   CGF_with_AD* CGF_base_ptr = new PoissonCGF();
@@ -357,15 +363,15 @@ Rcpp::XPtr<CGF_with_AD> make_PoissonCGF(){
   return ptr;
 }
 /*
-//' Create a Poisson Non-Identical CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Poisson non-identical CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Poisson Non-Identical CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Poisson non-identical CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_PoissonNonIdenticalCGF(){
   CGF_with_AD* CGF_base_ptr = new PoissonNonIdenticalCGF();
@@ -373,16 +379,16 @@ Rcpp::XPtr<CGF_with_AD> make_PoissonNonIdenticalCGF(){
   return ptr;
 }
 /*
-//' Create a Poisson Model CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Poisson model CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @param lambda_adaptor An `XPtr` to an `Adaptor` object.
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Poisson Model CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Poisson model CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @param lambda_adaptor An `XPtr` to an `Adaptor` object.
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_PoissonModelCGF(Rcpp::XPtr<Adaptor> lambda_adaptor){
   CGF_with_AD* poisson_model_cgf = new PoissonModelCGF( new ScalarAdaptorFromVectorAdaptor(lambda_adaptor) );
@@ -391,15 +397,15 @@ Rcpp::XPtr<CGF_with_AD> make_PoissonModelCGF(Rcpp::XPtr<Adaptor> lambda_adaptor)
   return ptr;
 }
 /*
-//' Create a Exponential CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Exponential CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Exponential CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Exponential CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_ExponentialCGF(){
   CGF_with_AD* CGF_base_ptr = new ExponentialCGF();
@@ -407,15 +413,15 @@ Rcpp::XPtr<CGF_with_AD> make_ExponentialCGF(){
   return ptr;
 }
 /*
-//' Create a Exponential Non-Identical CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Exponential non-identical CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Exponential Non-Identical CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Exponential non-identical CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_ExponentialNonIdenticalCGF(){
   CGF_with_AD* CGF_base_ptr = new ExponentialNonIdenticalCGF();
@@ -423,16 +429,16 @@ Rcpp::XPtr<CGF_with_AD> make_ExponentialNonIdenticalCGF(){
   return ptr;
 }
 /*
-//' Create a Exponential Model CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the Exponential model CGF.
-//'
-//' This function is intended for internal use.
-//'
-//' @param lambda_adaptor An `XPtr` to an `Adaptor` object.
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Exponential Model CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the Exponential model CGF.
+ //'
+ //' This function is intended for internal use.
+ //'
+ //' @param lambda_adaptor An `XPtr` to an `Adaptor` object.
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_ExponentialModelCGF(Rcpp::XPtr<Adaptor> lambda_adaptor){
   CGF_with_AD* exponential_model_cgf = new ExponentialModelCGF( new ScalarAdaptorFromVectorAdaptor(lambda_adaptor));
@@ -442,29 +448,29 @@ Rcpp::XPtr<CGF_with_AD> make_ExponentialModelCGF(Rcpp::XPtr<Adaptor> lambda_adap
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_GeometricCGF(){
-   CGF_with_AD* CGF_base_ptr = new GeometricCGF();
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new GeometricCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_GeometricNonIdenticalCGF(){
-   CGF_with_AD* CGF_base_ptr = new GeometricNonIdenticalCGF();
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new GeometricNonIdenticalCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_GeometricModelCGF(Rcpp::XPtr<Adaptor> p_adaptor){
-   CGF_with_AD* geometric_model_cgf = new GeometricModelCGF( new ScalarAdaptorFromVectorAdaptor(p_adaptor) );
-   Rcpp::XPtr<CGF_with_AD> ptr(geometric_model_cgf);
-   attach_attributes(ptr, p_adaptor);
-   return ptr;
+  CGF_with_AD* geometric_model_cgf = new GeometricModelCGF( new ScalarAdaptorFromVectorAdaptor(p_adaptor) );
+  Rcpp::XPtr<CGF_with_AD> ptr(geometric_model_cgf);
+  attach_attributes(ptr, p_adaptor);
+  return ptr;
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_GeometricNonIdenticalModelCGF(Rcpp::XPtr<Adaptor> p_adaptor){
-   CGF_with_AD* CGF_base_ptr = new GeometricNonIdenticalModelCGF(p_adaptor);
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   attach_attributes(ptr, p_adaptor);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new GeometricNonIdenticalModelCGF(p_adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  attach_attributes(ptr, p_adaptor);
+  return ptr;
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_GammaCGF(){
@@ -480,39 +486,39 @@ Rcpp::XPtr<CGF_with_AD> make_GammaModelCGF(Rcpp::XPtr<Adaptor> shape_adaptor, Rc
   return ptr;
 }
 /*
-//' Create a Multinomial CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the multinomial (CGF).
-//'
-//' The function is intended for internal use.
-//'
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Multinomial CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the multinomial (CGF).
+ //'
+ //' The function is intended for internal use.
+ //'
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_MultinomialCGF(){
-   CGF_with_AD* CGF_base_ptr = new MultinomialCGF();
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-   return ptr;
+  CGF_with_AD* CGF_base_ptr = new MultinomialCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
 }
 /*
-//' Create a Multinomial Model CGF Object
-//'
-//' This function creates a `CGF_with_AD` object for the multinomial model (CGF).
-//'
-//' The function is intended for internal use.
-//'
-//' @param n_adaptor An `XPtr` to an `Adaptor` object.
-//' @param probVector_adaptor An `XPtr` to an `Adaptor` object.
-//' @return An `XPtr` to a `CGF_with_AD` object.
-//' @keywords internal
-*/
+ //' Create a Multinomial Model CGF Object
+ //'
+ //' This function creates a `CGF_with_AD` object for the multinomial model (CGF).
+ //'
+ //' The function is intended for internal use.
+ //'
+ //' @param n_adaptor An `XPtr` to an `Adaptor` object.
+ //' @param probVector_adaptor An `XPtr` to an `Adaptor` object.
+ //' @return An `XPtr` to a `CGF_with_AD` object.
+ //' @keywords internal
+ */
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_MultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> probVector_adaptor){
-   CGF_with_AD* multinomial_model_cgf = new MultinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), probVector_adaptor);
-   Rcpp::XPtr<CGF_with_AD> ptr(multinomial_model_cgf);
-   attach_attributes(ptr, n_adaptor, probVector_adaptor);
-   return ptr;
+  CGF_with_AD* multinomial_model_cgf = new MultinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), probVector_adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(multinomial_model_cgf);
+  attach_attributes(ptr, n_adaptor, probVector_adaptor);
+  return ptr;
 }
 
 
@@ -612,24 +618,24 @@ Rcpp::XPtr<CGF_with_AD> make_sum_of_independentCGF(Rcpp::List cgf_list) {
 
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_ConcatenationCGF(Rcpp::List cgf_length_list) {
-   std::vector<saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>> cgfs;
-   Eigen::Matrix<Eigen::Index, Eigen::Dynamic, 1> lengths(cgf_length_list.size());
-   //// Populate the containers from cgf_length_list
-
-   for (int i = 0; i < cgf_length_list.size(); ++i) {
-     Rcpp::List currentList = Rcpp::as<Rcpp::List>(cgf_length_list[i]);
-     Rcpp::XPtr<CGF_with_AD> xp_cgf = Rcpp::as<Rcpp::XPtr<CGF_with_AD>>(currentList[0]);
-     Eigen::Index length = Rcpp::as<Eigen::Index>(currentList[1]);
-     cgfs.push_back(saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>(xp_cgf.get()));
-     lengths[i] = length;
-   }
-
-   //// Pass these vectors into ConcatenationCGF
-   CGF_with_AD* CGF_base_ptr = new ConcatenationCGF(cgfs, lengths);
-   Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
-
-   attach_attributes(ptr, cgf_length_list);
-   return ptr;
+  std::vector<saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>> cgfs;
+  Eigen::Matrix<Eigen::Index, Eigen::Dynamic, 1> lengths(cgf_length_list.size());
+  //// Populate the containers from cgf_length_list
+  
+  for (int i = 0; i < cgf_length_list.size(); ++i) {
+    Rcpp::List currentList = Rcpp::as<Rcpp::List>(cgf_length_list[i]);
+    Rcpp::XPtr<CGF_with_AD> xp_cgf = Rcpp::as<Rcpp::XPtr<CGF_with_AD>>(currentList[0]);
+    Eigen::Index length = Rcpp::as<Eigen::Index>(currentList[1]);
+    cgfs.push_back(saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>(xp_cgf.get()));
+    lengths[i] = length;
+  }
+  
+  //// Pass these vectors into ConcatenationCGF
+  CGF_with_AD* CGF_base_ptr = new ConcatenationCGF(cgfs, lengths);
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  
+  attach_attributes(ptr, cgf_length_list);
+  return ptr;
 }
 
 
@@ -714,7 +720,7 @@ Rcpp::XPtr<CGF_with_AD> make_iidReplicatesCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, 
 // //  *         - `grad.theta.funcT`: The gradient of `funcT` with respect to `theta`.
 // //  */
 // Rcpp::List grad_theta_funcT(vec theta, vec tvec,
-//                             mat negQB, Rcpp::XPtr<CGF_with_AD> modelCGF)
+//                             mat negQB, Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 // {
 //   a_vector a_theta = theta.cast<CppAD::AD<double>>();
 //   CppAD::Independent(a_theta);
@@ -768,7 +774,7 @@ Rcpp::XPtr<CGF_with_AD> make_iidReplicatesCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, 
 // Rcpp::List computeFuncTGradient(vec tvec,
 //                                 vec theta,
 //                                 vec observations,
-//                                 Rcpp::XPtr<CGF_with_AD> modelCGF)
+//                                 Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 // {
 //   a_vector a_theta = theta.cast<CppAD::AD<double>>();
 //   a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
@@ -822,10 +828,10 @@ template <class ModelCGFType>
 class K1ImplicitFunctionObject {
 private:
   ModelCGFType* modelCGFInstance;
-
+  
 public:
   K1ImplicitFunctionObject(ModelCGFType* instance) : modelCGFInstance(instance) {}
-
+  
   // the method solve() is not directly in Matrix class but rather on the decomposition classes in Eigen.
   // For dense-K2 something like K2.householderQr().solve(w) should work or even K2.llt().solve(w) for
   // positive definite K2
@@ -837,8 +843,8 @@ public:
   }
   template <class tvec_type, class theta_type, class wT_type>
   auto dfdu_solve_row(const tvec_type& tvec, const theta_type& theta, const wT_type& wT) {
-            //// tvec : const Eigen::Map<const Eigen::Matrix<double, -1, 1>, 0, Eigen::Stride<0, 0> >&
-            //// this is diffrent from Eigen::VectorXd which K2 expects
+    //// tvec : const Eigen::Map<const Eigen::Matrix<double, -1, 1>, 0, Eigen::Stride<0, 0> >&
+    //// this is diffrent from Eigen::VectorXd which K2 expects
     Eigen::VectorXd tvec_converted = tvec;
     Eigen::VectorXd theta_converted = theta;
     return modelCGFInstance->K2(tvec_converted, theta_converted).transpose().llt().solve(wT).eval();
@@ -853,18 +859,18 @@ template <class ModelCGFType>
 class ImplicitAtomicFunctionCGFWrapper {
 private:
   ModelCGFType* modelCGFInstance;
-  atomic_implicit_function<K1ImplicitFunctionObject<CGF_with_AD>> aif;
-
+  atomic_implicit_function<K1ImplicitFunctionObject<parametric_submodelCGF>> aif;
+  
 public:
   ImplicitAtomicFunctionCGFWrapper(ModelCGFType* instance) : modelCGFInstance(instance), aif("K1Implicit_Saddlepoint", instance) {}
-
+  
   a_vector operator()(const a_vector& a_tvec, const a_vector& a_theta, const a_vector& a_x) {
     a_vector a_c = modelCGFInstance->K1(a_tvec, a_theta) - a_x;
-
+    
     a_vector a_input = concatADVector({a_tvec, a_theta, a_x, a_c});
     a_vector a_tvec_hat(a_tvec.size());
     aif(a_input, a_tvec_hat);
-
+    
     return a_tvec_hat;
   }
 };
@@ -878,31 +884,31 @@ public:
 Rcpp::List computeFuncTGradient(vec tvec,
                                 vec theta,
                                 vec observations,
-                                Rcpp::XPtr<CGF_with_AD> modelCGF)
+                                Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 {
   a_vector a_theta = theta.cast<CppAD::AD<double>>();
   a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
   a_vector a_x = observations.cast<CppAD::AD<double>>();
-
+  
   // Create an instance of the ImplicitAtomicFunctionCGFWrapper using the provided modelCGF
-  ImplicitAtomicFunctionCGFWrapper<CGF_with_AD> implicit_func_cgfWrapper(modelCGF);
-
+  ImplicitAtomicFunctionCGFWrapper<parametric_submodelCGF> implicit_func_cgfWrapper(modelCGF);
+  
   CppAD::Independent(a_theta);
-
+  
   // Use the cgfWrapper object to compute a_tvec_hat
   a_vector a_tvec_hat = implicit_func_cgfWrapper(a_tvec, a_theta, a_x);
-
+  
   a_vector a_funcT(1);
   a_funcT(0) = modelCGF->func_T(a_tvec_hat, a_theta);
-
+  
   CppAD::ADFun<double> ad_fun;
   ad_fun.Dependent(a_theta, a_funcT);
-
+  
   Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ad_fun.Forward(0, theta),
                                          Rcpp::Named("grad.theta.funcT") = ad_fun.Jacobian(theta)
                                            // Rcpp::Named("grad.theta.t_hat") = negQB,
   );
-
+  
   return result;
 }
 
