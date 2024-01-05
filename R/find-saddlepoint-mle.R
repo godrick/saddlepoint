@@ -47,29 +47,29 @@ find.saddlepoint.MLE <- function(observed.data,
                                  user.ineq.constraint.function = NULL,
                                  opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0),
                                  sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)
-                                 ) {
+) {
   # length of observed data
   m <- length(observed.data)
-
+  
   if (!is(model.cgf, "CGF")) stop("model.cgf must be of class 'CGF'")
   if(length(lb.theta) != length(starting.theta) || length(ub.theta) != length(starting.theta) || !is.numeric(lb.theta) || !is.numeric(ub.theta)) stop("lb.theta or ub.theta has an incorrect length or is not numeric")
   if(length(lb.tvec) != length(starting.tvec) || length(ub.tvec) != length(starting.tvec) || !is.numeric(lb.tvec) || !is.numeric(ub.tvec)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
   if(any(starting.theta < lb.theta) || any(starting.theta > ub.theta)) stop("starting.theta is not within the bounds specified")
   if(!is.numeric(observed.data)) stop("observed.data not defined for ", class(observed.data))
   if (length(starting.tvec) != m) stop("Size of observed.data and starting.tvec arguments do not match")
-
-
+  
+  
   # Combine tvec and theta arguments to a single vector
   a <- c(starting.tvec, starting.theta)
-
+  
   # Define objective, equality constraint and inequality constraint functions
   objective.function <- get.saddlepoint.nll.function(tvec = starting.tvec, theta = starting.theta, model.cgf = model.cgf)
   eq.constraint.function <- get.saddlepoint.eq.constraint.function(tvec = starting.tvec, theta = starting.theta, observed.data = observed.data, model.cgf = model.cgf)
   ineq.constraint.function <- get.ineq.constraint.function(tvec = starting.tvec, theta = starting.theta, model.cgf = model.cgf, user.ineq.constraint.function = user.ineq.constraint.function)
-
+  
   # configure optimizer options
   opts = configure.opts(opts.user) # checks and modifies user-provided options for the optimizer.
-
+  
   # Find the maximum likelihood estimates of the parameters using NLOPT
   MLEs = nloptr::nloptr(x0 = a,
                         eval_f = objective.function,
@@ -77,7 +77,9 @@ find.saddlepoint.MLE <- function(observed.data,
                         eval_g_ineq = ineq.constraint.function,
                         opts = opts,
                         lb =  c(lb.tvec, lb.theta), ub = c(ub.tvec, ub.theta))
-
+  MLEs.tvec = head(MLEs$solution, length(lb.tvec))
+  MLEs.theta = tail(MLEs$solution, length(lb.theta))
+  
   # Calculate standard errors of MLEs
   if(std.error == TRUE || discrepancy == TRUE){
     res <- compute.std.error(observed.data = observed.data, combined.estimates = MLEs$solution,
@@ -91,9 +93,9 @@ find.saddlepoint.MLE <- function(observed.data,
     MLEs$inverse.hessian = res$inverse.hessian
   }
   if(discrepancy == TRUE){
-
-    grad_FuncT = computeFuncTGradient(tvec = head(MLEs$solution, length(lb.tvec)),
-                                      theta = tail(MLEs$solution, length(lb.theta)),
+    
+    grad_FuncT = computeFuncTGradient(tvec = MLEs.tvec,
+                                      theta = MLEs.theta,
                                       observations = observed.data,
                                       modelCGF = model.cgf)
     # The formula for the discrepancy should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
@@ -102,7 +104,9 @@ find.saddlepoint.MLE <- function(observed.data,
     disc = MLEs$inverse.hessian %*% grad_FuncT$grad.theta.funcT
     MLEs$discrepancy = disc
   }
-
+  
+  MLEs$MLEs.tvec = MLEs.tvec
+  MLEs$MLEs.theta = MLEs.theta
   MLEs
 }
 
@@ -110,11 +114,11 @@ find.saddlepoint.MLE <- function(observed.data,
 configure.opts <- function(opts.user) {
   # default optimizer options
   opts.default = list(algorithm = "NLOPT_LD_SLSQP",
-                               ftol_abs = 0,
-                               maxeval = 1e3,
-                               xtol_rel = 1.0e-12,
-                               print_level = 0)
-
+                      ftol_abs = 0,
+                      maxeval = 1e3,
+                      xtol_rel = 1.0e-12,
+                      print_level = 0)
+  
   valid.option.names = setdiff(names(opts.default), "algorithm") # Valid option names (excluding "algorithm")
   if (any(names(opts.user) == "")) stop("All elements in opts.user must have names. Valid options are: ", paste(valid.option.names, collapse = ", "))
   if (!all(names(opts.user) %in% valid.option.names)) stop("Invalid option name(s) provided. Valid options are: ", paste(valid.option.names, collapse = ", "))
