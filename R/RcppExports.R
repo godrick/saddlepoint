@@ -25,18 +25,6 @@ makeADFunK1 <- function(tvec, theta, modelCGF) {
     .Call(`_saddlepoint_makeADFunK1`, tvec, theta, modelCGF)
 }
 
-#' Compute K1 and its gradient
-#'
-#' This function computes the K1 function and its gradient for a given combined vector of `tvec` and `theta`.
-#' The K1 function is computed using a `CppAD::ADFun<double>` object created by the `make.ADFunK1()`-R function.
-#'
-#' This function is primarily intended for internal use.
-#'
-#' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-#' @param ADfunK1 An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `makeADFunK1()` function.
-#'
-#' @return A list with two elements: `fn`, the value of the K1 function, and `gr`, the gradient of the K1 function.
-#' @keywords internal
 K1_with_gradient <- function(combined_vector, ADfunK1) {
     .Call(`_saddlepoint_K1_with_gradient`, combined_vector, ADfunK1)
 }
@@ -45,17 +33,6 @@ makeADFunNegll <- function(tvec, theta, modelCGF) {
     .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, modelCGF)
 }
 
-#' Compute negative log-likelihood and its gradient
-#'
-#' This function computes the negative log-likelihood function and its gradient for a given combined vector of `tvec` and `theta`.
-#'
-#' This function is primarily intended for internal use.
-#'
-#' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-#' @param ADfun_negll An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunNegll()`-R function.
-#'
-#' @return A list with two elements: `objective`, the value of the negative log-likelihood function, and `gradient`, the gradient of the function.
-#' @keywords internal
 negll_with_gradient <- function(combined_vector, ADfun_negll) {
     .Call(`_saddlepoint_negll_with_gradient`, combined_vector, ADfun_negll)
 }
@@ -64,17 +41,6 @@ makeADFunIneqConstraint <- function(tvec, theta, modelCGF) {
     .Call(`_saddlepoint_makeADFunIneqConstraint`, tvec, theta, modelCGF)
 }
 
-#' Compute inequality constraint and its gradient
-#'
-#' This function computes the inequality constraint function and its gradient for a given combined vector of `tvec` and `theta`.
-#'
-#' This function is primarily intended for internal use.
-#'
-#' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
-#' @param ADfun_ineqConstraint An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunIneqConstraint()`-R function.
-#'
-#' @return A list with two elements: `fn`, the value of the inequality constraint function, and `gr`, the gradient of the function.
-#' @keywords internal
 ineqConstraint_with_gradient <- function(combined_vector, ADfun_ineqConstraint) {
     .Call(`_saddlepoint_ineqConstraint_with_gradient`, combined_vector, ADfun_ineqConstraint)
 }

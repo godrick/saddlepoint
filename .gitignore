@@ -64,6 +64,7 @@ src/saddlepoint.dll
 src/saddlepointMethods.o
 .Rhistory
 .Rproj.user/
+..Rcheck
 
 
 

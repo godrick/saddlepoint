@@ -2,7 +2,7 @@
 % Please edit documentation in R/saddlepoint-functions.R
 \name{K}
 \alias{K}
-\title{K}
+\title{K (CGF)}
 \usage{
 K(tvec, parameter.vector, baseCGF)
 }

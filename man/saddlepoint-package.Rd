@@ -4,8 +4,8 @@
 \name{saddlepoint-package}
 \alias{saddlepoint}
 \alias{saddlepoint-package}
-\title{saddlepoint: What the Package Does (One Line, Title Case)}
+\title{saddlepoint: Saddlepoint Methods with CGF Operations}
 \description{
-More about what it does (maybe more than one line) Use four spaces when indenting paragraphs in the Description.
+This package provides a comprehensive framework for performing operations on Cumulant Generating Functions (CGF) and efficiently computing saddlepoint approximation-related functions in statistical modeling. It enables users to manage various operations on random variables through their CGFs and to compute saddlepoint-based maximum likelihood estimates. Additionally, the package effectively handles constraints in optimization problems and offers integration with C++ for accurate and efficient gradient computations. Its design allows for extensibility, accommodating user-defined CGFs and operations. This package is particularly useful for statisticians and data scientists who work with random variables whose probability distribution functions are computationally intractable. It streamlines the process of handling these variables, making the analysis more accessible and manageable.
 }
 \keyword{internal}
