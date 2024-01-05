@@ -16,7 +16,7 @@
 get.saddlepoint.nll.function <- function(tvec, theta, model.cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
   ADfun.negll = make.ADFunNegll(tvec = tvec, theta = theta, ModelCGF = model.cgf)
-
+  
   saddlepoint.nll = function(a){
     negll_with_gradient(combined_vector = a, ADfun_negll = ADfun.negll)
   }
@@ -47,7 +47,7 @@ get.saddlepoint.nll.function <- function(tvec, theta, model.cgf){
 get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, model.cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is.numeric(observed.data), is(model.cgf, "CGF"))
   ADfun.K1 = make.ADFunK1(tvec = tvec, theta = theta, ModelCGF = model.cgf)
-
+  
   saddlepoint.eq.constraint.function <- function(a){
     K1.and.grad = K1_with_gradient(combined_vector = a, ADfunK1 = ADfun.K1)
     list(constraints = K1.and.grad$fn - observed.data,
@@ -85,23 +85,23 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
   # This function returns ineq.constraint.function which is either NULL or a function with a single argument 'a'
   # As a result, the output of this function can be directly used in the optimiser.
   m = length(tvec)
-
-
+  
+  
   # First check if the model.cgf is subject to any constraints, i.e., tvec is constrained
   # We do this by checking if the saddlepoint-based ineq_constraint returns any value
   vector.of.ineq.constraint.values <- ineq_constraint(tvec, theta, model.cgf)
-
+  
   if (!length(vector.of.ineq.constraint.values)) {
     # tvec is not constrained
     # Therefore, for optimisation, ineq.constraint.function will be null
     ineq.constraint.function <- tvec.ineq.constraint.function <- NULL
-
+    
     # If a user defines some constraint on theta, we incorporate the tvec-related jacobian, which is expected by the optimiser
     if (!is.null(user.ineq.constraint.function)) {
       # SOme checks
       if (!is.function(user.ineq.constraint.function)) stop("user.ineq.constraint.function must be a function")
       if (!all(c("constraints", "jacobian") %in% names(user.ineq.constraint.function(theta)))) stop("user.ineq.constraint.function must have 'constraints' and 'jacobian' as output")
-
+      
       # Define the new ineq.constraint.function that includes tvec
       ineq.constraint.function <- function(a) {
         # Extract tvec and theta
@@ -109,61 +109,61 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
         theta <- a[-(1:m)]
         # Evaluate user-supplied inequality constraint function for theta
         user.ineq.constraint <- user.ineq.constraint.function(theta)
-
+        
         # Add zeros to the jacobian for the tvec components
         jacobian.with.tvec <- cbind(matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
-
+        
         # Return the constraints and jacobian including tvec
         list(constraints = user.ineq.constraint$constraints,
              jacobian = jacobian.with.tvec)
       }
     }
   } else { # tvec is constrained
-
+    
     saddlepoint.ineq.constraint.function <- create_saddlepoint.ineq.constraint_function(tvec = tvec,
                                                                                         theta = theta,
                                                                                         model.cgf = model.cgf)
-
+    
     # If user does not define any constraint on theta, the optimiser only needs the saddlepoint-based constraints
     ineq.constraint.function <- function(a) {
       # Evaluate are return saddlepoint-based inequality constraint function for tvec and theta
       saddlepoint.ineq.constraint.function(a)
     }
     tvec.ineq.constraint.function <- ineq.constraint.function
-
+    
     if (!is.null(user.ineq.constraint.function)) {
       # Check if user.ineq.constraint.function is a function
       if (!is.function(user.ineq.constraint.function)) stop("user.ineq.constraint.function must be a function")
       if (!all(c("constraints", "jacobian") %in% names(user.ineq.constraint.function(theta)))) stop("user.ineq.constraint.function must have 'constraints' and 'jacobian' as output")
-
+      
       # Define the new ineq.constraint.function that includes tvec
       ineq.constraint.function <- function(a) {
         t.vec <- a[1:m]
         theta <- a[-(1:m)]
-
+        
         # Evaluate user-supplied inequality constraint function for theta
         user.ineq.constraint <- user.ineq.constraint.function(theta)
-
+        
         # Evaluate saddlepoint-based inequality constraint function for tvec and theta
         saddlepoint.ineq.constraint <- saddlepoint.ineq.constraint.function(a)
-
+        
         # Add zeros to the jacobian for the tvec components
         jacobian.with.tvec <- cbind(matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(saddlepoint.ineq.constraint$constraints)),
                                     user.ineq.constraint$jacobian)
-
+        
         # Combine the constraints from both functions
         combined.constraints <- c(saddlepoint.ineq.constraint$constraints, user.ineq.constraint$constraints)
-
+        
         # Combine the jacobians from both functions
         combined.jacobian <- rbind(saddlepoint.ineq.constraint$jacobian, jacobian.with.tvec)
-
+        
         # Return the constraints and jacobian including tvec
         list(constraints = combined.constraints,
              jacobian = combined.jacobian)
       }
     }
-
+    
   }
   attributes(ineq.constraint.function) <- list(tvec.ineq.constraint.function = tvec.ineq.constraint.function)
   if(!length(ineq.constraint.function)) ineq.constraint.function = NULL
@@ -180,10 +180,10 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
 #'
 #' @return A function that accepts a single vector argument 'a'. When `a = c(tvec, theta)` is passed, the function yields a list in the form \code{list(constraints = , jacobian = )}, where 'constraints' are the calculated inequalities and 'jacobian' is the gradient of the constraints with respect to both \code{tvec} and \code{theta}.
 #'
-#' @keywords internal
+#' @noRd
 create_saddlepoint.ineq.constraint_function <- function(tvec, theta, model.cgf){
   ADfun.ineq = make.ADFunIneqConstraint(tvec = tvec, theta = theta, ModelCGF = model.cgf)
-
+  
   saddlepoint.ineq.constraint.function <- function(a) {
     ineqConst = ineqConstraint_with_gradient(combined_vector = a, ADfun_ineqConstraint = ADfun.ineq)
     list(constraints = ineqConst$fn,
@@ -222,11 +222,11 @@ sadd.eqn.fn <- function(theta, y, cgf,
                         lb = rep(-Inf, times=length(y)),
                         ub = rep(Inf, times=length(y)),
                         sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)) {
-
+  
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
   if(length(lb) != length(starting.tvec) || length(ub) != length(starting.tvec) || !is.numeric(lb) || !is.numeric(ub)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
   # if(!is.null(tvec.ineq.constraint.function) && !is.function(tvec.ineq.constraint.function)) stop("tvec.ineq.constraint.function is not defined for ", class(tvec.ineq.constraint.function))
-
+  
   # get tvec-related ineq.constraint_function
   tvec.ineq.constraint.function = attributes(get.ineq.constraint.function(tvec = starting.tvec, theta = theta,
                                                                           model.cgf = cgf,
@@ -245,30 +245,30 @@ sadd.eqn.fn <- function(theta, y, cgf,
     list(objective = objective.fun(t.vec),
          gradient = grad.objective.fun(t.vec))
   }
-
+  
   # configure optimizer options
   # The function checks and modifies user-provided options for the optimizer, ensuring they are valid and complete.
   opts = configure.sadd.eqn.opts(sadd.eqn.opts)
-
+  
   ineq.as.a.function.of.tvec = NULL
   if(!is.null(tvec.ineq.constraint.function)){
     # The argument 'a' of tvec.ineq.constraint.function is a combined function of t.vec and theta
     ineq.as.a.function.of.tvec <- function(t.vec) {
       # Combine t.vec and theta into a single vector
       a <- c(t.vec, theta)
-
+      
       temp.jacobian = tvec.ineq.constraint.function(a)$jacobian
       list(constraints = tvec.ineq.constraint.function(a)$constraints,
            jacobian = temp.jacobian[, which(rep(1:(length(a)), length.out = ncol(temp.jacobian)) <= length(t.vec)), drop = FALSE]
-          )
+      )
     }
   }
-
+  
   nloptr::nloptr(x0 = starting.tvec,
-                  eval_f = eval_f,
-                  eval_g_ineq = ineq.as.a.function.of.tvec,
-                  opts = opts,
-                  lb = lb, ub = ub)$solution
+                 eval_f = eval_f,
+                 eval_g_ineq = ineq.as.a.function.of.tvec,
+                 opts = opts,
+                 lb = lb, ub = ub)$solution
 }
 
 #' @importFrom utils modifyList
@@ -280,7 +280,7 @@ configure.sadd.eqn.opts <- function(sadd.eqn.opts) {
                                maxeval = 1e3,
                                xtol_rel = 1.0e-12,
                                print_level = 0)
-
+  
   valid.option.names = setdiff(names(sadd.eqn.opts.default), "algorithm") # Valid option names (excluding "algorithm")
   if (any(names(sadd.eqn.opts) == "")) stop("All elements in sadd.eqn.opts must have names. Valid options are: ", paste(valid.option.names, collapse = ", "))
   if (!all(names(sadd.eqn.opts) %in% valid.option.names)) stop("Invalid option name(s) provided. Valid options are: ", paste(valid.option.names, collapse = ", "))
@@ -321,12 +321,12 @@ compute.std.error <- function(observed.data, combined.estimates,
                               ub.tvec = rep(Inf, times=length(observed.data)),
                               sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)
                               # ineq.constraint.function = NULL
-                              ) {
-
+) {
+  
   estimated.tvec <- head(combined.estimates, length(observed.data))
   estimated.theta <- tail(combined.estimates, length(combined.estimates) - length(estimated.tvec))
-
-
+  
+  
   # Define a function to evaluate the objective function as a function of theta
   nll.as.a.function.of.theta <- function(theta){
     tvec = sadd.eqn.fn(theta = theta, y = observed.data,
@@ -335,9 +335,9 @@ compute.std.error <- function(observed.data, combined.estimates,
                        sadd.eqn.opts = sadd.eqn.opts)
     objective.function(c(tvec, theta))$objective
   }
-
+  
   matrix.H <- numDeriv::hessian(nll.as.a.function.of.theta, estimated.theta)
-
+  
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)),
        inverse.hessian = inverse.hessian)

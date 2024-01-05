@@ -19,7 +19,7 @@ public:
   // Multinomial_CGF obj;
   // and methods can be accessed via
   // obj.K(...), obj.K1(...), etc.
-
+  
   // The following template methods are oriented towards types from the Eigen library.
   // For instance, it is assumed that the vector types have methods such as .array()
   // that allow component-wise multiplication and other operations.
@@ -55,7 +55,7 @@ public:
     // Convenience form that computes odds_sum directly
     return K_z1p(zm1, N, odds_vec, odds_vec.sum());
   }
-
+  
   template <class z_vector_type, class odds_vector_type>
   static auto q_from_z(const z_vector_type& zvec, const odds_vector_type& odds_vec) {
     // Utility function to compute q from z, where
@@ -95,7 +95,7 @@ public:
     // and p_i = odds_vec[i], t_i = tvec[i], z_i = zvec[i] = e^{t_i}
     return v_from_z(z_from_t(tvec), odds_vec);
   }
-
+  
   template <class N_type, class v_vector_type>
   static auto K1_v(const N_type& N, const v_vector_type& v) {
     // v must be the normalised vector of probabilities for the tilted distribution
@@ -139,7 +139,6 @@ public:
     v *= 1 / v.sum();
     auto res = ((-N)*v*v.transpose()).eval();
     res.diagonal() += N*v;
-    std::cout << "Multinomial K2 dim: " << res.rows() << " " << res.cols() << std::endl;
     return res;
   }
   //-----------------------------------------------------------------------
@@ -190,7 +189,7 @@ public:
     auto vw24s = ( vw2*w4.array() ).sum();
     auto vw34s = ( vw3*w4.array() ).sum();
     auto vw123 = ( w12*vw3 ).eval();
-
+    
     return (vw123*w4.array()).sum() - vw123.sum()*vw4s - (w12*vw4).sum()*vw3s - (w34*vw1).sum()*vw2s - (w34*vw2).sum()*vw1s
     - vw12s*vw34s - vw13s*vw24s - vw14s*vw23s
     + 2*(vw12s*vw3s*vw4s + vw13s*vw2s*vw4s + vw14s*vw2s*vw3s + vw23s*vw1s*vw4s + vw24s*vw1s*vw3s + vw34s*vw1s*vw3s)
@@ -201,12 +200,12 @@ public:
   static auto K4operatorAABB_v(const Q_matrix_type& Q1, const Q_matrix_type& Q2, const N_type& N, const v_vector_type& v) {
     typedef decltype( v.sum() ) scalar_type;
     typedef v_vector_type vector_type;
-
+    
     vector_type Q1v = Q1 * v;
     vector_type Q2v = Q2 * v;
     scalar_type vQ1v = v.transpose() * Q1v;
     scalar_type vQ2v = v.transpose() * Q2v;
-
+    
     int length_Q1 = Q1.rows();
     scalar_type res_double_indices = 0.0;
     for(int j1 = 0; j1 < length_Q1; ++j1){
@@ -227,21 +226,21 @@ public:
                              const N_type& N, const odds_vector_type& odds_vec) {
     return K4operatorAABB_v(Q1, Q2, N, v_from_t(tvec, odds_vec));
   }
-
+  
   //----------------------------------------------------------------------------
   template <class Q_matrix_type, class N_type, class v_vector_type>
   static auto K3K3operatorAABBCC_v(const Q_matrix_type& Q1, const Q_matrix_type& Q2, const Q_matrix_type& Q3,
                                    const N_type& N, const v_vector_type& v) {
     typedef decltype( v.sum() ) scalar_type;
     typedef v_vector_type vector_type;
-
+    
     vector_type Q1v = Q1 * v;
     vector_type Q2v = Q2 * v;
     vector_type Q3v = Q3 * v;
     scalar_type vQ1v = v.transpose() * Q1v;
     scalar_type vQ2v = v.transpose() * Q2v;
     scalar_type vQ3v = v.transpose() * Q3v;
-
+    
     int length_Q1 = Q1.rows();
     scalar_type res_double_indices = 0.0;
     for(int j1 = 0; j1 < length_Q1; ++j1){
@@ -252,7 +251,7 @@ public:
           4*Q1v(j1)*Q3v(j2)) );
       }
     }
-
+    
     return N*N*(res_double_indices +
                 (v.array()*Q3.diagonal().array()*Q2v.array()).sum() * (-(v.array()*Q1.diagonal().array()).sum() + 2*vQ1v) +
                 (v.array()*Q2v.array()*Q3v.array()).sum() * (2*(v.array()*Q1.diagonal().array()).sum() - 4*vQ1v) +
@@ -277,14 +276,14 @@ public:
                                    const N_type& N, const v_vector_type& v) {
     typedef decltype( v.sum() ) scalar_type;
     typedef v_vector_type vector_type;
-
+    
     scalar_type vQ1v = v.transpose() * Q1 * v;
     scalar_type vQ2v = v.transpose() * Q2 * v;
     scalar_type vQ3v = v.transpose() * Q3 * v;
     vector_type Q1v = Q1 * v;
     vector_type Q2v = Q2 * v;
     vector_type Q3v = Q3 * v;
-
+    
     int length_Q1 = Q1.rows();
     scalar_type res_double_indices = 0.0;
     for(int j1 = 0; j1 < length_Q1; ++j1){
@@ -297,7 +296,7 @@ public:
           Q3(j1,j2)*(Q1v(j1)*Q2v(j2) + Q1v(j2)*Q2v(j1) + Q1(j1,j2)*vQ2v));
       }
     }
-
+    
     return N*N*(res_double_indices +
                 4*(v.array()*Q1v.array()*Q2v.array()*Q3v.array()).sum() -
                 4*vQ3v*(v.array()*Q1v.array()*Q2v.array()).sum() -
@@ -311,9 +310,9 @@ public:
                                  const N_type& N, const odds_vector_type& odds_vec) {
     return K3K3operatorABCABC_v(Q1, Q2, Q3, N, v_from_t(tvec, odds_vec));
   }
-
+  
   // TO DO: add _factored versions; this allows the calculation of some products with v to be computed only once
-
+  
 }; // class MultinomialCGF
 
 } // namespace CGFs_via_templates
@@ -349,7 +348,7 @@ private:
 public:
   MultinomialModelCGF(const ScalarAdaptor* n_adaptor, const VectorAdaptor* prob_vec_adaptor)
     : Base(TemplateBaseCGF(), n_adaptor, prob_vec_adaptor) {}
-
+  
   MultinomialModelCGF() = delete; // otherwise adaptor pointers are uninitialised
 };
 // This CGF is created by specifying two adaptors, one returning a scalar (for N) and one returning a vector (for prob_vec)
@@ -372,7 +371,7 @@ private:
   typedef typename CGF_type::Scratchpad_Q Scratchpad_Q_type;
   typedef CGFs_via_templates::MultinomialCGF MultinomialCGF;
   typedef CGFs_with_AD::MultinomialExtractor MultinomialExtractor;
-
+  
   vector_type v;
   scalar_type N;
   // Most Multinomial CGF quantities depend only on v and N.
@@ -380,17 +379,17 @@ private:
   // They are computed and stored separately.
   scalar_type k;
   scalar_type te;
-
+  
   struct K1_finder {
     vector_type operator()(const scalar_type& N, const vector_type& v) {return MultinomialCGF::K1_v(N, v);}
   };
   SavedResult<vector_type, K1_finder> saved_k1;
-
+  
   struct K2_finder {
     matrix_type operator()(const scalar_type& N, const vector_type& v) {return MultinomialCGF::K2_v(N, v);}
   };
   SavedResult<matrix_type, K2_finder> saved_k2;
-
+  
   struct neg_ll_finder {
     scalar_type operator()(const scalar_type& te, const matrix_type& k2) {
       // Note that k2.determinant() == 0 modulo numerical error, so this function gives problematic values if called
@@ -398,21 +397,21 @@ private:
     }
   };
   SavedResult<scalar_type, neg_ll_finder> saved_neg_ll;
-
+  
   struct func_T_finder {
     scalar_type operator()(const scalar_type& N, const vector_type& v, const matrix_type& k2, Multinomial_Scratchpad* sp) {
       // Note that k2.determinant() == 0 modulo numerical error, so this function gives problematic values if called
       matrix_type mat_Q = k2.inverse();
       std::unique_ptr<Scratchpad_Q_type> p_spq(sp->Multinomial_Scratchpad::scratchpad_q(mat_Q));
       // Extend sp to its Scratchpad_Q equivalent, with Q == mat_Q == K2.inverse()
-
+      
       return p_spq->K4operatorAABB()/8 - p_spq->K3K3operatorAABBCC()/8 - p_spq->K3K3operatorABCABC()/12;
     }
   };
   SavedResult<scalar_type, func_T_finder> saved_func_T;
-
+  
   friend class Multinomial_Scratchpad_Q<scalar_type, vector_type, matrix_type>;
-
+  
 public:
   Multinomial_Scratchpad(const vector_type& tvec, const vector_type& parameter_vector) {
     auto p = MultinomialExtractor()(parameter_vector);
@@ -422,18 +421,18 @@ public:
     k = MultinomialCGF::K(tvec, N, odds_vec);
     te = k - N*(tvec.array() * odds_vec.array()).sum();
   }
-
+  
   Scratchpad_Q_type* scratchpad_q(const matrix_type& Q) override {
     return new Multinomial_Scratchpad_Q<scalar_type, vector_type, matrix_type>(Q, this);
   }
-
+  
   const scalar_type& K() override {return k;}
-
+  
   const vector_type& K1() override {return saved_k1(N, v);}
   const matrix_type& K2() override {return saved_k2(N, v);}
-
+  
   const scalar_type& tilting_exponent() override {return te;}
-
+  
   // Note: neg_ll and func_T both return infinite or NaN values, in principle,
   // because the covariance matrix for this CGF is singular
   const scalar_type& neg_ll() override {return saved_neg_ll(te, Multinomial_Scratchpad::K2());}
@@ -459,46 +458,46 @@ private:
   typedef typename CGF_type::Scratchpad_Q Scratchpad_Q_type;
   typedef Multinomial_Scratchpad<scalar_type, vector_type, matrix_type> MSP_type;
   typedef CGFs_via_templates::MultinomialCGF MultinomialCGF;
-
+  
   MSP_type* plain_sp;
   // non-owned pointer to Scratchpad that created this
   // Note: data member, not base class, to avoid copying already calculated values
   // However this means that the virtual functions already implemented by plain_sp have to be explicitly re-implemented to re-route them to plain_sp
-
+  
   matrix_type Q;
-
+  
   struct K4operatorAABB_finder {
     scalar_type operator()(const scalar_type& N, const vector_type& v, const matrix_type& q) {
       return MultinomialCGF::K4operatorAABB_v(q, q, N, v);
     }
   };
   SavedResult<scalar_type, K4operatorAABB_finder> saved_k4aabb;
-
+  
   struct K3K3operatorAABBCC_finder {
     scalar_type operator()(const scalar_type& N, const vector_type& v, const matrix_type& q) {
       return MultinomialCGF::K3K3operatorAABBCC_v(q, q, q, N, v);
     }
   };
   SavedResult<scalar_type, K3K3operatorAABBCC_finder> saved_k3k3aabbcc;
-
+  
   struct K3K3operatorABCABC_finder {
     scalar_type operator()(const scalar_type& N, const vector_type& v, const matrix_type& q) {
       return MultinomialCGF::K3K3operatorABCABC_v(q, q, q, N, v);
     }
   };
   SavedResult<scalar_type, K3K3operatorABCABC_finder> saved_k3k3abcabc;
-
+  
 public:
   Multinomial_Scratchpad_Q(const matrix_type& q, MSP_type* psp)
     : plain_sp(psp), Q(q) {}
   // Normally this constructor will only be used by Multinomial_Scratchpad::scratchpad_q
-
+  
   Scratchpad_Q_type* scratchpad_q(const matrix_type& q) override {
     // Note: method creates a new Scratchpad_Q object with a new value q, in addition to the current one
     return plain_sp->scratchpad_q(q);
     // Already implemented by plain_sp
   }
-
+  
   const scalar_type& K() override {return plain_sp->K();}
   const vector_type& K1() override {return plain_sp->K1();}
   const matrix_type& K2() override {return plain_sp->K2();}
@@ -506,7 +505,7 @@ public:
   const scalar_type& neg_ll() override {return plain_sp->neg_ll();}
   const scalar_type& func_T() override {return plain_sp->func_T();}
   // Already implemented by plain_sp
-
+  
   const scalar_type& K4operatorAABB() override {
     return saved_k4aabb(plain_sp->N, plain_sp->v, Q);
   }

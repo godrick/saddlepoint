@@ -1,4 +1,4 @@
-#' @title K
+#' @title K (CGF)
 #' @description Computes the Cumulant Genrating function, K for given t-vector, parameter vector, and a CGF object.
 #'
 #' @param tvec A numeric vector of t-values.
