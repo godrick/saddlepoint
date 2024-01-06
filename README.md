@@ -12,4 +12,10 @@ The `saddlepoint` package (v0.9.0) provides tools for working with Cumulant Gene
 # Install the development version from GitHub:
 # install.packages("devtools")
 devtools::install_github("godrick/saddlepoint")
+```
+
+
+### Basic Usage Example with Gamma Distribution
+
+This example demonstrates using the `saddlepoint` package to calculate the CGF, its first and second derivatives, and perform Maximum Likelihood Estimation (MLE) through saddlepoint approximation for a Gamma distribution.
 
