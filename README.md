@@ -19,3 +19,21 @@ devtools::install_github("godrick/saddlepoint")
 
 This example demonstrates using the `saddlepoint` package to calculate the CGF, its first and second derivatives, and obtaining MLEs using the saddlepoint likelihood for a Gamma distribution.
 
+#### CGF and Derivatives
+```R
+# CGF at t = 0, shape = 10, rate = 0.5
+K(tvec = 0, parameter.vector = c(10, 0.5), baseCGF = GammaCGF)
+
+# First derivative (mean)
+K1(tvec = 0, parameter.vector = c(10, 0.5), baseCGF = GammaCGF)
+
+# Second derivative (variance)
+K2(tvec = 0, parameter.vector = c(10, 0.5), baseCGF = GammaCGF)
+
+# Sample data from Gamma distribution
+x = rgamma(50, shape = 10, rate = 0.5)
+
+# MLE using saddlepoint approximation
+find.saddlepoint.MLE(observed.data = x, model.cgf = GammaCGF, starting.theta = c(1,1))$MLEs.theta
+
+
