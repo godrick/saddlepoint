@@ -32,7 +32,7 @@ public:
         //    res += cgfs[i].K(tvec.segment(current_start, vecLengths[i]), params...);
         //    current_start += vecLengths[i];
         //}
-        if (vecLengths.sum() != tvec.size()) throw std::invalid_argument("Mismatch between vector length and data size in ConcatenationCGF");
+        // if (vecLengths.sum() != tvec.size()) throw std::invalid_argument("Mismatch between vector length and data size in ConcatenationCGF");
         Eigen::Index current_start = 0, i = 0;
         for(auto it = cgfs.begin(); it != cgfs.end(); ++it, ++i) {
             res += it->K(tvec.segment(current_start, vecLengths[i]), params...);
@@ -87,7 +87,7 @@ public:
     template <class t_vector_type, class v1_type, class v2_type, class v3_type, class v4_type, class... ParamTypes>
     auto K4operator(const t_vector_type& tvec, const v1_type& v1, const v2_type& v2, const v3_type& v3, const v4_type& v4,
                     const ParamTypes&... params) const {
-        typedef decltype(cgfs.begin()->K4operator(tvec.segment(0, vecLengths[0]), v1.segment(0, vecLengths[0]), v2.segment(0, vecLengths[0]), 
+        typedef decltype(cgfs.begin()->K4operator(tvec.segment(0, vecLengths[0]), v1.segment(0, vecLengths[0]), v2.segment(0, vecLengths[0]),
                                     v3.segment(0, vecLengths[0]), v4.segment(0, vecLengths[0]), params...)) scalar_type;
         scalar_type res = 0;
 
@@ -98,6 +98,19 @@ public:
                                   v2.segment(current_start, vecLengths[i]),
                                   v3.segment(current_start, vecLengths[i]),
                                   v4.segment(current_start, vecLengths[i]), params...);
+            current_start += vecLengths[i];
+        }
+        return res;
+    }
+
+    template <class t_vector_type, class... ParamTypes>
+    auto func_T(const t_vector_type& tvec, const ParamTypes&... params) const {
+        typedef decltype(cgfs.begin()->func_T(tvec.segment(0, vecLengths[0]), params...)) scalar_type;
+        scalar_type res = 0;
+
+        Eigen::Index current_start = 0, i = 0;
+        for(auto it = cgfs.begin(); it != cgfs.end(); ++it, ++i) {
+            res += it->func_T(tvec.segment(current_start, vecLengths[i]), params...);
             current_start += vecLengths[i];
         }
         return res;
