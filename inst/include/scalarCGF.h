@@ -123,9 +123,9 @@ public:
     }
     template <class t_vector_type, class... ParameterTypes>
     auto func_T_vectorised_iid(const t_vector_type& tvec, const ParameterTypes&... params) const {
-        t_vector_type k2val = static_cast<const ScalarVectorisedIID*>(this)->K2_vectorised_iid(tvec, params...);
-        t_vector_type k2sq_val = (k2val.array() * k2val.array()).matrix();
-        t_vector_type k3val = static_cast<const ScalarVectorisedIID*>(this)->K3_vectorised_iid(tvec, params...);
+        auto k2val = static_cast<const ScalarVectorisedIID*>(this)->K2_vectorised_iid(tvec, params...);
+        auto k2sq_val = (k2val.array() * k2val.array()).matrix();
+        auto k3val = static_cast<const ScalarVectorisedIID*>(this)->K3_vectorised_iid(tvec, params...);
         return (static_cast<const ScalarVectorisedIID*>(this)->K4_vectorised_iid(tvec, params...).array()/(8*k2sq_val.array()) - 5*k3val.array()*k3val.array()/(24*k2sq_val.array()*k2val.array())).eval();
     }
     template <class t_vector_type, class... ParameterTypes>
