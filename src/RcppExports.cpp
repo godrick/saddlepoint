@@ -71,14 +71,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // makeADFunK1
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunK1(vec tvec, vec theta, Rcpp::XPtr<parametric_submodelCGF> modelCGF);
+Rcpp::XPtr< CppAD::ADFun<double> > makeADFunK1(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<parametric_submodelCGF> >::type modelCGF(modelCGFSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunK1(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
@@ -96,14 +96,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // makeADFunNegll
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec, vec theta, Rcpp::XPtr<parametric_submodelCGF> modelCGF);
+Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<parametric_submodelCGF> >::type modelCGF(modelCGFSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
@@ -121,14 +121,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // makeADFunIneqConstraint
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunIneqConstraint(vec tvec, vec theta, Rcpp::XPtr<parametric_submodelCGF> modelCGF);
+Rcpp::XPtr< CppAD::ADFun<double> > makeADFunIneqConstraint(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunIneqConstraint(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<parametric_submodelCGF> >::type modelCGF(modelCGFSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunIneqConstraint(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
