@@ -159,9 +159,9 @@ public:
     auto vw1s = vw1.sum();
     auto vw2s = ( v.array()*w2.array() ).sum();
     auto vw3s = ( v.array()*w3.array() ).sum();
-    return (vw1*w2w3).sum()
-      - vw3s*( vw1*w3.array() ).sum() - vw2s*( vw1*w2.array() ).sum() - vw1s*( v.array()*w2w3 ).sum()
-      + 2*vw1s*vw2s*vw3s;
+    return N*((vw1*w2w3).sum()
+                - vw3s*( vw1*w2.array() ).sum() - vw2s*( vw1*w3.array() ).sum() - vw1s*( v.array()*w2w3 ).sum()
+                + 2*vw1s*vw2s*vw3s);
   }
   //-----------------------------------------------------------------------
   template <class t_vector_type, class w1_type, class w2_type, class w3_type, class w4_type, class N_type, class odds_vector_type>
@@ -190,10 +190,10 @@ public:
     auto vw34s = ( vw3*w4.array() ).sum();
     auto vw123 = ( w12*vw3 ).eval();
     
-    return (vw123*w4.array()).sum() - vw123.sum()*vw4s - (w12*vw4).sum()*vw3s - (w34*vw1).sum()*vw2s - (w34*vw2).sum()*vw1s
+    return N*((vw123*w4.array()).sum() - vw123.sum()*vw4s - (w12*vw4).sum()*vw3s - (w34*vw1).sum()*vw2s - (w34*vw2).sum()*vw1s
     - vw12s*vw34s - vw13s*vw24s - vw14s*vw23s
-    + 2*(vw12s*vw3s*vw4s + vw13s*vw2s*vw4s + vw14s*vw2s*vw3s + vw23s*vw1s*vw4s + vw24s*vw1s*vw3s + vw34s*vw1s*vw3s)
-    - 6*vw1s*vw2s*vw3s*vw4s;
+    + 2*(vw12s*vw3s*vw4s + vw13s*vw2s*vw4s + vw14s*vw2s*vw3s + vw23s*vw1s*vw4s + vw24s*vw1s*vw3s + vw34s*vw1s*vw2s)
+    - 6*vw1s*vw2s*vw3s*vw4s);
   }
   //-----------------------------------------------------------------------
   template <class Q_matrix_type, class N_type, class v_vector_type>
