@@ -149,7 +149,9 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
         saddlepoint.ineq.constraint <- saddlepoint.ineq.constraint.function(a)
         
         # Add zeros to the jacobian for the tvec components
-        jacobian.with.tvec <- cbind(matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(saddlepoint.ineq.constraint$constraints)),
+        jacobian.with.tvec <- cbind(matrix(0, 
+                                           nrow = nrow(user.ineq.constraint$jacobian), 
+                                           ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
         
         # Combine the constraints from both functions
