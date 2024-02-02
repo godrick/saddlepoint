@@ -684,232 +684,230 @@ Rcpp::XPtr<CGF_with_AD> make_iidReplicatesCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, 
 
 
 
-//// Codes on discrepancy
-// /**
-//  * Computes and returns the gradient of the function `funcT`.
-//  *
-//  * The purpose of `funcT` is to assist with the computation of discrepancies
-//  * that arise from using the saddlepoint likelihood function instead of
-//  * the true likelihood function. `funcT` returns the first higher-order
-//  * correction term in the saddlepoint expansion, and its gradient is computed
-//  * as a function of the model parameters.
-//  *
-//  * The discrepancy approximation formula is:
-//  * \hat{\delta} = -(\nabla_{\theta}^2 \log \hat{L}(\hat{\theta}_\mathrm{spa};x))^{-1}
-//  *                \nabla_{\theta} T(\hat{\theta}_\mathrm{spa}, x)
-//  *
-//  * The matrix `negQB` represents the derivative of t_hat with respect to theta, computed as:
-//  * \nabla_\theta \hat{t}(\theta; x) = - K''(\hat{t}(\theta; x);\theta)^{-1} \nabla_\theta K'(\hat{t}(\theta; x);\theta)
-//  * We incorporate this derivative into the derivative of `funcT` w.r.t. `theta` because
-//  * `funcT` is a function of `theta` both directly and indirectly through `t_hat`.
-//  *
-//  * Therefore, this function calculates the gradient of T evaluated at saddlepoint MLEs.
-//  * This, combined with the inverse of the Hessian computed from the saddlepoint log-likelihood
-//  * function, provides an approximation for the discrepancy arising from using the saddlepoint
-//  * likelihood.
-//  *
-//  * @param theta Vector of model parameters.
-//  * @param tvec Vector of the supplied values.
-//  * @param negQB Matrix representing the inverse of the second cumulant of the saddlepoint and
-//  *              the derivative of t_hat w.r.t. `theta`.
-//  * @param modelCGF Pointer to a CGF.
-//  *
-//  * @return An Rcpp List containing:
-//  *         - `del.theta.t_hat`: The matrix negQB.
-//  *         - `funcT`: The function value computed at given `theta`.
-//  *         - `grad.theta.funcT`: The gradient of `funcT` with respect to `theta`.
-//  */
-Rcpp::List grad_theta_funcT(vec theta, vec tvec,
-                            mat negQB, Rcpp::XPtr<parametric_submodelCGF> modelCGF)
-{
-  a_vector a_theta = theta.cast<CppAD::AD<double>>();
-  CppAD::Independent(a_theta);
-
-  saddlepoint::atomic_funcs::our_atomic_class_for_supplied_values tvec_afun("tvec_atomic", tvec, negQB);
-  a_vector a_tvec(tvec.rows());
-  tvec_afun(a_theta, a_tvec);
-
-  a_vector a_funcT(1);
-  a_funcT(0) = modelCGF->func_T(a_tvec, a_theta);
-
-  // CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
-  // ADFun_ptr->Dependent(a_theta, a_funcT);
-
-  CppAD::ADFun<double> ad_fun;
-  ad_fun.Dependent(a_theta, a_funcT);
-
-  // Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ADFun_ptr->Forward(0, theta),
-  //                                        Rcpp::Named("grad.theta.funcT") = ADFun_ptr->Jacobian(theta)
-  //                                        // Rcpp::Named("grad.theta.t_hat") = negQB
-  //                                          );
-  // delete ADFun_ptr;
-
-  Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ad_fun.Forward(0, theta),
-                                         Rcpp::Named("grad.theta.funcT") = ad_fun.Jacobian(theta));
-
-  return result;
-}
-
-
-
-/**
- * Computes the function `funcT` and its gradient for the given input parameters.
- *
- * This function serves as an interface to calculate the first higher-order correction term
- * in the saddlepoint expansion and its gradient. The function also returns matrix `negQB` which represents the derivative of t_hat with respect to the model parameter theta, computed as:
- * grad_theta t_hat = - K2^{-1} grad_theta (K1)
- *  grad_theta t_hat is incorporated into the derivative of `funcT` w.r.t. `theta` because
- * `funcT` is a function of `theta` both directly and indirectly through `t_hat`.
- *
- * @param tvec Vector of saddlepoints.
- * @param theta Vector of model parameters.
- * @param modelCGF Pointer to CGF object.
- *
- * @return An Rcpp List containing:
- *         - `grad.theta.t_hat`: A matrix representing the gradient of t_hat with respect to theta.
- *         - `funcT`: The function value computed at given `theta`.
- *         - `grad.theta.funcT`: The gradient of `funcT` with respect to `theta`.
- */
-// [[Rcpp::export]]
-Rcpp::List computeFuncTGradient(vec tvec,
-                                vec theta,
-                                vec observations,
-                                Rcpp::XPtr<parametric_submodelCGF> modelCGF)
-{
-  a_vector a_theta = theta.cast<CppAD::AD<double>>();
-  a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
-
-  CppAD::Independent(a_theta);
-
-  // Computing the first cumulant
-  a_vector a_K1 = modelCGF->K1(a_tvec, a_theta);
-
-  // CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
-  // ADFun_ptr->Dependent(a_theta, a_K1);
-
-  CppAD::ADFun<double> ad_fun;
-  ad_fun.Dependent(a_theta, a_K1);
-
-  // vec temp_vec = ADFun_ptr->Jacobian(theta);
-  vec temp_vec = ad_fun.Jacobian(theta);
-  Eigen::Map<Eigen::MatrixXd> del_theta_K1_transpose(temp_vec.data(), theta.size(), tvec.size());   // Calculating and reshaping the Jacobian
-  mat del_theta_K1 = del_theta_K1_transpose.transpose();
-
-  mat negQB = (-1) * (modelCGF->K2(tvec, theta)).inverse() * del_theta_K1; // the derivative of t_hat w.r.t. theta
-
-  // grad_theta_funcT with the newly computed negQB and return the result
-  auto result = grad_theta_funcT(theta, tvec, negQB, modelCGF);
-
-  // delete ADFun_ptr;
-
-  return result;
-}
-
-
-
-
-// 
-// // Concatenation of Eigen - ADVectors
-// // For a_vector vec1, vec2, vec3; // concatADVector({vec1, vec2, vec3}) returns a combined a_vector
-// a_vector concatADVector(const std::vector<a_vector>& vecs) {
-//   int totalSize = 0;
-//   for (const auto& vec : vecs) { totalSize += vec.size();}
-//   a_vector result(totalSize);
-//   int currentIndex = 0;
-//   for (const auto& vec : vecs) {
-//     for (int i = 0; i < vec.size(); ++i) {
-//       result[currentIndex++] = vec[i];
-//     }
-//   }
-//   return result;
-// }
-// 
-// template <class ModelCGFType>
-// class K1ImplicitFunctionObject {
-// private:
-//   ModelCGFType* modelCGFInstance;
-// 
-// public:
-//   K1ImplicitFunctionObject(ModelCGFType* instance) : modelCGFInstance(instance) {}
-// 
-//   // the method solve() is not directly in Matrix class but rather on the decomposition classes in Eigen.
-//   // For dense-K2 something like K2.householderQr().solve(w) should work or even K2.llt().solve(w) for
-//   // positive definite K2
-//   template <class tvec_type, class theta_type, class w_type>
-//   auto dfdu_solve(const tvec_type& tvec, const theta_type& theta, const w_type& w) {
-//     Eigen::VectorXd tvec_converted = tvec;
-//     Eigen::VectorXd theta_converted = theta;
-//     return modelCGFInstance->K2(tvec_converted, theta_converted).llt().solve(w).eval();
-//   }
-//   template <class tvec_type, class theta_type, class wT_type>
-//   auto dfdu_solve_row(const tvec_type& tvec, const theta_type& theta, const wT_type& wT) {
-//     //// tvec : const Eigen::Map<const Eigen::Matrix<double, -1, 1>, 0, Eigen::Stride<0, 0> >&
-//     //// this is diffrent from Eigen::VectorXd which K2 expects
-//     Eigen::VectorXd tvec_converted = tvec;
-//     Eigen::VectorXd theta_converted = theta;
-//     return modelCGFInstance->K2(tvec_converted, theta_converted).transpose().llt().solve(wT).eval();
-//   }
-// };
-// 
-// 
-// 
-// // This class acts as a callable interface to the provided CGF and the atomic_implicit_function class
-// // It captures the CGF and provides a function-like interface for executing operations in the CGF
-// template <class ModelCGFType>
-// class ImplicitAtomicFunctionCGFWrapper {
-// private:
-//   ModelCGFType* modelCGFInstance;
-//   atomic_implicit_function<K1ImplicitFunctionObject<CGF_with_AD>> aif;
-// 
-// public:
-//   ImplicitAtomicFunctionCGFWrapper(ModelCGFType* instance) : modelCGFInstance(instance), aif("K1Implicit_Saddlepoint", instance) {}
-// 
-//   a_vector operator()(const a_vector& a_tvec, const a_vector& a_x, const a_vector& a_theta) {
-//     a_vector a_c = modelCGFInstance->K1(a_tvec, a_theta) - a_x;
-// 
-//     a_vector a_input = concatADVector({a_tvec, a_theta, a_x, a_c});
-//     a_vector a_tvec_hat(a_tvec.size());
-//     aif(a_input, a_tvec_hat);
-// 
-//     return a_tvec_hat;
-//   }
-// };
-// 
-// 
-// 
-// 
-// 
-// 
-// // [[Rcpp::export]]
-// Rcpp::List computeFuncTGradient(vec tvec,
-//                                 vec theta,
-//                                 vec observations,
-//                                 Rcpp::XPtr<CGF_with_AD> modelCGF)
+// //// Codes on discrepancy
+// // /**
+// //  * Computes and returns the gradient of the function `funcT`.
+// //  *
+// //  * The purpose of `funcT` is to assist with the computation of discrepancies
+// //  * that arise from using the saddlepoint likelihood function instead of
+// //  * the true likelihood function. `funcT` returns the first higher-order
+// //  * correction term in the saddlepoint expansion, and its gradient is computed
+// //  * as a function of the model parameters.
+// //  *
+// //  * The discrepancy approximation formula is:
+// //  * \hat{\delta} = -(\nabla_{\theta}^2 \log \hat{L}(\hat{\theta}_\mathrm{spa};x))^{-1}
+// //  *                \nabla_{\theta} T(\hat{\theta}_\mathrm{spa}, x)
+// //  *
+// //  * The matrix `negQB` represents the derivative of t_hat with respect to theta, computed as:
+// //  * \nabla_\theta \hat{t}(\theta; x) = - K''(\hat{t}(\theta; x);\theta)^{-1} \nabla_\theta K'(\hat{t}(\theta; x);\theta)
+// //  * We incorporate this derivative into the derivative of `funcT` w.r.t. `theta` because
+// //  * `funcT` is a function of `theta` both directly and indirectly through `t_hat`.
+// //  *
+// //  * Therefore, this function calculates the gradient of T evaluated at saddlepoint MLEs.
+// //  * This, combined with the inverse of the Hessian computed from the saddlepoint log-likelihood
+// //  * function, provides an approximation for the discrepancy arising from using the saddlepoint
+// //  * likelihood.
+// //  *
+// //  * @param theta Vector of model parameters.
+// //  * @param tvec Vector of the supplied values.
+// //  * @param negQB Matrix representing the inverse of the second cumulant of the saddlepoint and
+// //  *              the derivative of t_hat w.r.t. `theta`.
+// //  * @param modelCGF Pointer to a CGF.
+// //  *
+// //  * @return An Rcpp List containing:
+// //  *         - `del.theta.t_hat`: The matrix negQB.
+// //  *         - `funcT`: The function value computed at given `theta`.
+// //  *         - `grad.theta.funcT`: The gradient of `funcT` with respect to `theta`.
+// //  */
+// Rcpp::List grad_theta_funcT(vec theta, vec tvec,
+//                             mat negQB, Rcpp::XPtr<parametric_submodelCGF> modelCGF)
 // {
 //   a_vector a_theta = theta.cast<CppAD::AD<double>>();
-//   a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
-//   a_vector a_x = observations.cast<CppAD::AD<double>>();
-// 
-//   // Create an instance of the ImplicitAtomicFunctionCGFWrapper using the provided modelCGF
-//   ImplicitAtomicFunctionCGFWrapper<CGF_with_AD> implicit_func_cgfWrapper(modelCGF);
-// 
 //   CppAD::Independent(a_theta);
 // 
-//   // Use the cgfWrapper object to compute a_tvec_hat
-//   a_vector a_tvec_hat = implicit_func_cgfWrapper(a_tvec, a_x, a_theta);
+//   saddlepoint::atomic_funcs::our_atomic_class_for_supplied_values tvec_afun("tvec_atomic", tvec, negQB);
+//   a_vector a_tvec(tvec.rows());
+//   tvec_afun(a_theta, a_tvec);
 // 
 //   a_vector a_funcT(1);
-//   a_funcT(0) = modelCGF->func_T(a_tvec_hat, a_theta);
+//   a_funcT(0) = modelCGF->func_T(a_tvec, a_theta);
+// 
+//   // CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
+//   // ADFun_ptr->Dependent(a_theta, a_funcT);
 // 
 //   CppAD::ADFun<double> ad_fun;
 //   ad_fun.Dependent(a_theta, a_funcT);
 // 
+//   // Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ADFun_ptr->Forward(0, theta),
+//   //                                        Rcpp::Named("grad.theta.funcT") = ADFun_ptr->Jacobian(theta)
+//   //                                        // Rcpp::Named("grad.theta.t_hat") = negQB
+//   //                                          );
+//   // delete ADFun_ptr;
+// 
 //   Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ad_fun.Forward(0, theta),
-//                                          Rcpp::Named("grad.theta.funcT") = ad_fun.Jacobian(theta)
-//                                            // Rcpp::Named("grad.theta.t_hat") = negQB,
-//   );
+//                                          Rcpp::Named("grad.theta.funcT") = ad_fun.Jacobian(theta));
 // 
 //   return result;
 // }
+// 
+// 
+// 
+// /**
+//  * Computes the function `funcT` and its gradient for the given input parameters.
+//  *
+//  * This function serves as an interface to calculate the first higher-order correction term
+//  * in the saddlepoint expansion and its gradient. The function also returns matrix `negQB` which represents the derivative of t_hat with respect to the model parameter theta, computed as:
+//  * grad_theta t_hat = - K2^{-1} grad_theta (K1)
+//  *  grad_theta t_hat is incorporated into the derivative of `funcT` w.r.t. `theta` because
+//  * `funcT` is a function of `theta` both directly and indirectly through `t_hat`.
+//  *
+//  * @param tvec Vector of saddlepoints.
+//  * @param theta Vector of model parameters.
+//  * @param modelCGF Pointer to CGF object.
+//  *
+//  * @return An Rcpp List containing:
+//  *         - `grad.theta.t_hat`: A matrix representing the gradient of t_hat with respect to theta.
+//  *         - `funcT`: The function value computed at given `theta`.
+//  *         - `grad.theta.funcT`: The gradient of `funcT` with respect to `theta`.
+//  */
+// // [[Rcpp::export]]
+// Rcpp::List computeFuncTGradient(vec tvec,
+//                                 vec theta,
+//                                 vec observations,
+//                                 Rcpp::XPtr<parametric_submodelCGF> modelCGF)
+// {
+//   a_vector a_theta = theta.cast<CppAD::AD<double>>();
+//   a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
+// 
+//   CppAD::Independent(a_theta);
+// 
+//   // Computing the first cumulant
+//   a_vector a_K1 = modelCGF->K1(a_tvec, a_theta);
+// 
+//   // CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
+//   // ADFun_ptr->Dependent(a_theta, a_K1);
+// 
+//   CppAD::ADFun<double> ad_fun;
+//   ad_fun.Dependent(a_theta, a_K1);
+// 
+//   // vec temp_vec = ADFun_ptr->Jacobian(theta);
+//   vec temp_vec = ad_fun.Jacobian(theta);
+//   Eigen::Map<Eigen::MatrixXd> del_theta_K1_transpose(temp_vec.data(), theta.size(), tvec.size());   // Calculating and reshaping the Jacobian
+//   mat del_theta_K1 = del_theta_K1_transpose.transpose();
+// 
+//   mat negQB = (-1) * (modelCGF->K2(tvec, theta)).inverse() * del_theta_K1; // the derivative of t_hat w.r.t. theta
+// 
+//   // grad_theta_funcT with the newly computed negQB and return the result
+//   auto result = grad_theta_funcT(theta, tvec, negQB, modelCGF);
+// 
+//   // delete ADFun_ptr;
+// 
+//   return result;
+// }
+
+
+
+
+
+// Concatenation of Eigen - ADVectors
+// For a_vector vec1, vec2, vec3; // concatADVector({vec1, vec2, vec3}) returns a combined a_vector
+a_vector concatADVector(const std::vector<a_vector>& vecs) {
+  int totalSize = 0;
+  for (const auto& vec : vecs) { totalSize += vec.size();}
+  a_vector result(totalSize);
+  int currentIndex = 0;
+  for (const auto& vec : vecs) {
+    for (int i = 0; i < vec.size(); ++i) {
+      result[currentIndex++] = vec[i];
+    }
+  }
+  return result;
+}
+
+template <class ModelCGFType>
+class K1ImplicitFunctionObject {
+private:
+  ModelCGFType* modelCGFInstance;
+
+public:
+  K1ImplicitFunctionObject(ModelCGFType* instance) : modelCGFInstance(instance) {}
+
+  // the method solve() is not directly in Matrix class but rather on the decomposition classes in Eigen.
+  // For dense-K2 something like K2.householderQr().solve(w) should work or even K2.llt().solve(w) for
+  // positive definite K2
+  template <class tvec_type, class theta_type, class w_type>
+  auto dfdu_solve(const tvec_type& tvec, const theta_type& theta_and_x, const w_type& w) {
+    Eigen::VectorXd tvec_converted = tvec;
+    Eigen::VectorXd theta_and_x_converted = theta_and_x;
+    Eigen::VectorXd theta_converted = theta_and_x_converted.head(theta_and_x.size()-tvec.size());
+    return modelCGFInstance->K2(tvec_converted, theta_converted).llt().solve(w).eval();
+  }
+  template <class tvec_type, class theta_type, class wT_type>
+  auto dfdu_solve_row(const tvec_type& tvec, const theta_type& theta_and_x, const wT_type& wT) {
+    // Since K2 is symmetric dfdu_solve and dfdu_solve_row are the same
+    return dfdu_solve(tvec, theta_and_x, wT);
+  }
+};
+
+
+
+// This class acts as a callable interface to the provided CGF and the atomic_implicit_function class
+// It captures the CGF and provides a function-like interface for executing operations in the CGF
+template <class ModelCGFType>
+class ImplicitAtomicFunctionCGFWrapper {
+private:
+  ModelCGFType* modelCGFInstance;
+  atomic_implicit_function<K1ImplicitFunctionObject<CGF_with_AD>> aif;
+
+public:
+  ImplicitAtomicFunctionCGFWrapper(ModelCGFType* instance) : modelCGFInstance(instance), aif("K1Implicit_Saddlepoint", instance) {}
+
+  a_vector operator()(const a_vector& a_tvec, const a_vector& a_x, const a_vector& a_theta) {
+    a_vector a_c = modelCGFInstance->K1(a_tvec, a_theta) - a_x;
+
+    a_vector a_input = concatADVector({a_tvec, a_theta, a_x, a_c});
+    a_vector a_tvec_hat(a_tvec.size());
+    aif(a_input, a_tvec_hat);
+
+    return a_tvec_hat;
+  }
+};
+
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::List computeFuncTGradient(vec tvec,
+                                vec theta,
+                                vec observations,
+                                Rcpp::XPtr<CGF_with_AD> modelCGF)
+{
+  a_vector a_theta = theta.cast<CppAD::AD<double>>();
+  a_vector a_tvec = tvec.cast<CppAD::AD<double>>();
+  a_vector a_x = observations.cast<CppAD::AD<double>>();
+
+  // Create an instance of the ImplicitAtomicFunctionCGFWrapper using the provided modelCGF
+  ImplicitAtomicFunctionCGFWrapper<CGF_with_AD> implicit_func_cgfWrapper(modelCGF);
+
+  CppAD::Independent(a_theta);
+
+  // Use the cgfWrapper object to compute a_tvec_hat
+  a_vector a_tvec_hat = implicit_func_cgfWrapper(a_tvec, a_x, a_theta);
+
+  a_vector a_funcT(1);
+  a_funcT(0) = modelCGF->func_T(a_tvec_hat, a_theta);
+
+  CppAD::ADFun<double> ad_fun;
+  ad_fun.Dependent(a_theta, a_funcT);
+
+  Rcpp::List result = Rcpp::List::create(Rcpp::Named("funcT") = ad_fun.Forward(0, theta),
+                                         Rcpp::Named("grad.theta.funcT") = ad_fun.Jacobian(theta)
+                                           // Rcpp::Named("grad.theta.t_hat") = negQB,
+  );
+
+  return result;
+}
 
 

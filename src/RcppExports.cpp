@@ -528,7 +528,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // computeFuncTGradient
-Rcpp::List computeFuncTGradient(vec tvec, vec theta, vec observations, Rcpp::XPtr<parametric_submodelCGF> modelCGF);
+Rcpp::List computeFuncTGradient(vec tvec, vec theta, vec observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_computeFuncTGradient(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -536,7 +536,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<parametric_submodelCGF> >::type modelCGF(modelCGFSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(computeFuncTGradient(tvec, theta, observations, modelCGF));
     return rcpp_result_gen;
 END_RCPP
