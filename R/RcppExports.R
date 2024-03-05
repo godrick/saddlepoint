@@ -33,8 +33,12 @@ makeADFunNegll <- function(tvec, theta, modelCGF) {
     .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, modelCGF)
 }
 
-negll_with_gradient <- function(combined_vector, ADfun_negll) {
-    .Call(`_saddlepoint_negll_with_gradient`, combined_vector, ADfun_negll)
+makeADFunZerothLL <- function(tvec, theta, modelCGF) {
+    .Call(`_saddlepoint_makeADFunZerothLL`, tvec, theta, modelCGF)
+}
+
+ll_with_gradient <- function(combined_vector, ADfun_ll) {
+    .Call(`_saddlepoint_ll_with_gradient`, combined_vector, ADfun_ll)
 }
 
 makeADFunIneqConstraint <- function(tvec, theta, modelCGF) {

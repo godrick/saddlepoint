@@ -23,6 +23,7 @@ BinomialCGF <- NULL
 #'
 #' @examples
 #' \dontrun{
+#'   K(tvec = 0, parameter.vector = c(10, 0.5), baseCGF = GammaCGF)
 #' }
 #'
 #' @export

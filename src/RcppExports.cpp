@@ -108,15 +108,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// negll_with_gradient
-Rcpp::List negll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_negll);
-RcppExport SEXP _saddlepoint_negll_with_gradient(SEXP combined_vectorSEXP, SEXP ADfun_negllSEXP) {
+// makeADFunZerothLL
+Rcpp::XPtr< CppAD::ADFun<double> > makeADFunZerothLL(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
+RcppExport SEXP _saddlepoint_makeADFunZerothLL(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunZerothLL(tvec, theta, modelCGF));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ll_with_gradient
+Rcpp::List ll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_ll);
+RcppExport SEXP _saddlepoint_ll_with_gradient(SEXP combined_vectorSEXP, SEXP ADfun_llSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type combined_vector(combined_vectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr< CppAD::ADFun<double> > >::type ADfun_negll(ADfun_negllSEXP);
-    rcpp_result_gen = Rcpp::wrap(negll_with_gradient(combined_vector, ADfun_negll));
+    Rcpp::traits::input_parameter< Rcpp::XPtr< CppAD::ADFun<double> > >::type ADfun_ll(ADfun_llSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_with_gradient(combined_vector, ADfun_ll));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -551,7 +564,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
     {"_saddlepoint_K1_with_gradient", (DL_FUNC) &_saddlepoint_K1_with_gradient, 2},
     {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 3},
-    {"_saddlepoint_negll_with_gradient", (DL_FUNC) &_saddlepoint_negll_with_gradient, 2},
+    {"_saddlepoint_makeADFunZerothLL", (DL_FUNC) &_saddlepoint_makeADFunZerothLL, 3},
+    {"_saddlepoint_ll_with_gradient", (DL_FUNC) &_saddlepoint_ll_with_gradient, 2},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
     {"_saddlepoint_ineqConstraint_with_gradient", (DL_FUNC) &_saddlepoint_ineqConstraint_with_gradient, 2},
     {"_saddlepoint_make_BinomialCGF", (DL_FUNC) &_saddlepoint_make_BinomialCGF, 0},

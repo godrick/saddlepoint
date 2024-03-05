@@ -220,25 +220,62 @@ Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec,
   attach_attributes(ptr, modelCGF);
   return ptr;
 }
+
+// Zeroth order saddlepoint log-likelihood
+// [[Rcpp::export]]
+Rcpp::XPtr< CppAD::ADFun<double> > makeADFunZerothLL(vec tvec,
+                                                     vec theta,
+                                                     Rcpp::XPtr<CGF_with_AD> modelCGF)
+{
+  //---------
+  vec combined_vector(tvec.size() + theta.size());
+  combined_vector << tvec, theta;
+  a_vector a_combined_vector =  combined_vector.cast<CppAD::AD<double>>();
+  //---------
+  CppAD::Independent(a_combined_vector);
+  a_vector a_tvec = a_combined_vector.head(tvec.size());
+  a_vector a_distributional_pars = a_combined_vector.tail(theta.size());
+  //---------
+  a_vector a_zeroth_order_ll(1);
+  a_zeroth_order_ll(0) = modelCGF->tilting_exponent(a_tvec, a_distributional_pars);
+  
+  CppAD::ADFun<double>* ADFun_ptr = new CppAD::ADFun<double>;
+  ADFun_ptr->Dependent(a_combined_vector, a_zeroth_order_ll);
+  
+  Rcpp::XPtr< CppAD::ADFun<double> > ptr(ADFun_ptr);
+  attach_attributes(ptr, modelCGF);
+  return ptr;
+}
+
 /*
- //' Compute negative log-likelihood and its gradient
+ //' Compute log-likelihood and its gradient
  //'
- //' This function computes the negative log-likelihood function and its gradient for a given combined vector of `tvec` and `theta`.
+ //' This function computes the log-likelihood function and its gradient for a given combined vector of `tvec` and `theta`.
  //'
  //' This function is primarily intended for internal use.
  //'
  //' @param combined_vector A numeric vector of `tvec` and `theta` in that order.
- //' @param ADfun_negll An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunNegll()`-R function.
+ //' @param ADfun_ll An `XPtr` to a `CppAD::ADFun<double>` object, typically the result of the `make.ADFunNegll()`-R function.
  //'
- //' @return A list with two elements: `objective`, the value of the negative log-likelihood function, and `gradient`, the gradient of the function.
+ //' @return A list with two elements: `objective`, the value of the log-likelihood function, and `gradient`, the gradient of the function.
  //' @keywords internal
  */
 // [[Rcpp::export]]
-Rcpp::List negll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_negll)
+Rcpp::List ll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_ll)
 {
-  return Rcpp::List::create(Rcpp::Named("objective") = ADfun_negll->Forward(0, combined_vector),
-                            Rcpp::Named("gradient") = ADfun_negll->Jacobian(combined_vector));
+  return Rcpp::List::create(Rcpp::Named("objective") = ADfun_ll->Forward(0, combined_vector),
+                            Rcpp::Named("gradient") = ADfun_ll->Jacobian(combined_vector));
 }
+
+
+
+
+
+
+
+
+
+
 /*
  //' Create an ADFun Object for inequality constraint
  //'

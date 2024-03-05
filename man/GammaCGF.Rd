@@ -15,6 +15,7 @@ A CGF object based on the Gamma distribution.
 }
 \examples{
 \dontrun{
+  K(tvec = 0, parameter.vector = c(10, 0.5), baseCGF = GammaCGF)
 }
 
 }

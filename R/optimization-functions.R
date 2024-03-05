@@ -15,12 +15,46 @@
 #' @export
 get.saddlepoint.nll.function <- function(tvec, theta, model.cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
-  ADfun.negll = make.ADFunNegll(tvec = tvec, theta = theta, ModelCGF = model.cgf)
+  # ADfun.negll = make.ADFunNegll(tvec = tvec, theta = theta, ModelCGF = model.cgf)
+  ADfun.negll = makeADFunNegll(tvec = tvec, theta = theta, modelCGF = model.cgf)
   
   saddlepoint.nll = function(a){
-    negll_with_gradient(combined_vector = a, ADfun_negll = ADfun.negll)
+    ll_with_gradient(combined_vector = a, ADfun_ll = ADfun.negll)
   }
 }
+
+
+
+
+#' @title Create a Zeroth order saddlepoint negative log-likelihood function
+#' @description This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
+#' @param tvec A numeric vector.
+#' @param theta A numeric vector.
+#' @param model.cgf An object of class 'CGF'.
+#' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
+#  the gradient of the function with respect to both \code{tvec} and \code{theta}.
+#' 
+#' @examples
+#' \dontrun{
+#'   TO DO: write a working example
+#' }
+#' 
+#' @export
+get.zeroth.saddlepoint.ll.function <- function(tvec, theta, model.cgf){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
+  ADfun.ll = makeADFunZerothLL(tvec = tvec, theta = theta, modelCGF = model.cgf)
+  
+  zeroth.saddlepoint.ll = function(a){
+    ll_with_gradient(combined_vector = a, ADfun_ll = ADfun.ll)
+  }
+}
+
+
+
+
+
+
+
 
 #' @title Create saddlepoint equality constraint function
 #'
