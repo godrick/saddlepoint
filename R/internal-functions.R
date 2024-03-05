@@ -50,25 +50,25 @@ make.ADFunK1 <- function(tvec, theta, ModelCGF){
 }
 
 
-#' @title Create CppAD::ADfun Object Pointer for saddlepoint negative log-likelihood
-#' @description This internal function creates a CppAD::ADFun object pointer for the saddlepoint negative log-likelihood.
-#' from where we can extract the negative log-likelihood value and gradient with respect to both 'tvec' and 'theta'.
-#'
-#' @param tvec (A numeric vector.) In estimation, the length of 'tvec' should match the number of observations.
-#' @param theta (A numeric vector.) The length of 'theta' should match the number of parameters of interest in the model.
-#' @param ModelCGF A CGF object formulated as a function of 'theta' using any of the adaptor creating functions or model-based CGFs.
-#'
-#' @return An 'externalptr' which is internally a CppAD::ADFun object pointer for the saddlepoint negative log-likelihood.
-#'
-#' @keywords internal
-#' @noRd
-#'
-#' @seealso \code{\link{adaptor}}
-#'
-#' @examples
-#' \dontrun{
-#' # ...
-#' }
+# @title Create CppAD::ADfun Object Pointer for saddlepoint negative log-likelihood
+# @description This internal function creates a CppAD::ADFun object pointer for the saddlepoint negative log-likelihood.
+# from where we can extract the negative log-likelihood value and gradient with respect to both 'tvec' and 'theta'.
+# 
+# @param tvec (A numeric vector.) In estimation, the length of 'tvec' should match the number of observations.
+# @param theta (A numeric vector.) The length of 'theta' should match the number of parameters of interest in the model.
+# @param ModelCGF A CGF object formulated as a function of 'theta' using any of the adaptor creating functions or model-based CGFs.
+# 
+#@return An 'externalptr' which is internally a CppAD::ADFun object pointer for the saddlepoint negative log-likelihood.
+# 
+# @keywords internal
+# @noRd
+# 
+# @seealso \code{\link{adaptor}}
+# 
+# @examples
+# \dontrun{
+# # ...
+# }
 # make.ADFunNegll <- function(tvec, theta, ModelCGF){
 #   if (!is.numeric(tvec) || !is.numeric(theta)) stop("tvec and theta must be numeric vectors")
 #   if (!is(ModelCGF, "CGF")) stop("'ModelCGF' is not defined for ", class(ModelCGF))
@@ -82,11 +82,11 @@ make.ADFunK1 <- function(tvec, theta, ModelCGF){
 #   # Call internal function
 #   makeADFunNegll(tvec = tvec, theta = theta, modelCGF = ModelCGF)
 # }
-make.ADFunNegll <- function(tvec, theta, ModelCGF){
-  if (!is.numeric(tvec) || !is.numeric(theta)) stop("tvec and theta must be numeric vectors")
-  if (!is(ModelCGF, "CGF")) stop("'ModelCGF' is not defined for ", class(ModelCGF))
-  makeADFunNegll(tvec = tvec, theta = theta, modelCGF = ModelCGF)
-}
+# make.ADFunNegll <- function(tvec, theta, ModelCGF){
+#   if (!is.numeric(tvec) || !is.numeric(theta)) stop("tvec and theta must be numeric vectors")
+#   if (!is(ModelCGF, "CGF")) stop("'ModelCGF' is not defined for ", class(ModelCGF))
+#   makeADFunNegll(tvec = tvec, theta = theta, modelCGF = ModelCGF)
+# }
 
 #' @title Create CppAD::ADfun Object Pointer for Inequality Constraints
 #' @description This internal function creates a CppAD::ADFun object pointer for the saddlepoint-based inequalities/constraints on 'tvec' that determine the validity of the 'ModelCGF'.
