@@ -4,7 +4,7 @@
 
 The `saddlepoint` package (v0.9.0) provides tools for working with Cumulant Generating Functions (CGF) in statistical modeling, focusing on saddlepoint approximation methods. It's designed to automate computation of CGFs, even composite random variables. For parameter estimations using saddlepoint likelihood, automatic differentiation tool is used for accurate gradient-based optimizations.
 
-
+**Notice:** This version is under active development. Significant changes to features and functionality are expected.
 
 ## Installation
 
