@@ -2,33 +2,61 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{BinomialModelCGF}
 \alias{BinomialModelCGF}
-\title{BinomialModelCGF}
+\title{BinomialCGF with flexible parameterization}
 \usage{
 BinomialModelCGF(n, prob)
 }
 \arguments{
-\item{n}{An object of class 'adaptor', representing the parameter n in a Binomial distribution.}
+\item{n}{adaptor or function representing the number of trials. Automatically converted
+to an adaptor if provided as a function.}
 
-\item{prob}{An object of class 'adaptor', representing the probability parameter in a Binomial distribution.}
+\item{prob}{adaptor or function representing the probability parameter. Automatically converted
+to an adaptor if provided as a function.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object.
 }
 \description{
-Constructs a CGF for the Binomial distribution with flexible parameter specifications using adaptors. The adaptors offer multiple methods to specify parameters:
+Constructs a CGF object for the binomial distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic parameter adjustments in three ways:
 \enumerate{
-\item Using indices from an external parameter vector (\code{\link{adaptorUsingIndices}}).
-\item Setting fixed values that won't change during model computations (\code{\link{adaptorUsingFixedParam}}).
-\item Employing R functions for dynamic computation of parameters (\code{\link{adaptorUsingRFunctions}}).
+\item R functions for dynamically computing parameters.
+\item adaptor objects using indices to specify parameters (\code{\link{indices_adaptor}}).
+\item adaptor objects that set fixed values (\code{\link{fixed_parameter_adaptor}}).
+For static parameter values, it is recommended to use \code{fixed_parameter_adaptor}.
 }
-
-This adaptability facilitates model constructions where specific parameters might be varied during computations while keeping others constant.
 }
 \examples{
 \dontrun{
-  # Using adaptorUsingFixedParam for n and adaptorUsingIndices for prob
-  cgf = BinomialModelCGF(n = adaptorUsingFixedParam(10), prob = adaptorUsingIndices(1))
-  # Compute CGF with: K(tvec = ..., parameter.vector = 0.5, baseCGF = cgf)
-}
+## Example using a fixed parameter for `n` and an index adaptor for `prob`
+# `fixed_parameter_adaptor` sets `n` to a constant value of 10
+n_adaptor <- fixed_parameter_adaptor(10)  
 
+# `indices_adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
+# For example, if the parameter vector at runtime is c(0.5), then `indices_adaptor(1)` will use the first element.
+prob_adaptor <- indices_adaptor(1)  
+
+# Create the CGF object with these adaptors
+cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)
+
+# Compute the first derivative of the CGF at tvec = 0, assuming the actual value of `prob` is 0.2
+cgf$K1(tvec = 0, parameter_vector = 0.2)
+
+## Example using a fixed parameter for `n` and a function for `prob`
+# Define a function for `prob` that extracts the third element from a given vector
+# This assumes that the parameter vector passed to the function will always have at least three elements
+prob_function <- function(x) x[3] # returns the third element, which is expected to be the probability
+
+# Create the CGF object
+cgf1 <- BinomialModelCGF(n = n_adaptor, prob = prob_function)
+
+# Example usage, assuming the parameter vector is supplied at runtime
+# For instance, the parameter vector might be supplied during a calculation call
+example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability of success
+cgf1$K1(tvec = 0, parameter_vector = example_params)
+
+}
+}
+\seealso{
+\code{\link{BinomialCGF}}
 }

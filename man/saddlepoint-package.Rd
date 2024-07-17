@@ -8,4 +8,14 @@
 \description{
 This package provides a comprehensive framework for performing operations on Cumulant Generating Functions (CGF) and efficiently computing saddlepoint approximation-related functions in statistical modeling. It enables users to manage various operations on random variables through their CGFs and to compute saddlepoint-based maximum likelihood estimates. Additionally, the package effectively handles constraints in optimization problems and offers integration with C++ for accurate and efficient gradient computations. Its design allows for extensibility, accommodating user-defined CGFs and operations. This package is particularly useful for statisticians and data scientists who work with random variables whose probability distribution functions are computationally intractable. It streamlines the process of handling these variables, making the analysis more accessible and manageable.
 }
+\author{
+\strong{Maintainer}: Godrick Oketch \email{goke316@aucklanduni.ac.nz}
+
+Authors:
+\itemize{
+  \item Jesse Goodman
+  \item Rachel Fewster
+}
+
+}
 \keyword{internal}

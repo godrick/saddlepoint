@@ -7,7 +7,7 @@
 compute.std.error(
   observed.data,
   combined.estimates,
-  model.cgf,
+  cgf,
   objective.function,
   lb.tvec = rep(-Inf, times = length(observed.data)),
   ub.tvec = rep(Inf, times = length(observed.data)),
@@ -15,13 +15,13 @@ compute.std.error(
 )
 }
 \arguments{
-\item{observed.data}{A numeric vector of observed data}
+\item{observed.data}{A numeric vector of observed data//TO DO: this is for saddlepoint component, if we build negll in components (corresponding to what the cgf expects)//}
 
 \item{combined.estimates}{TO DO A numeric vector of combined estimated parameters}
 
-\item{model.cgf}{A CGF object}
+\item{cgf}{A CGF object}
 
-\item{objective.function}{A function that defines the objective to be minimized...TO DO}
+\item{objective.function}{A function that defines the objective to be minimized...TO DO: this is the complete negll}
 
 \item{lb.tvec}{A numeric vector specifying the lower bounds for tvec (default: -Inf)}
 

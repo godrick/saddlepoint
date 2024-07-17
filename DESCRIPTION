@@ -1,10 +1,15 @@
 Package: saddlepoint
 Title: Saddlepoint Methods with CGF Operations
 Version: 0.9.0
-Author: Author One [aut],
-        Author Two [aut],
-        Author Three [aut, cre]
-Maintainer: Author Three <author3-email@somewhere.net>
+Date: 2024-07-05
+Authors@R: c(
+    person("Godrick", "Oketch", role = c("aut", "cre"), email = "goke316@aucklanduni.ac.nz"),
+    person("Jesse", "Goodman", role = c("aut")),
+    person("Rachel", "Fewster", role = c("aut")))
+Maintainer: Godrick Oketch <goke316@aucklanduni.ac.nz>
+Author: Godrick Oketch [aut, cre],
+    Jesse Goodman [aut],
+    Rachel Fewster [aut]
 Description: This package provides a comprehensive framework for performing operations 
     on Cumulant Generating Functions (CGF) and efficiently computing saddlepoint 
     approximation-related functions in statistical modeling. It enables users to 
@@ -19,13 +24,16 @@ Description: This package provides a comprehensive framework for performing oper
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Imports: 
     methods,
     Rcpp,
     RcppEigen,
     numDeriv,
-    nloptr
+    nloptr,
+    RTMB
 LinkingTo: 
     Rcpp,
-    RcppEigen
+    RcppEigen,
+    RTMB,
+    TMB

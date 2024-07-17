@@ -1,4 +1,7 @@
-^\.gitignore$
-^\.Rhistory$
+^\.Rhistory
+^\.git
+^\.gitignore
+^\.Rproj.user
+^\..Rcheck
 ^.*\.Rproj$
 ^\.Rproj\.user$

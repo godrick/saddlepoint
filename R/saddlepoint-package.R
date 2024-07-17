@@ -2,7 +2,7 @@
 "_PACKAGE"
 
 ## usethis namespace: start
-#' @importFrom Rcpp sourceCpp
+#' @import RTMB
 #' @useDynLib saddlepoint, .registration = TRUE
 ## usethis namespace: end
 NULL

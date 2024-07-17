@@ -10,8 +10,6 @@
 #include "cgf_from_scalarCGF.h"
 #include "scalarCGF.h"
 
-using CppAD::pow;
-using std::pow;
 
 namespace saddlepoint {
 namespace CGFs_via_templates {

@@ -13,26 +13,13 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // makeAdaptorUsingRfunctions
-Rcpp::XPtr<Adaptor> makeAdaptorUsingRfunctions(Rcpp::Function fn, Rcpp::Function grad_fn);
-RcppExport SEXP _saddlepoint_makeAdaptorUsingRfunctions(SEXP fnSEXP, SEXP grad_fnSEXP) {
+Rcpp::XPtr<Adaptor> makeAdaptorUsingRfunctions(Rcpp::Function r_function);
+RcppExport SEXP _saddlepoint_makeAdaptorUsingRfunctions(SEXP r_functionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::Function >::type fn(fnSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Function >::type grad_fn(grad_fnSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeAdaptorUsingRfunctions(fn, grad_fn));
-    return rcpp_result_gen;
-END_RCPP
-}
-// makeSubvectorAdaptor
-Rcpp::XPtr<Adaptor> makeSubvectorAdaptor(Eigen::Index pos, Eigen::Index len);
-RcppExport SEXP _saddlepoint_makeSubvectorAdaptor(SEXP posSEXP, SEXP lenSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Index >::type pos(posSEXP);
-    Rcpp::traits::input_parameter< Eigen::Index >::type len(lenSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeSubvectorAdaptor(pos, len));
+    Rcpp::traits::input_parameter< Rcpp::Function >::type r_function(r_functionSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeAdaptorUsingRfunctions(r_function));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -58,103 +45,82 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// adapt_CGF
-Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> base_cgf, Rcpp::XPtr<Adaptor> adaptor);
-RcppExport SEXP _saddlepoint_adapt_CGF(SEXP base_cgfSEXP, SEXP adaptorSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type adaptor(adaptorSEXP);
-    rcpp_result_gen = Rcpp::wrap(adapt_CGF(base_cgf, adaptor));
-    return rcpp_result_gen;
-END_RCPP
-}
 // makeADFunK1
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunK1(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunK1(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
 }
-// K1_with_gradient
-Rcpp::List K1_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfunK1);
-RcppExport SEXP _saddlepoint_K1_with_gradient(SEXP combined_vectorSEXP, SEXP ADfunK1SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type combined_vector(combined_vectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr< CppAD::ADFun<double> > >::type ADfunK1(ADfunK1SEXP);
-    rcpp_result_gen = Rcpp::wrap(K1_with_gradient(combined_vector, ADfunK1));
-    return rcpp_result_gen;
-END_RCPP
-}
 // makeADFunNegll
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunNegll(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
 }
-// makeADFunZerothLL
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunZerothLL(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_makeADFunZerothLL(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeADFunZerothLL(tvec, theta, modelCGF));
-    return rcpp_result_gen;
-END_RCPP
-}
-// ll_with_gradient
-Rcpp::List ll_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_ll);
-RcppExport SEXP _saddlepoint_ll_with_gradient(SEXP combined_vectorSEXP, SEXP ADfun_llSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type combined_vector(combined_vectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr< CppAD::ADFun<double> > >::type ADfun_ll(ADfun_llSEXP);
-    rcpp_result_gen = Rcpp::wrap(ll_with_gradient(combined_vector, ADfun_ll));
-    return rcpp_result_gen;
-END_RCPP
-}
 // makeADFunIneqConstraint
-Rcpp::XPtr< CppAD::ADFun<double> > makeADFunIneqConstraint(vec tvec, vec theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunIneqConstraint(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
     rcpp_result_gen = Rcpp::wrap(makeADFunIneqConstraint(tvec, theta, modelCGF));
     return rcpp_result_gen;
 END_RCPP
 }
-// ineqConstraint_with_gradient
-Rcpp::List ineqConstraint_with_gradient(vec combined_vector, Rcpp::XPtr< CppAD::ADFun<double> > ADfun_ineqConstraint);
-RcppExport SEXP _saddlepoint_ineqConstraint_with_gradient(SEXP combined_vectorSEXP, SEXP ADfun_ineqConstraintSEXP) {
+// computeCombinedGradient
+Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad::ADFun<>> adf);
+RcppExport SEXP _saddlepoint_computeCombinedGradient(SEXP combined_vectorSEXP, SEXP adfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type combined_vector(combined_vectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr< CppAD::ADFun<double> > >::type ADfun_ineqConstraint(ADfun_ineqConstraintSEXP);
-    rcpp_result_gen = Rcpp::wrap(ineqConstraint_with_gradient(combined_vector, ADfun_ineqConstraint));
+    Rcpp::traits::input_parameter< const vec& >::type combined_vector(combined_vectorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<TMBad::ADFun<>> >::type adf(adfSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeCombinedGradient(combined_vector, adf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// computeFuncT
+Rcpp::List computeFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
+RcppExport SEXP _saddlepoint_computeFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeFuncT(tvec, theta, observations, modelCGF));
+    return rcpp_result_gen;
+END_RCPP
+}
+// computeNegll
+Rcpp::List computeNegll(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
+RcppExport SEXP _saddlepoint_computeNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeNegll(tvec, theta, observations, modelCGF));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -165,16 +131,6 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(make_BinomialCGF());
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_BinomialNonIdenticalCGF
-Rcpp::XPtr<CGF_with_AD> make_BinomialNonIdenticalCGF();
-RcppExport SEXP _saddlepoint_make_BinomialNonIdenticalCGF() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(make_BinomialNonIdenticalCGF());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -200,16 +156,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// make_PoissonNonIdenticalCGF
-Rcpp::XPtr<CGF_with_AD> make_PoissonNonIdenticalCGF();
-RcppExport SEXP _saddlepoint_make_PoissonNonIdenticalCGF() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(make_PoissonNonIdenticalCGF());
-    return rcpp_result_gen;
-END_RCPP
-}
 // make_PoissonModelCGF
 Rcpp::XPtr<CGF_with_AD> make_PoissonModelCGF(Rcpp::XPtr<Adaptor> lambda_adaptor);
 RcppExport SEXP _saddlepoint_make_PoissonModelCGF(SEXP lambda_adaptorSEXP) {
@@ -228,16 +174,6 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(make_ExponentialCGF());
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_ExponentialNonIdenticalCGF
-Rcpp::XPtr<CGF_with_AD> make_ExponentialNonIdenticalCGF();
-RcppExport SEXP _saddlepoint_make_ExponentialNonIdenticalCGF() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(make_ExponentialNonIdenticalCGF());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -262,16 +198,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// make_GeometricNonIdenticalCGF
-Rcpp::XPtr<CGF_with_AD> make_GeometricNonIdenticalCGF();
-RcppExport SEXP _saddlepoint_make_GeometricNonIdenticalCGF() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(make_GeometricNonIdenticalCGF());
-    return rcpp_result_gen;
-END_RCPP
-}
 // make_GeometricModelCGF
 Rcpp::XPtr<CGF_with_AD> make_GeometricModelCGF(Rcpp::XPtr<Adaptor> p_adaptor);
 RcppExport SEXP _saddlepoint_make_GeometricModelCGF(SEXP p_adaptorSEXP) {
@@ -280,17 +206,6 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type p_adaptor(p_adaptorSEXP);
     rcpp_result_gen = Rcpp::wrap(make_GeometricModelCGF(p_adaptor));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_GeometricNonIdenticalModelCGF
-Rcpp::XPtr<CGF_with_AD> make_GeometricNonIdenticalModelCGF(Rcpp::XPtr<Adaptor> p_adaptor);
-RcppExport SEXP _saddlepoint_make_GeometricNonIdenticalModelCGF(SEXP p_adaptorSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type p_adaptor(p_adaptorSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_GeometricNonIdenticalModelCGF(p_adaptor));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -316,121 +231,87 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// make_MultinomialCGF
-Rcpp::XPtr<CGF_with_AD> make_MultinomialCGF();
-RcppExport SEXP _saddlepoint_make_MultinomialCGF() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(make_MultinomialCGF());
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_MultinomialModelCGF
-Rcpp::XPtr<CGF_with_AD> make_MultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> probVector_adaptor);
-RcppExport SEXP _saddlepoint_make_MultinomialModelCGF(SEXP n_adaptorSEXP, SEXP probVector_adaptorSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type n_adaptor(n_adaptorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type probVector_adaptor(probVector_adaptorSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_MultinomialModelCGF(n_adaptor, probVector_adaptor));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_SubunitaryMultinomialModelCGF
-Rcpp::XPtr<CGF_with_AD> make_SubunitaryMultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> probVector_adaptor);
-RcppExport SEXP _saddlepoint_make_SubunitaryMultinomialModelCGF(SEXP n_adaptorSEXP, SEXP probVector_adaptorSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type n_adaptor(n_adaptorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type probVector_adaptor(probVector_adaptorSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_SubunitaryMultinomialModelCGF(n_adaptor, probVector_adaptor));
-    return rcpp_result_gen;
-END_RCPP
-}
-// K
-double K(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_K(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// K_impl
+double K_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_K_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(K(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(K_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// K1
-vec K1(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_K1(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// K1_impl
+vec K1_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_K1_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(K1(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(K1_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// K2
-mat K2(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_K2(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// K2_impl
+mat K2_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_K2_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(K2(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(K2_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// ineq_constraint
-vec ineq_constraint(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_ineq_constraint(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// ineq_constraint_impl
+vec ineq_constraint_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_ineq_constraint_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(ineq_constraint(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(ineq_constraint_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// neg_ll
-double neg_ll(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_neg_ll(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// neg_ll_impl
+double neg_ll_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_neg_ll_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(neg_ll(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(neg_ll_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// func_T
-double func_T(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_func_T(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// func_T_impl
+double func_T_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_func_T_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(func_T(tvec, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(func_T_impl(tvec, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// K4operatorAABB
-double K4operatorAABB(vec tvec, mat a1, mat a2, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_K4operatorAABB(SEXP tvecSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// K4operatorAABB_impl
+double K4operatorAABB_impl(vec tvec, mat a1, mat a2, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_K4operatorAABB_impl(SEXP tvecSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -439,13 +320,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< mat >::type a2(a2SEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(K4operatorAABB(tvec, a1, a2, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(K4operatorAABB_impl(tvec, a1, a2, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// K3K3operatorAABBCC
-double K3K3operatorAABBCC(vec tvec, mat a1, mat a2, mat a3, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
-RcppExport SEXP _saddlepoint_K3K3operatorAABBCC(SEXP tvecSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP a3SEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
+// K3K3operatorAABBCC_impl
+double K3K3operatorAABBCC_impl(vec tvec, mat a1, mat a2, mat a3, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
+RcppExport SEXP _saddlepoint_K3K3operatorAABBCC_impl(SEXP tvecSEXP, SEXP a1SEXP, SEXP a2SEXP, SEXP a3SEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -455,153 +336,56 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< mat >::type a3(a3SEXP);
     Rcpp::traits::input_parameter< vec >::type parameter_vector(parameter_vectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(K3K3operatorAABBCC(tvec, a1, a2, a3, parameter_vector, base_cgf));
+    rcpp_result_gen = Rcpp::wrap(K3K3operatorAABBCC_impl(tvec, a1, a2, a3, parameter_vector, base_cgf));
     return rcpp_result_gen;
 END_RCPP
 }
-// make_sum_of_iidCGF
-Rcpp::XPtr<CGF_with_AD> make_sum_of_iidCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, double n);
-RcppExport SEXP _saddlepoint_make_sum_of_iidCGF(SEXP base_cgfSEXP, SEXP nSEXP) {
+// make_CustomVectorizedScalarCGF
+Rcpp::XPtr<CGF_with_AD> make_CustomVectorizedScalarCGF(Rcpp::Function Kfunc, Rcpp::Function K1func, Rcpp::Function K2func, Rcpp::Function K3func, Rcpp::Function K4func, Rcpp::Function ineq_constraint_func);
+RcppExport SEXP _saddlepoint_make_CustomVectorizedScalarCGF(SEXP KfuncSEXP, SEXP K1funcSEXP, SEXP K2funcSEXP, SEXP K3funcSEXP, SEXP K4funcSEXP, SEXP ineq_constraint_funcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    Rcpp::traits::input_parameter< double >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_sum_of_iidCGF(base_cgf, n));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_sum_of_independentCGF
-Rcpp::XPtr<CGF_with_AD> make_sum_of_independentCGF(Rcpp::List cgf_list);
-RcppExport SEXP _saddlepoint_make_sum_of_independentCGF(SEXP cgf_listSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type cgf_list(cgf_listSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_sum_of_independentCGF(cgf_list));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_ConcatenationCGF
-Rcpp::XPtr<CGF_with_AD> make_ConcatenationCGF(Rcpp::List cgf_length_list);
-RcppExport SEXP _saddlepoint_make_ConcatenationCGF(SEXP cgf_length_listSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type cgf_length_list(cgf_length_listSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_ConcatenationCGF(cgf_length_list));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_linearly_mappedCGF
-Rcpp::XPtr<CGF_with_AD> make_linearly_mappedCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, mat Amat);
-RcppExport SEXP _saddlepoint_make_linearly_mappedCGF(SEXP base_cgfSEXP, SEXP AmatSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    Rcpp::traits::input_parameter< mat >::type Amat(AmatSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_linearly_mappedCGF(base_cgf, Amat));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_randomly_stopped_sumCGF
-Rcpp::XPtr<CGF_with_AD> make_randomly_stopped_sumCGF(Rcpp::XPtr<CGF_with_AD> count_base_cgf, Rcpp::XPtr<CGF_with_AD> summand_base_cgf);
-RcppExport SEXP _saddlepoint_make_randomly_stopped_sumCGF(SEXP count_base_cgfSEXP, SEXP summand_base_cgfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type count_base_cgf(count_base_cgfSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type summand_base_cgf(summand_base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_randomly_stopped_sumCGF(count_base_cgf, summand_base_cgf));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_scalar_to_iidCGF
-Rcpp::XPtr<CGF_with_AD> make_scalar_to_iidCGF(Rcpp::XPtr<CGF_with_AD> scalar_base_cgf);
-RcppExport SEXP _saddlepoint_make_scalar_to_iidCGF(SEXP scalar_base_cgfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type scalar_base_cgf(scalar_base_cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_scalar_to_iidCGF(scalar_base_cgf));
-    return rcpp_result_gen;
-END_RCPP
-}
-// make_iidReplicatesCGF
-Rcpp::XPtr<CGF_with_AD> make_iidReplicatesCGF(Rcpp::XPtr<CGF_with_AD> base_cgf, double block_size);
-RcppExport SEXP _saddlepoint_make_iidReplicatesCGF(SEXP base_cgfSEXP, SEXP block_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type base_cgf(base_cgfSEXP);
-    Rcpp::traits::input_parameter< double >::type block_size(block_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_iidReplicatesCGF(base_cgf, block_size));
-    return rcpp_result_gen;
-END_RCPP
-}
-// computeFuncTGradient
-Rcpp::List computeFuncTGradient(vec tvec, vec theta, vec observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_computeFuncTGradient(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(computeFuncTGradient(tvec, theta, observations, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::Function >::type Kfunc(KfuncSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type K1func(K1funcSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type K2func(K2funcSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type K3func(K3funcSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type K4func(K4funcSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type ineq_constraint_func(ineq_constraint_funcSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_CustomVectorizedScalarCGF(Kfunc, K1func, K2func, K3func, K4func, ineq_constraint_func));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_saddlepoint_makeAdaptorUsingRfunctions", (DL_FUNC) &_saddlepoint_makeAdaptorUsingRfunctions, 2},
-    {"_saddlepoint_makeSubvectorAdaptor", (DL_FUNC) &_saddlepoint_makeSubvectorAdaptor, 2},
+    {"_saddlepoint_makeAdaptorUsingRfunctions", (DL_FUNC) &_saddlepoint_makeAdaptorUsingRfunctions, 1},
     {"_saddlepoint_makeVectorSubsetByIndicesAdaptor", (DL_FUNC) &_saddlepoint_makeVectorSubsetByIndicesAdaptor, 1},
     {"_saddlepoint_makeSavedVectorAdaptor", (DL_FUNC) &_saddlepoint_makeSavedVectorAdaptor, 1},
-    {"_saddlepoint_adapt_CGF", (DL_FUNC) &_saddlepoint_adapt_CGF, 2},
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
-    {"_saddlepoint_K1_with_gradient", (DL_FUNC) &_saddlepoint_K1_with_gradient, 2},
     {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 3},
-    {"_saddlepoint_makeADFunZerothLL", (DL_FUNC) &_saddlepoint_makeADFunZerothLL, 3},
-    {"_saddlepoint_ll_with_gradient", (DL_FUNC) &_saddlepoint_ll_with_gradient, 2},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
-    {"_saddlepoint_ineqConstraint_with_gradient", (DL_FUNC) &_saddlepoint_ineqConstraint_with_gradient, 2},
+    {"_saddlepoint_computeCombinedGradient", (DL_FUNC) &_saddlepoint_computeCombinedGradient, 2},
+    {"_saddlepoint_computeFuncT", (DL_FUNC) &_saddlepoint_computeFuncT, 4},
+    {"_saddlepoint_computeNegll", (DL_FUNC) &_saddlepoint_computeNegll, 4},
     {"_saddlepoint_make_BinomialCGF", (DL_FUNC) &_saddlepoint_make_BinomialCGF, 0},
-    {"_saddlepoint_make_BinomialNonIdenticalCGF", (DL_FUNC) &_saddlepoint_make_BinomialNonIdenticalCGF, 0},
     {"_saddlepoint_make_BinomialModelCGF", (DL_FUNC) &_saddlepoint_make_BinomialModelCGF, 2},
     {"_saddlepoint_make_PoissonCGF", (DL_FUNC) &_saddlepoint_make_PoissonCGF, 0},
-    {"_saddlepoint_make_PoissonNonIdenticalCGF", (DL_FUNC) &_saddlepoint_make_PoissonNonIdenticalCGF, 0},
     {"_saddlepoint_make_PoissonModelCGF", (DL_FUNC) &_saddlepoint_make_PoissonModelCGF, 1},
     {"_saddlepoint_make_ExponentialCGF", (DL_FUNC) &_saddlepoint_make_ExponentialCGF, 0},
-    {"_saddlepoint_make_ExponentialNonIdenticalCGF", (DL_FUNC) &_saddlepoint_make_ExponentialNonIdenticalCGF, 0},
     {"_saddlepoint_make_ExponentialModelCGF", (DL_FUNC) &_saddlepoint_make_ExponentialModelCGF, 1},
     {"_saddlepoint_make_GeometricCGF", (DL_FUNC) &_saddlepoint_make_GeometricCGF, 0},
-    {"_saddlepoint_make_GeometricNonIdenticalCGF", (DL_FUNC) &_saddlepoint_make_GeometricNonIdenticalCGF, 0},
     {"_saddlepoint_make_GeometricModelCGF", (DL_FUNC) &_saddlepoint_make_GeometricModelCGF, 1},
-    {"_saddlepoint_make_GeometricNonIdenticalModelCGF", (DL_FUNC) &_saddlepoint_make_GeometricNonIdenticalModelCGF, 1},
     {"_saddlepoint_make_GammaCGF", (DL_FUNC) &_saddlepoint_make_GammaCGF, 0},
     {"_saddlepoint_make_GammaModelCGF", (DL_FUNC) &_saddlepoint_make_GammaModelCGF, 2},
-    {"_saddlepoint_make_MultinomialCGF", (DL_FUNC) &_saddlepoint_make_MultinomialCGF, 0},
-    {"_saddlepoint_make_MultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_MultinomialModelCGF, 2},
-    {"_saddlepoint_make_SubunitaryMultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_SubunitaryMultinomialModelCGF, 2},
-    {"_saddlepoint_K", (DL_FUNC) &_saddlepoint_K, 3},
-    {"_saddlepoint_K1", (DL_FUNC) &_saddlepoint_K1, 3},
-    {"_saddlepoint_K2", (DL_FUNC) &_saddlepoint_K2, 3},
-    {"_saddlepoint_ineq_constraint", (DL_FUNC) &_saddlepoint_ineq_constraint, 3},
-    {"_saddlepoint_neg_ll", (DL_FUNC) &_saddlepoint_neg_ll, 3},
-    {"_saddlepoint_func_T", (DL_FUNC) &_saddlepoint_func_T, 3},
-    {"_saddlepoint_K4operatorAABB", (DL_FUNC) &_saddlepoint_K4operatorAABB, 5},
-    {"_saddlepoint_K3K3operatorAABBCC", (DL_FUNC) &_saddlepoint_K3K3operatorAABBCC, 6},
-    {"_saddlepoint_make_sum_of_iidCGF", (DL_FUNC) &_saddlepoint_make_sum_of_iidCGF, 2},
-    {"_saddlepoint_make_sum_of_independentCGF", (DL_FUNC) &_saddlepoint_make_sum_of_independentCGF, 1},
-    {"_saddlepoint_make_ConcatenationCGF", (DL_FUNC) &_saddlepoint_make_ConcatenationCGF, 1},
-    {"_saddlepoint_make_linearly_mappedCGF", (DL_FUNC) &_saddlepoint_make_linearly_mappedCGF, 2},
-    {"_saddlepoint_make_randomly_stopped_sumCGF", (DL_FUNC) &_saddlepoint_make_randomly_stopped_sumCGF, 2},
-    {"_saddlepoint_make_scalar_to_iidCGF", (DL_FUNC) &_saddlepoint_make_scalar_to_iidCGF, 1},
-    {"_saddlepoint_make_iidReplicatesCGF", (DL_FUNC) &_saddlepoint_make_iidReplicatesCGF, 2},
-    {"_saddlepoint_computeFuncTGradient", (DL_FUNC) &_saddlepoint_computeFuncTGradient, 4},
+    {"_saddlepoint_K_impl", (DL_FUNC) &_saddlepoint_K_impl, 3},
+    {"_saddlepoint_K1_impl", (DL_FUNC) &_saddlepoint_K1_impl, 3},
+    {"_saddlepoint_K2_impl", (DL_FUNC) &_saddlepoint_K2_impl, 3},
+    {"_saddlepoint_ineq_constraint_impl", (DL_FUNC) &_saddlepoint_ineq_constraint_impl, 3},
+    {"_saddlepoint_neg_ll_impl", (DL_FUNC) &_saddlepoint_neg_ll_impl, 3},
+    {"_saddlepoint_func_T_impl", (DL_FUNC) &_saddlepoint_func_T_impl, 3},
+    {"_saddlepoint_K4operatorAABB_impl", (DL_FUNC) &_saddlepoint_K4operatorAABB_impl, 5},
+    {"_saddlepoint_K3K3operatorAABBCC_impl", (DL_FUNC) &_saddlepoint_K3K3operatorAABBCC_impl, 6},
+    {"_saddlepoint_make_CustomVectorizedScalarCGF", (DL_FUNC) &_saddlepoint_make_CustomVectorizedScalarCGF, 6},
     {NULL, NULL, 0}
 };
 

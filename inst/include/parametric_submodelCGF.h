@@ -6,7 +6,6 @@
 #include "BaseWrapper.h"
 #include "FunctionObjectWrapper.h"
 #include "baseCGF.h"
-#include <cppad/cppad.hpp>
 // #include "saddlepoint_types.h"
 
 

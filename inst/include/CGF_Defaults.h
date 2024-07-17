@@ -6,7 +6,7 @@
 #include <cmath>
 #include <Eigen/Eigen>
 
-#include "atomic_funcs.h"
+// #include "saddlepoint_types.h"
 
 namespace saddlepoint {
 namespace CGFs_via_templates {
@@ -48,17 +48,9 @@ public:
   }
 
   template <class t_vector_type, class... ParameterTypes>
-  auto neg_ll(const t_vector_type& tvec, const ParameterTypes&... params) const
-    //        -> decltype(0.5 * log(static_cast<const BasicCGF*>(this)->K2(tvec, params...).determinant())
-    //            + 0.5*log(2*M_PI)*tvec.size() - tilting_exponent(tvec, params...))
-  {
-    //              typedef decltype(static_cast<const BasicCGF*>(this)->K2(tvec, params...).sum()) scalar_type;
-    //              Eigen::Matrix<scalar_type, -1, -1> K2_val = static_cast<const BasicCGF*>(this)->K2(tvec, params...);
-    //        return 0.5 * atomic_funcs::logdet(K2_val)
-    //            + 0.5*log(2*M_PI)*tvec.size() - tilting_exponent(tvec, params...);
-    //         typedef decltype(static_cast<const BasicCGF*>(this)->K2(tvec, params...).sum()) scalar_type;
-    //              Eigen::Matrix<scalar_type, -1, -1> K2_val = static_cast<const BasicCGF*>(this)->K2(tvec, params...);
-    return 0.5 * atomic_funcs::logdet(static_cast<const BasicCGF*>(this)->K2(tvec, params...))
+  auto neg_ll(const t_vector_type& tvec, const ParameterTypes&... params) const  {
+    typedef decltype(tvec.sum()) scalar_type;
+    return 0.5 * atomic::logdet(matrix<scalar_type>(static_cast<const BasicCGF*>(this)->K2(tvec, params...)))
     + 0.5*log(2*M_PI)*tvec.size() - tilting_exponent(tvec, params...);
   }
 
@@ -270,6 +262,47 @@ public:
     }
     return res;
   }
+//   template <class t_vector_type, class matrix_type, class d_vector_type, class... ParameterTypes>
+//   auto K3K3operatorABCABC_factored(const t_vector_type& tvec,
+//                                    const matrix_type& A1, const d_vector_type& d1,
+//                                    const matrix_type& A2, const d_vector_type& d2,
+//                                    const matrix_type& A3, const d_vector_type& d3,
+//                                    const ParameterTypes&... params) const
+//   {
+//     typedef decltype(d1.size()) index_type;
+//     index_type r1 = d1.size();
+//     index_type r2 = d2.size();
+//     index_type r3 = d3.size();
+//     
+//     typedef decltype(static_cast<const BasicCGF*>(this)->K3operator(tvec, A1.col(0), A2.col(0), A3.col(0), params...))
+//       scalar_type;
+//     
+//     // Initialize the global result
+//     scalar_type global_res = 0;
+//     
+// #pragma omp parallel
+// {
+//   // Create a local copy of res for each thread
+//   scalar_type local_res = 0;
+//   
+// #pragma omp for nowait // Distribute loop iterations without waiting at the end
+//   for(index_type m1 = 0; m1 < r1; ++m1) {
+//     for(index_type m2 = 0; m2 < r2; ++m2) {
+//       for(index_type m3 = 0; m3 < r3; ++m3) {
+//         auto square = [](scalar_type x) { return x*x; };
+//         local_res += d1(m1)*d2(m2)*d3(m3)*square(static_cast<const BasicCGF*>(this)->K3operator(tvec, A1.col(m1), A2.col(m2), A3.col(m3), params...));
+//       }
+//     }
+//   }
+//   
+//   // Safely add the result from this thread to the global result
+// #pragma omp critical
+//   global_res += local_res;
+// }
+// 
+// return global_res;
+//   }
+  
 
 }; // class CGF_Defaults
 

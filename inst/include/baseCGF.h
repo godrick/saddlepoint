@@ -16,7 +16,7 @@
 
 #include "needs_full_list_of_CGF_methods.h"
 
-#include "atomic_funcs.h"
+// #include "atomic_funcs.h"
 
 namespace saddlepoint {
 namespace CGFs_via_virtual_functions {
@@ -73,7 +73,7 @@ public:
         //---------------------
         scalar_type res = -tvec.transpose()*K1_val;
         res += K_val;
-        res -= (0.5 * (atomic_funcs::logdet(K2_val) + tvec.size()*log(2*M_PI)));
+        res -= (0.5 * (atomic::logdet(matrix<scalar_type>(K2_val)) + tvec.size()*log(2*M_PI)));
         return -res;
     }
 //-----------------------------------------------------------

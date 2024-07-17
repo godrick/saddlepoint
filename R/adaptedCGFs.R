@@ -1,194 +1,203 @@
-#' @title BinomialModelCGF
+
+validate_and_transform_adaptor <- function(obj) {
+  if (is.function(obj)) {
+    if (length(formals(obj)) != 1) {
+      stop("The function must have exactly one argument.")
+    }
+    return(makeAdaptorUsingRfunctions(obj))
+  }
+  if (!inherits(obj, "adaptor")) stop("Provided argument must be either a function or an object of type 'adaptor'.")
+  obj
+}
+
+
+#' @title BinomialCGF with flexible parameterization
 #'
 #' @description
-#' Constructs a CGF for the Binomial distribution with flexible parameter specifications using adaptors. The adaptors offer multiple methods to specify parameters:
-#' 1. Using indices from an external parameter vector (\code{\link{adaptorUsingIndices}}).
-#' 2. Setting fixed values that won't change during model computations (\code{\link{adaptorUsingFixedParam}}).
-#' 3. Employing R functions for dynamic computation of parameters (\code{\link{adaptorUsingRFunctions}}).
+#' Constructs a CGF object for the binomial distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic parameter adjustments in three ways: 
+#' 1. R functions for dynamically computing parameters.
+#' 2. adaptor objects using indices to specify parameters (\code{\link{indices_adaptor}}).
+#' 3. adaptor objects that set fixed values (\code{\link{fixed_parameter_adaptor}}).
+#' For static parameter values, it is recommended to use `fixed_parameter_adaptor`.
 #'
-#' This adaptability facilitates model constructions where specific parameters might be varied during computations while keeping others constant.
 #'
 #'
-#' @param n An object of class 'adaptor', representing the parameter n in a Binomial distribution.
-#' @param prob An object of class 'adaptor', representing the probability parameter in a Binomial distribution.
-#'
-#' @return An object of class 'CGF'.
+#' @param n adaptor or function representing the number of trials. Automatically converted
+#'          to an adaptor if provided as a function.
+#' @param prob adaptor or function representing the probability parameter. Automatically converted
+#'          to an adaptor if provided as a function.
+#' @return 'CGF' object.
 #'
 #' @export
+#' @seealso \code{\link{BinomialCGF}}
 #'
 #' @examples
 #' \dontrun{
-#'   # Using adaptorUsingFixedParam for n and adaptorUsingIndices for prob
-#'   cgf = BinomialModelCGF(n = adaptorUsingFixedParam(10), prob = adaptorUsingIndices(1))
-#'   # Compute CGF with: K(tvec = ..., parameter.vector = 0.5, baseCGF = cgf)
+#' ## Example using a fixed parameter for `n` and an index adaptor for `prob`
+#' # `fixed_parameter_adaptor` sets `n` to a constant value of 10
+#' n_adaptor <- fixed_parameter_adaptor(10)  
+#' 
+#' # `indices_adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
+#' # For example, if the parameter vector at runtime is c(0.5), then `indices_adaptor(1)` will use the first element.
+#' prob_adaptor <- indices_adaptor(1)  
+#' 
+#' # Create the CGF object with these adaptors
+#' cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)
+#' 
+#' # Compute the first derivative of the CGF at tvec = 0, assuming the actual value of `prob` is 0.2
+#' cgf$K1(tvec = 0, parameter_vector = 0.2)
+#' 
+#' ## Example using a fixed parameter for `n` and a function for `prob`
+#' # Define a function for `prob` that extracts the third element from a given vector
+#' # This assumes that the parameter vector passed to the function will always have at least three elements
+#' prob_function <- function(x) x[3] # returns the third element, which is expected to be the probability
+#' 
+#' # Create the CGF object
+#' cgf1 <- BinomialModelCGF(n = n_adaptor, prob = prob_function)
+#' 
+#' # Example usage, assuming the parameter vector is supplied at runtime
+#' # For instance, the parameter vector might be supplied during a calculation call
+#' example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability of success
+#' cgf1$K1(tvec = 0, parameter_vector = example_params)
+#' 
 #'}
-#'
 BinomialModelCGF <- function(n, prob){
-  if (!is(n, "adaptor") || !is(prob, "adaptor")) stop(" 'n and prob' must be of type adaptor")
-  CGF(make_BinomialModelCGF(n_adaptor = n, prob_adaptor = prob))
+  n = validate_and_transform_adaptor(n)
+  prob = validate_and_transform_adaptor(prob)
+  createCGF(make_BinomialModelCGF(n_adaptor = n, prob_adaptor = prob))
 }
 
-#' Poisson Model-Based CGF
-#'
-#' Generates a CGF based on the Poisson distribution.
-#'
-#' @param lambda An object of class 'adaptor', representing the rate parameter lambda in a Poisson distribution.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
-#'
-#' @export
-PoissonModelCGF <- function(lambda) {
-  if (!is(lambda, "adaptor")) stop(" 'lambda' is not defined for ", class(lambda))
-  CGF(make_PoissonModelCGF(lambda_adaptor = lambda))
-}
 
-#' Exponential Model-Based CGF
-#'
-#' Generates a CGF based on the Exponential distribution.
-#'
-#' @param rate An object of class 'adaptor', representing the rate parameter in the Exponential distribution.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
-#'
-#' @export
-ExponentialModelCGF <- function(rate){
-  if (!is(rate, "adaptor")) stop(" 'rate' is not defined for ", class(rate))
-  CGF(make_ExponentialModelCGF(lambda_adaptor = rate))
-}
 
-#' Geometric Model-Based CGF
-#'
-#' Generates a CGF based on the Geometric distribution.
-#'
-#' @param prob An object of class 'adaptor', representing the probability parameter in a Geometric distribution.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
-#'
-#' @export
-GeometricModelCGF <- function(prob){
-  if (!is(prob, "adaptor")) stop(" 'prob' is not defined for ", class(prob))
-  CGF(make_GeometricModelCGF(p_adaptor = prob))
-}
 
-#' Geometric Non-Identical Model-Based CGF
-#'
-#' Generates a CGF based on a non-identical Geometric distribution.
-#'
-#' @param prob An object of class 'adaptor', representing the probability parameter in a Geometric distribution.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
-#'
-#' @export
-GeometricNonIdenticalModelCGF <- function(prob){
-  if (!is(prob, "adaptor")) stop(" 'prob' is not defined for ", class(prob))
-  CGF(make_GeometricNonIdenticalModelCGF(p_adaptor = prob))
-}
 
-#' @title GammaModelCGF
+
+
+#' @title PoissonCGF with flexible parameterization
 #'
 #' @description
-#' Constructs a CGF for the Gamma distribution with parameter specifications using adaptors. The adaptors offer multiple methods to specify parameters:
-#' 1. Using indices from an external parameter vector (\code{\link{adaptorUsingIndices}}).
-#' 2. Setting fixed values that won't change during model computations (\code{\link{adaptorUsingFixedParam}}).
-#' 3. Employing R functions for dynamic computation of parameters (\code{\link{adaptorUsingRFunctions}}).
+#' Constructs a CGF object for the Poisson distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic adjustments of the rate parameter (\code{lambda}) using similar mechanisms as described for the binomial distribution.
+#' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
 #'
-#'
-#' @param shape An object of class 'adaptor', representing the parameter shape in a Gamma distribution.
-#' @param rate An object of class 'adaptor', representing the rate parameter in a Gamma distribution.
-#'
-#' @return An object of class 'CGF'.
+#' @param lambda Adaptor or function representing the rate parameter of the Poisson distribution. 
+#'               Automatically converted to an adaptor if provided as a function.
+#' @return 'CGF' object configured for the Poisson distribution.
 #'
 #' @export
+#' @seealso \code{\link{PoissonCGF}} \code{\link{BinomialModelCGF}}
 #'
 #' @examples
 #' \dontrun{
-#'
+#' # Example: lambda as a function
+#' f <- function(x) { 2 + 0.1 * x }
+#' cgf <- PoissonModelCGF(lambda = f)
+#' cgf$K1(tvec = 0, parameter_vector = 3) == PoissonCGF$K1(tvec = 0, parameter_vector = 2 + 0.1 * 3)
 #'}
-#'
-GammaModelCGF <- function(shape, rate){
-  if (!is(shape, "adaptor") || !is(rate, "adaptor")) stop(" 'shape and rate' must be of type adaptor")
-  CGF(make_GammaModelCGF(shape_adaptor = shape, rate_adaptor = rate))
-}
-
-#' Multinomial Model-Based CGF
-#'
-#' Generates a CGF based on the Multinomial distribution.
-#'
-#' @param n An object of class 'adaptor'.
-#' @param prob_vec An object of class 'adaptor', representing a vector of Multinomial probabilities.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
-#'
-#' @export
-MultinomialModelCGF <- function(n, prob_vec){
-  if(!is(n, "adaptor")) stop(" 'n' must be of type adaptor")
-  if(!is(prob_vec, "adaptor")) stop(" 'prob_vec' must be of type adaptor")
-  CGF(make_MultinomialModelCGF(n_adaptor = n, probVector_adaptor = prob_vec))
+PoissonModelCGF <- function(lambda) {
+  lambda = validate_and_transform_adaptor(lambda)
+  createCGF(make_PoissonModelCGF(lambda_adaptor = lambda))
 }
 
 
-#' @title SubunitaryMultinomialModelCGF
+
+
+
+
+
+
+
+
+#' @title ExponentialCGF with flexible parameterization
 #'
 #' @description
-#' Generates a CGF object derived from a modified Multinomial distribution. This modification accommodates instances where certain outcomes are explicitly zero, and consequently, the probabilities associated with the remaining non-zero outcomes sum to a value less than one.
+#' Constructs a CGF object for the exponential distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic adjustments of the rate parameter (\code{lambda}) using similar mechanisms as described for the binomial distribution.
+#' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
 #'
-#' @details
-#' Given \eqn{x_1,...,x_k} as the non-zero outcomes of a Multinomial distribution that sum to \eqn{N},
-#' with each outcome having an associated probability \eqn{p_i} where \eqn{ \sum_{i=1}^{k} p_i < 1},
-#' this CGF is designed to integrate the occurrence of a known zero outcome, \eqn{x_{k+1}}, thereby ensuring \eqn{ \sum_{i=1}^{k+1} p_i = 1}.
-#'
-#' This approach allows for the modeling and analysis of Multinomial distributions in situations where some categories are known not to be observed and the probabilities of observing the other categories are adjusted accordingly.
-#'
-#' @param n An object of class 'adaptor' representing the number of trials in the Multinomial distribution.
-#' @param prob_vec An object of class 'adaptor' representing the probabilities associated with the non-zero outcomes in the modified Multinomial distribution. The sum of these probabilities should be strictly less than one to validate the occurrence of the known zero outcome.
-#'
-#' @return An object of class 'CGF'.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+#' @param lambda Adaptor or function representing the rate parameter of the exponential distribution. 
+#'               Automatically converted to an adaptor if provided as a function.
+#' @return 'CGF' object configured for the exponential distribution.
 #'
 #' @export
-SubunitaryMultinomialModelCGF <- function(n, prob_vec){
-  if(!is(n, "adaptor")) stop(" 'n' must be of type adaptor")
-  if(!is(prob_vec, "adaptor")) stop(" 'prob_vec' must be of type adaptor")
-  CGF(make_SubunitaryMultinomialModelCGF(n_adaptor = n, probVector_adaptor = prob_vec))
-}
-
-
-#' @title adaptCGF
-#' @description Adapts a CGF object using a specified adaptor.
-#'
-#' @param baseCGF A 'CGF' object to be adapted
-#' @param adaptor An 'adaptor' object created by one of the adaptor creating functions.
-#'
-#' @details
-#' The function create...
-#'
-#' @return A CGF object.
-#' @seealso \code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+#' @seealso \code{\link{ExponentialCGF}} \code{\link{BinomialModelCGF}}
 #'
 #' @examples
 #' \dontrun{
-#'   # Adapting the BinomialCGF with a fixed parameter adaptor
-#'   adaptedCGF <- adapt.CGF(baseCGF = BinomialCGF,
-#'                           adaptor = adaptorUsingFixedParam(c(10, 0.5)) )
-#'
-#'   # Creating a Binomial Model CGF with the same parameters
-#'   modelCGF <- BinomialModelCGF(n = adaptorUsingFixedParam(10),
-#'                                prob = adaptorUsingFixedParam(0.5))
-#'
-#'   # Testing if the adaptedCGF and modelCGF give the same result when used as baseCGF in function K
-#'   res1 <- K(tvec = 0.003, parameter.vector = c(10,0.5), baseCGF = adaptedCGF)
-#'   res2 <- K(tvec = 0.003, parameter.vector = c(10,0.5), baseCGF = modelCGF)
-#'   print(all.equal(res1, res2)) # Should print TRUE
-#' }
-#' @export
-adaptCGF <- function(baseCGF, adaptor){
-  if (!is(baseCGF, "CGF")) stop("'baseCGF' is not defined for ", class(baseCGF))
-  if (!is(adaptor, "adaptor")) stop(" 'adaptor' is not defined for ", class(adaptor))
-  CGF(adapt_CGF(base_cgf = baseCGF, adaptor = adaptor))
+#' # Example: lambda as a function
+#' f <- function(x) { 0.1 * x }
+#' cgf <- ExponentialModelCGF(lambda = f)
+#' cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
+#'}
+ExponentialModelCGF <- function(lambda) {
+  lambda = validate_and_transform_adaptor(lambda)
+  createCGF(make_ExponentialModelCGF(lambda_adaptor = lambda))
 }
+
+
+
+
+
+
+
+
+#' @title GeometricCGF with flexible parameterization
+#'
+#' @description
+#' Constructs a CGF object for the geometric distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic adjustments of the probability of success (\code{prob}) using similar mechanisms as described for the binomial distribution.
+#' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+#'
+#' @param prob Adaptor or function representing the probability of success parameter of the geometric distribution. 
+#'               Automatically converted to an adaptor if provided as a function.
+#' @return 'CGF' object configured for the geometric distribution.
+#'
+#' @export
+#' @seealso \code{\link{GeometricCGF}} \code{\link{BinomialModelCGF}}
+#'
+#' @examples
+#' \dontrun{
+#' # Example: probability of success as a function
+#' f <- function(x) { log(x) }
+#' cgf <- GeometricModelCGF(prob = f)
+#' cgf$K1(tvec = 0, parameter_vector = 1.05) == GeometricCGF$K1(tvec = 0, parameter_vector = log(1.05))
+#'}
+GeometricModelCGF <- function(prob) {
+  prob = validate_and_transform_adaptor(prob)
+  createCGF(make_GeometricModelCGF(p_adaptor = prob))
+}
+
+
+
+
+#' @title GammaCGF with flexible parameterization
+#'
+#' @description
+#' Constructs a CGF object for the gamma distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic adjustments of the (\code{shape}) and (\code{rate}) parameters using similar mechanisms as described for the binomial distribution.
+#' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+#'
+#' @param shape Adaptor or function representing the shape parameter of the gamma distribution. 
+#' @param rate Adaptor or function representing the rate parameter of the gamma distribution.
+#'        
+#' @return 'CGF' object configured for the gamma distribution.
+#'
+#' @export
+#' @seealso \code{\link{GammaCGF}} \code{\link{BinomialModelCGF}}
+#'
+#' @examples
+#' \dontrun{
+#' ## Example using a fixed parameter for `rate` and an index adaptor for `shape`
+#' # `rate` parameter fixed at 1
+#' # `shape` will be part of a parameter vector that will be accessed using the the first index
+#' cgf <- GammaModelCGF(shape = indices_adaptor(1), rate = fixed_parameter_adaptor(1))
+#' cgf$K1(tvec = 0, parameter_vector = 0.2) == GammaCGF$K1(tvec = 0, parameter_vector = c(0.2, 1))
+#'}
+GammaModelCGF <- function(shape, rate) {
+  shape_ = validate_and_transform_adaptor(shape)
+  rate_ = validate_and_transform_adaptor(rate)
+  createCGF(make_GammaModelCGF(shape_adaptor = shape_, rate_adaptor = rate_))
+}
+
 

@@ -2,29 +2,32 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{GammaModelCGF}
 \alias{GammaModelCGF}
-\title{GammaModelCGF}
+\title{GammaCGF with flexible parameterization}
 \usage{
 GammaModelCGF(shape, rate)
 }
 \arguments{
-\item{shape}{An object of class 'adaptor', representing the parameter shape in a Gamma distribution.}
+\item{shape}{Adaptor or function representing the shape parameter of the gamma distribution.}
 
-\item{rate}{An object of class 'adaptor', representing the rate parameter in a Gamma distribution.}
+\item{rate}{Adaptor or function representing the rate parameter of the gamma distribution.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object configured for the gamma distribution.
 }
 \description{
-Constructs a CGF for the Gamma distribution with parameter specifications using adaptors. The adaptors offer multiple methods to specify parameters:
-\enumerate{
-\item Using indices from an external parameter vector (\code{\link{adaptorUsingIndices}}).
-\item Setting fixed values that won't change during model computations (\code{\link{adaptorUsingFixedParam}}).
-\item Employing R functions for dynamic computation of parameters (\code{\link{adaptorUsingRFunctions}}).
-}
+Constructs a CGF object for the gamma distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic adjustments of the (\code{shape}) and (\code{rate}) parameters using similar mechanisms as described for the binomial distribution.
+For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
 }
 \examples{
 \dontrun{
-
+## Example using a fixed parameter for `rate` and an index adaptor for `shape`
+# `rate` parameter fixed at 1
+# `shape` will be part of a parameter vector that will be accessed using the the first index
+cgf <- GammaModelCGF(shape = indices_adaptor(1), rate = fixed_parameter_adaptor(1))
+cgf$K1(tvec = 0, parameter_vector = 0.2) == GammaCGF$K1(tvec = 0, parameter_vector = c(0.2, 1))
 }
-
+}
+\seealso{
+\code{\link{GammaCGF}} \code{\link{BinomialModelCGF}}
 }

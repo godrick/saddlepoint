@@ -334,7 +334,7 @@ public:
     auto K2(const t_vector_type& tvec, const A_matrix_type& A, ParamTypes&&... other_params) const {
         //// Key identity: K_Y'' = A K_X'' A^T
         //return base_cgf()->K2operatorAK2AT((A.transpose() * tvec).eval(), A, std::forward<ParamTypes>(other_params)...).eval();
-        return (A * base_cgf()->K2( (A.transpose() * tvec).eval(), std::forward<ParamTypes>(other_params)...) * A.transpose() ).eval();
+        return (A * (base_cgf()->K2( A.transpose() * tvec, std::forward<ParamTypes>(other_params)...)) * A.transpose() ).eval();
     }
 
     template <class t_vector_type, class A_matrix_type, class... ParamTypes>
@@ -344,7 +344,7 @@ public:
     }
 
     using Defaults::neg_ll; // optional; this line documents explicitly that we use default behaviour
-    using Defaults::func_T;
+    
 
     template <class t_vector_type, class x_type, class y_type, class A_matrix_type, class... ParamTypes>
     auto K2operator(const t_vector_type& tvec, const x_type& x, const y_type& y,
@@ -391,9 +391,21 @@ public:
     template <class t_vector_type, class Q1_type, class Q2_type, class Q3_type, class A_matrix_type, class... ParamTypes>
     auto K3K3operatorABCABC(const t_vector_type& tvec, const Q1_type& Q1, const Q2_type& Q2, const Q3_type& Q3,
                             const A_matrix_type& A, ParamTypes&&... other_params) const {
-        return base_cgf()->K3K3operatorABCABC(A.transpose() * tvec, A.transpose()*Q1*A, A.transpose()*Q2*A, A.transpose()*Q3*A,
+        return base_cgf()->K3K3operatorABCABC((A.transpose() * tvec).eval(), (A.transpose()*Q1*A).eval(), (A.transpose()*Q2*A).eval(), (A.transpose()*Q3*A).eval(),
                                           std::forward<ParamTypes>(other_params)...);
     }
+    
+    // using Defaults::func_T;
+    template <class t_vector_type, class A_matrix_type, class... ParamTypes>
+    auto func_T(const t_vector_type& tvec, const A_matrix_type& A, ParamTypes&&... other_params) const {
+      auto Q_val =  K2(tvec, A, std::forward<ParamTypes>(other_params)...).inverse().eval();
+      auto K3K3operatorABCABC_val = K3K3operatorABCABC(tvec, Q_val, Q_val, Q_val, A, std::forward<ParamTypes>(other_params)...);
+      auto K3K3operatorAABBCC_val = K3K3operatorAABBCC(tvec, Q_val, Q_val, Q_val, A, std::forward<ParamTypes>(other_params)...);
+      auto K4operatorAABB_val = K4operatorAABB(tvec, Q_val, Q_val, A, std::forward<ParamTypes>(other_params)...);
+      return K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12;
+    }
+    
+    
 
     // For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
     // Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r

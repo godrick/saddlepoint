@@ -7,7 +7,7 @@
 get.ineq.constraint.function(
   tvec,
   theta,
-  model.cgf,
+  cgf,
   user.ineq.constraint.function = NULL
 )
 }
@@ -16,7 +16,7 @@ get.ineq.constraint.function(
 
 \item{theta}{A numeric vector.}
 
-\item{model.cgf}{An object of class 'CGF'.}
+\item{cgf}{An object of class 'CGF'.}
 
 \item{user.ineq.constraint.function}{An optional additional inequality added by a user. Default is NULL. See TO DO list.}
 }
@@ -27,15 +27,15 @@ A function that takes a vector \code{a} as an argument. This function returns ei
 This function wraps and returns an inequality constraint function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
 }
 \details{
-This function constructs and integrates an inequality constraint based on \code{model.cgf}
+This function constructs and integrates an inequality constraint based on \code{cgf}
 with any user-defined inequality constraint function specified in \code{user.ineq.constraint.function}.
-If \code{user.ineq.constraint.function} is \code{NULL}, the function checks whether the \code{model.cgf} itself
+If \code{user.ineq.constraint.function} is \code{NULL}, the function checks whether the \code{cgf} itself
 includes an inherent inequality constraint.
 }
 \examples{
 \dontrun{
 TO DO: Add a working example
-  f <- get.ineq_constraint.function(tvec, theta, model.cgf)
+  f <- get.ineq_constraint.function(tvec, theta, cgf)
   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
 }
 }

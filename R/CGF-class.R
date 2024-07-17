@@ -1,33 +1,80 @@
-#' @title CGF
-#'
-#' @description
-#' Refer to the CGF() function for details.
-#'
-#' @slot .Data An externalptr object.
-#'
-#'
-#'@noRd
-setClass("CGF", slots = list(.Data = "externalptr"))
-
-#' CGF Constructor
-#'
-#' This function constructs an object of class "CGF" using a valid externalptr object.
-#'
-#' @param ptr An externalptr object. It should not be an empty externalptr object.
-#'
-#' @return An object of class "CGF".
-#' @examples
-#' \dontrun{
-#'   # assuming ptr is a valid externalptr object
-#'   cgf <- CGF(ptr)
-#' }
 #' @importFrom methods is new
-#' @export
-CGF <- function(ptr) {
-  if (!is(ptr, "externalptr")) stop("'ptr' must be of type externalptr")
-  if (isTRUE( identical(ptr, new("externalptr"))) ) stop("ptr is an empty externalptr object")
-  structure(.Data = ptr, class = "CGF")
+CGF <- R6::R6Class("CGF",
+                   private = list(
+                     ptr = NULL  # Holds the externalptr
+                   ),
+                   public = list(
+                     initialize = function(ptr) {
+                       if (!is(ptr, "externalptr"))  stop("ptr must be of type externalptr", call. = FALSE)
+                       if (isTRUE(identical(ptr, new("externalptr")))) stop("ptr is an empty externalptr object")
+                       private$ptr <- ptr
+                     },
+                     get_ptr = function() { private$ptr }, # Expose the externalptr directly
+                     # print = function(...) {
+                     #   cls <- class(self)
+                     #   cls <- cls[cls != "R6"]
+                     #   cat("An object of class '", paste(cls, collapse = " "), "'\n", sep = "")
+                     # },
+                     
+                     
+                     K = function(tvec, parameter_vector) {K_impl(tvec, parameter_vector, private$ptr)},
+                     K1 = function(tvec, parameter_vector) {K1_impl(tvec, parameter_vector, private$ptr)},
+                     K2 = function(tvec, parameter_vector) {K2_impl(tvec, parameter_vector, private$ptr)},
+                     ineq_constraint = function(tvec, parameter_vector)  {ineq_constraint_impl(tvec, parameter_vector, private$ptr)}
+                     # add: hat_f, neg_ll
+                     
+                     
+                   )
+)
+
+#' Create a CGF object
+#'
+#' This function initializes a new CGF object with a valid external pointer.
+#'
+#' @param ptr An external pointer 'externalptr' expected by the CGF class.
+#'
+#' @return An object of class 'CGF'.
+createCGF <- function(ptr) {
+  CGF$new(ptr)
 }
+
+# #' @title CGF
+# #'
+# #' @description
+# #' Refer to the CGF() function for details.
+# #'
+# #' @slot .Data An externalptr object.
+# #'
+# #'
+# #'@noRd
+# setClass("CGF", slots = list(.Data = "externalptr"))
+
+
+
+# CGF <- function(ptr) {
+#   if (!is(ptr, "externalptr")) {
+#     stop("'ptr' must be of type externalptr")
+#   }
+#   if (isTRUE(identical(ptr, new("externalptr")))) {
+#     stop("ptr is an empty externalptr object")
+#   }
+#   obj <- structure(.Data = ptr, class = "CGF")
+#   
+#   
+#   K <- function(tvec, parameter_vector) {
+#     K_impl(tvec, parameter_vector, obj@.Data)
+#   }
+#   
+#   attr(obj, "K") <- K
+#   obj
+# }
+
+
+# CGF <- function(ptr) {
+#   if (!is(ptr, "externalptr")) stop("'ptr' must be of type externalptr")
+#   if (isTRUE( identical(ptr, new("externalptr"))) ) stop("ptr is an empty externalptr object")
+#   structure(.Data = ptr, class = "CGF")
+# }
 
 
 
@@ -52,3 +99,4 @@ CGF <- function(ptr) {
 #   cgf
 # }
 
+# Rcpp::loadModule("thetaGradientFunctions", TRUE)

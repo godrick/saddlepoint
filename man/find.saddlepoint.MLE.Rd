@@ -6,7 +6,7 @@
 \usage{
 find.saddlepoint.MLE(
   observed.data,
-  model.cgf,
+  cgf,
   starting.theta,
   lb.theta = rep(-Inf, times = length(starting.theta)),
   ub.theta = rep(Inf, times = length(starting.theta)),
@@ -23,7 +23,7 @@ find.saddlepoint.MLE(
 \arguments{
 \item{observed.data}{a numeric vector - See TO DO list}
 
-\item{model.cgf}{a CGF object corresponding to the observed data.}
+\item{cgf}{a CGF object corresponding to the observed data.}
 
 \item{starting.theta}{a numeric vector of starting values for model parameters.}
 

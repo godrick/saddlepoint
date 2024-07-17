@@ -4,14 +4,14 @@
 \alias{get.saddlepoint.nll.function}
 \title{Create a saddlepoint negative log-likelihood function}
 \usage{
-get.saddlepoint.nll.function(tvec, theta, model.cgf)
+get.saddlepoint.nll.function(tvec, theta, cgf)
 }
 \arguments{
 \item{tvec}{A numeric vector.}
 
 \item{theta}{A numeric vector.}
 
-\item{model.cgf}{An object of class 'CGF'.}
+\item{cgf}{An object of class 'CGF'.}
 }
 \value{
 A function that takes a vector 'a' as an argument. When \code{a = c(tvec, theta)} is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
