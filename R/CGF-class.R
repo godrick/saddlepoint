@@ -34,6 +34,7 @@ CGF <- R6::R6Class("CGF",
 #' @param ptr An external pointer 'externalptr' expected by the CGF class.
 #'
 #' @return An object of class 'CGF'.
+#' @noRd
 createCGF <- function(ptr) {
   CGF$new(ptr)
 }

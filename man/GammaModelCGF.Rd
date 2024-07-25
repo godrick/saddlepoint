@@ -24,7 +24,7 @@ For detailed explanations on using adaptors for dynamic parameter adjustments, s
 ## Example using a fixed parameter for `rate` and an index adaptor for `shape`
 # `rate` parameter fixed at 1
 # `shape` will be part of a parameter vector that will be accessed using the the first index
-cgf <- GammaModelCGF(shape = indices_adaptor(1), rate = fixed_parameter_adaptor(1))
+cgf <- GammaModelCGF(shape = indices.adaptor(1), rate = fixed.parameter.adaptor(1))
 cgf$K1(tvec = 0, parameter_vector = 0.2) == GammaCGF$K1(tvec = 0, parameter_vector = c(0.2, 1))
 }
 }

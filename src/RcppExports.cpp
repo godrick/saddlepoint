@@ -45,6 +45,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// adapt_CGF
+Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> cgf, Rcpp::XPtr<Adaptor> adaptor);
+RcppExport SEXP _saddlepoint_adapt_CGF(SEXP cgfSEXP, SEXP adaptorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type adaptor(adaptorSEXP);
+    rcpp_result_gen = Rcpp::wrap(adapt_CGF(cgf, adaptor));
+    return rcpp_result_gen;
+END_RCPP
+}
 // makeADFunK1
 Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
 RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
@@ -231,6 +243,110 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// make_MultinomialCGF
+Rcpp::XPtr<CGF_with_AD> make_MultinomialCGF();
+RcppExport SEXP _saddlepoint_make_MultinomialCGF() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(make_MultinomialCGF());
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_MultinomialModelCGF
+Rcpp::XPtr<CGF_with_AD> make_MultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_vector_adaptor);
+RcppExport SEXP _saddlepoint_make_MultinomialModelCGF(SEXP n_adaptorSEXP, SEXP prob_vector_adaptorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type n_adaptor(n_adaptorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type prob_vector_adaptor(prob_vector_adaptorSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_MultinomialModelCGF(n_adaptor, prob_vector_adaptor));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_SubunitaryMultinomialModelCGF
+Rcpp::XPtr<CGF_with_AD> make_SubunitaryMultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_vector_adaptor);
+RcppExport SEXP _saddlepoint_make_SubunitaryMultinomialModelCGF(SEXP n_adaptorSEXP, SEXP prob_vector_adaptorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type n_adaptor(n_adaptorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type prob_vector_adaptor(prob_vector_adaptorSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_SubunitaryMultinomialModelCGF(n_adaptor, prob_vector_adaptor));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_SumOfIIDCGF
+Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n);
+RcppExport SEXP _saddlepoint_make_SumOfIIDCGF(SEXP cgfSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    Rcpp::traits::input_parameter< double >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_SumOfIIDCGF(cgf, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_SumOfIndependentCGF
+Rcpp::XPtr<CGF_with_AD> make_SumOfIndependentCGF(Rcpp::List cgf_list);
+RcppExport SEXP _saddlepoint_make_SumOfIndependentCGF(SEXP cgf_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type cgf_list(cgf_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_SumOfIndependentCGF(cgf_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_ConcatenationCGF
+Rcpp::XPtr<CGF_with_AD> make_ConcatenationCGF(Rcpp::List cgf_length_list);
+RcppExport SEXP _saddlepoint_make_ConcatenationCGF(SEXP cgf_length_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type cgf_length_list(cgf_length_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_ConcatenationCGF(cgf_length_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_LinearlyMappedCGF
+Rcpp::XPtr<CGF_with_AD> make_LinearlyMappedCGF(Rcpp::XPtr<CGF_with_AD> cgf, mat Amat);
+RcppExport SEXP _saddlepoint_make_LinearlyMappedCGF(SEXP cgfSEXP, SEXP AmatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    Rcpp::traits::input_parameter< mat >::type Amat(AmatSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_LinearlyMappedCGF(cgf, Amat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_RandomlyStoppedSumCGF
+Rcpp::XPtr<CGF_with_AD> make_RandomlyStoppedSumCGF(Rcpp::XPtr<CGF_with_AD> count_cgf, Rcpp::XPtr<CGF_with_AD> summand_cgf);
+RcppExport SEXP _saddlepoint_make_RandomlyStoppedSumCGF(SEXP count_cgfSEXP, SEXP summand_cgfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type count_cgf(count_cgfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type summand_cgf(summand_cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_RandomlyStoppedSumCGF(count_cgf, summand_cgf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_IIDReplicatesCGF
+Rcpp::XPtr<CGF_with_AD> make_IIDReplicatesCGF(Rcpp::XPtr<CGF_with_AD> cgf, double block_size);
+RcppExport SEXP _saddlepoint_make_IIDReplicatesCGF(SEXP cgfSEXP, SEXP block_sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    Rcpp::traits::input_parameter< double >::type block_size(block_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_IIDReplicatesCGF(cgf, block_size));
+    return rcpp_result_gen;
+END_RCPP
+}
 // K_impl
 double K_impl(vec tvec, vec parameter_vector, Rcpp::XPtr<CGF_with_AD> base_cgf);
 RcppExport SEXP _saddlepoint_K_impl(SEXP tvecSEXP, SEXP parameter_vectorSEXP, SEXP base_cgfSEXP) {
@@ -361,6 +477,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_makeAdaptorUsingRfunctions", (DL_FUNC) &_saddlepoint_makeAdaptorUsingRfunctions, 1},
     {"_saddlepoint_makeVectorSubsetByIndicesAdaptor", (DL_FUNC) &_saddlepoint_makeVectorSubsetByIndicesAdaptor, 1},
     {"_saddlepoint_makeSavedVectorAdaptor", (DL_FUNC) &_saddlepoint_makeSavedVectorAdaptor, 1},
+    {"_saddlepoint_adapt_CGF", (DL_FUNC) &_saddlepoint_adapt_CGF, 2},
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
     {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 3},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
@@ -377,6 +494,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_make_GeometricModelCGF", (DL_FUNC) &_saddlepoint_make_GeometricModelCGF, 1},
     {"_saddlepoint_make_GammaCGF", (DL_FUNC) &_saddlepoint_make_GammaCGF, 0},
     {"_saddlepoint_make_GammaModelCGF", (DL_FUNC) &_saddlepoint_make_GammaModelCGF, 2},
+    {"_saddlepoint_make_MultinomialCGF", (DL_FUNC) &_saddlepoint_make_MultinomialCGF, 0},
+    {"_saddlepoint_make_MultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_MultinomialModelCGF, 2},
+    {"_saddlepoint_make_SubunitaryMultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_SubunitaryMultinomialModelCGF, 2},
+    {"_saddlepoint_make_SumOfIIDCGF", (DL_FUNC) &_saddlepoint_make_SumOfIIDCGF, 2},
+    {"_saddlepoint_make_SumOfIndependentCGF", (DL_FUNC) &_saddlepoint_make_SumOfIndependentCGF, 1},
+    {"_saddlepoint_make_ConcatenationCGF", (DL_FUNC) &_saddlepoint_make_ConcatenationCGF, 1},
+    {"_saddlepoint_make_LinearlyMappedCGF", (DL_FUNC) &_saddlepoint_make_LinearlyMappedCGF, 2},
+    {"_saddlepoint_make_RandomlyStoppedSumCGF", (DL_FUNC) &_saddlepoint_make_RandomlyStoppedSumCGF, 2},
+    {"_saddlepoint_make_IIDReplicatesCGF", (DL_FUNC) &_saddlepoint_make_IIDReplicatesCGF, 2},
     {"_saddlepoint_K_impl", (DL_FUNC) &_saddlepoint_K_impl, 3},
     {"_saddlepoint_K1_impl", (DL_FUNC) &_saddlepoint_K1_impl, 3},
     {"_saddlepoint_K2_impl", (DL_FUNC) &_saddlepoint_K2_impl, 3},
@@ -389,7 +515,9 @@ static const R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
+void rtmb_set_shared_pointers();
 RcppExport void R_init_saddlepoint(DllInfo *dll) {
-    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-    R_useDynamicSymbols(dll, FALSE);
+  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+  R_useDynamicSymbols(dll, FALSE);
+  rtmb_set_shared_pointers();
 }

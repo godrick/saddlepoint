@@ -4,12 +4,21 @@
 # include "tvec_hat_implicit_function.h"
 
  
-
 # include "binomialCGF.h"
 # include "poissonCGF.h"
 # include "exponentialCGF.h"
 # include "geometricCGF.h"
 # include "gammaCGF.h"
+# include "multinomialCGF.h"
+# include "subunitaryMultinomialCGF.h"
+ 
+ 
+# include "sumOfIID_CGF.h"
+# include "sumOfIndependentCGF.h"
+# include "concatenationCGF.h"
+# include "linearly_mappedCGF.h"
+# include "randomlyStoppedSumCGF.h"
+# include "vectorToIIDCGF.h"  // replicates
  
  
 # include "cgf_from_rfunctions.h"
@@ -35,6 +44,16 @@ Rcpp::XPtr<Adaptor> makeVectorSubsetByIndicesAdaptor(Eigen::Matrix<Eigen::Index,
 Rcpp::XPtr<Adaptor> makeSavedVectorAdaptor(vec fixed_parameter_values) {
   return Rcpp::XPtr<Adaptor>(new SavedVectorAdaptor(fixed_parameter_values));
 }
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> cgf, Rcpp::XPtr<Adaptor> adaptor)
+{
+  auto modelCGF_ptr = new parametric_submodelCGF(cgf, adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(modelCGF_ptr);
+  attach_attributes(ptr, cgf, adaptor);
+  return ptr;
+}
+
+
 
 
 
@@ -323,6 +342,120 @@ Rcpp::XPtr<CGF_with_AD> make_GammaModelCGF(Rcpp::XPtr<Adaptor> shape_adaptor, Rc
   attach_attributes(ptr, shape_adaptor, rate_adaptor);
   return ptr;
 }
+
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_MultinomialCGF(){
+  CGF_with_AD* CGF_base_ptr = new MultinomialCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_MultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_vector_adaptor){
+  CGF_with_AD* multinomial_model_cgf = new MultinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), prob_vector_adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(multinomial_model_cgf);
+  attach_attributes(ptr, n_adaptor, prob_vector_adaptor);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_SubunitaryMultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_vector_adaptor){
+  CGF_with_AD* cgf = new SubunitaryMultinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), prob_vector_adaptor);
+  Rcpp::XPtr<CGF_with_AD> ptr(cgf);
+  attach_attributes(ptr, n_adaptor, prob_vector_adaptor);
+  return ptr;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n){
+  CGF_with_AD* cgf_ptr = new SumOfIID_CGF(cgf, n);
+  Rcpp::XPtr<CGF_with_AD> ptr(cgf_ptr);
+  attach_attributes(ptr, cgf, n);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_SumOfIndependentCGF(Rcpp::List cgf_list) {
+  // Populate a container of cgfs from cgf_list
+  std::vector<saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>> cgfs;
+  for (auto i = cgf_list.begin(); i != cgf_list.end(); ++i) {
+    Rcpp::XPtr<CGF_with_AD> xp_cgf = *i;
+    cgfs.push_back(saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>(xp_cgf.get()));
+  }
+  // Pass this container into SumOfIndependentCGF
+  CGF_with_AD* CGF_base_ptr = new SumOfIndependentCGF(cgfs);
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  attach_attributes(ptr, cgf_list);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_ConcatenationCGF(Rcpp::List cgf_length_list) {
+  std::vector<saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>> cgfs;
+  Eigen::Matrix<Eigen::Index, Eigen::Dynamic, 1> lengths(cgf_length_list.size());
+  //// Populate the containers from cgf_length_list
+
+  for (int i = 0; i < cgf_length_list.size(); ++i) {
+    Rcpp::List currentList = Rcpp::as<Rcpp::List>(cgf_length_list[i]);
+    Rcpp::XPtr<CGF_with_AD> xp_cgf = Rcpp::as<Rcpp::XPtr<CGF_with_AD>>(currentList[0]);
+    Eigen::Index length = Rcpp::as<Eigen::Index>(currentList[1]);
+    cgfs.push_back(saddlepoint::CGFs_via_templates::WrapAsCGF<CGF_with_AD*>(xp_cgf.get()));
+    lengths[i] = length;
+  }
+
+  //// Pass these vectors into ConcatenationCGF
+  CGF_with_AD* CGF_base_ptr = new ConcatenationCGF(cgfs, lengths);
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+
+  attach_attributes(ptr, cgf_length_list);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_LinearlyMappedCGF(Rcpp::XPtr<CGF_with_AD> cgf, mat Amat){
+  CGF_with_AD* CGF_ptr = new LinearlyMappedCGF(cgf, Amat);
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_ptr);
+  attach_attributes(ptr, cgf, Amat);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_RandomlyStoppedSumCGF(Rcpp::XPtr<CGF_with_AD> count_cgf, Rcpp::XPtr<CGF_with_AD> summand_cgf){
+  CGF_with_AD* rss_cgf = new RandomlyStoppedSumCGF(count_cgf, summand_cgf);
+  Rcpp::XPtr<CGF_with_AD> ptr(rss_cgf);
+  attach_attributes(ptr, count_cgf, summand_cgf);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_IIDReplicatesCGF(Rcpp::XPtr<CGF_with_AD> cgf, double block_size){
+  CGF_with_AD* vector_to_iid_cgf = new IIDReplicates_CGF(cgf, block_size);
+  Rcpp::XPtr<CGF_with_AD> ptr(vector_to_iid_cgf);
+  attach_attributes(ptr, cgf);
+  return ptr;
+}
+
+
+
 
 
 

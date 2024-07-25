@@ -15,11 +15,13 @@ validate_and_transform_adaptor <- function(obj) {
 #'
 #' @description
 #' Constructs a CGF object for the binomial distribution, supporting flexible parameter specifications through adaptors.
+#' 
+#' @details
 #' This function allows for dynamic parameter adjustments in three ways: 
-#' 1. R functions for dynamically computing parameters.
-#' 2. adaptor objects using indices to specify parameters (\code{\link{indices_adaptor}}).
-#' 3. adaptor objects that set fixed values (\code{\link{fixed_parameter_adaptor}}).
-#' For static parameter values, it is recommended to use `fixed_parameter_adaptor`.
+#' 1. **Function-based adaptors**: Use R functions to dynamically compute parameters based on input vector.
+#' 2. **Index-based adaptors**: Subset parameters from a vector using specified indices (\code{\link{indices.adaptor}}).
+#' 3. **Fixed Value adaptors**: Set parameters to known constant values (\code{\link{fixed.parameter.adaptor}}).
+#' For fixed parameter values, it is recommended to use `fixed.parameter.adaptor` and not function-based adaptors.
 #'
 #'
 #'
@@ -35,12 +37,12 @@ validate_and_transform_adaptor <- function(obj) {
 #' @examples
 #' \dontrun{
 #' ## Example using a fixed parameter for `n` and an index adaptor for `prob`
-#' # `fixed_parameter_adaptor` sets `n` to a constant value of 10
-#' n_adaptor <- fixed_parameter_adaptor(10)  
+#' # `fixed.parameter.adaptor` sets `n` to a constant value of 10
+#' n_adaptor <- fixed.parameter.adaptor(10)  
 #' 
-#' # `indices_adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
-#' # For example, if the parameter vector at runtime is c(0.5), then `indices_adaptor(1)` will use the first element.
-#' prob_adaptor <- indices_adaptor(1)  
+#' # `indices.adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
+#' # For example, if the parameter vector at runtime is c(0.5), then `indices.adaptor(1)` will use the first element.
+#' prob_adaptor <- indices.adaptor(1)  
 #' 
 #' # Create the CGF object with these adaptors
 #' cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)
@@ -191,13 +193,104 @@ GeometricModelCGF <- function(prob) {
 #' ## Example using a fixed parameter for `rate` and an index adaptor for `shape`
 #' # `rate` parameter fixed at 1
 #' # `shape` will be part of a parameter vector that will be accessed using the the first index
-#' cgf <- GammaModelCGF(shape = indices_adaptor(1), rate = fixed_parameter_adaptor(1))
+#' cgf <- GammaModelCGF(shape = indices.adaptor(1), rate = fixed.parameter.adaptor(1))
 #' cgf$K1(tvec = 0, parameter_vector = 0.2) == GammaCGF$K1(tvec = 0, parameter_vector = c(0.2, 1))
 #'}
 GammaModelCGF <- function(shape, rate) {
   shape_ = validate_and_transform_adaptor(shape)
   rate_ = validate_and_transform_adaptor(rate)
   createCGF(make_GammaModelCGF(shape_adaptor = shape_, rate_adaptor = rate_))
+}
+
+
+
+#' @title MultinomialCGF with flexible parameterization
+#' 
+#' @description
+#' Constructs a CGF object for the multinomial distribution, supporting flexible parameter specifications through adaptors.
+#' This function allows for dynamic adjustments of (\code{n} and \code{prob_vec}) parameters using similar mechanisms as described for the binomial distribution.
+#' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+#' 
+#' @param n Adaptor or function representing the number of trials parameter of the multinomial distribution.
+#' @param prob_vec Adaptor or function representing the probability vector parameter of the multinomial distribution.
+#' 
+#' @return 'CGF' object configured for the multinomial distribution.
+#' 
+#' @export
+#' @seealso \code{\link{MultinomialCGF}} \code{\link{BinomialModelCGF}}
+MultinomialModelCGF <- function(n, prob_vec) {
+  n_ = validate_and_transform_adaptor(n)
+  prob_vec_ = validate_and_transform_adaptor(prob_vec)
+  createCGF(make_MultinomialModelCGF(n_, prob_vec_))
+}
+
+
+
+
+
+#' @title Adapt a CGF object
+#' 
+#' @description This function modifies a given CGF object by applying an adaptor or a function for dynamic parameterization.
+#' It allows for custom behavior in parameter handling, allowing flexibility in parameter specification.
+#' 
+#'
+#' @param cgf A 'CGF' object to be adapted
+#' @param adaptor An 'adaptor' object or a function that modifies or provides parameters dynamically.
+#'
+#'
+#' @return A CGF object.
+#' @seealso \code{\link{indices.adaptor}}, \code{\link{fixed.parameter.adaptor}}, \code{\link{BinomialModelCGF}}
+#'
+#' @examples
+#' \dontrun{
+#'   ## Adapting the BinomialCGF using indices
+#'   # Suppose the parameter_vector is of any length (> 2) and we want to use the first two elements as parameters of the underlying Binomial distribution
+#'   adapted_binomial_cgf <- adaptCGF(cgf = BinomialCGF,
+#'                                    adaptor = indices.adaptor(1:2) )
+#'   ## Adapting the BinomialCGF using a function
+#'   adapted_binomial_cgf1 <- adaptCGF(cgf = BinomialCGF,
+#'                                     adaptor = function(x) { x[1:2] } )
+#'   ## Adapting the BinomialCGF using a fixed parameter
+#'   adapted_binomial_cgf2 <- adaptCGF(cgf = BinomialCGF,
+#'                                     adaptor = fixed.parameter.adaptor(c(10, 0.5)) )
+#'   
+#'   res1 <- adapted_binomial_cgf$K1(tvec = 0, parameter_vector = c(10, 0.5, 90, 4, 3))
+#'   res2 <- adapted_binomial_cgf1$K1(tvec = 0, parameter_vector = c(10, 0.5, 5))
+#'   res3 <- adapted_binomial_cgf2$K1(tvec = 0, parameter_vector = c(10, 0.5))
+#' }
+#' @export
+adaptCGF <- function(cgf, adaptor){
+  if (!is(cgf, "CGF")) stop("'cgf' is not defined for ", class(cgf))
+  param_adaptor = validate_and_transform_adaptor(adaptor)
+  createCGF(adapt_CGF(cgf$get_ptr(), param_adaptor))
+}
+
+
+
+
+#' @title SubunitaryMultinomialModelCGF
+#'
+#' @description
+#' Generates a CGF object derived from a modified Multinomial distribution. This modification accommodates instances where certain outcomes are explicitly zero, and consequently, the probabilities associated with the remaining non-zero outcomes sum to a value less than one.
+#'
+#' @details
+#' Given \eqn{x_1,...,x_k} as the non-zero outcomes of a Multinomial distribution that sum to \eqn{N},
+#' with each outcome having an associated probability \eqn{p_i} where \eqn{ \sum_{i=1}^{k} p_i < 1},
+#' this CGF is designed to integrate the occurrence of a known zero outcome, \eqn{x_{k+1}}, thereby ensuring \eqn{ \sum_{i=1}^{k+1} p_i = 1}.
+#'
+#' This approach allows for the modeling and analysis of Multinomial distributions in situations where some categories are known not to be observed and the probabilities of observing the other categories are adjusted accordingly.
+#'
+#' @param n An object of class 'adaptor' representing the number of trials in the Multinomial distribution.
+#' @param prob_vec An object of class 'adaptor' representing the probabilities associated with the non-zero outcomes in the modified Multinomial distribution. The sum of these probabilities should be strictly less than one to validate the occurrence of the known zero outcome.
+#'
+#' @return A 'CGF' object.
+#' @seealso \code{\link{MultinomialModelCGF}}
+#'
+#' @export
+SubunitaryMultinomialModelCGF <- function(n, prob_vec){
+  n_ = validate_and_transform_adaptor(n)
+  prob_vec_ = validate_and_transform_adaptor(prob_vec)
+  createCGF(make_SubunitaryMultinomialModelCGF(n_, prob_vec_))
 }
 
 

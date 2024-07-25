@@ -14,7 +14,7 @@ CustomCGF <- R6::R6Class(
       validate_function <- function(f, name) { # Helper function to validate user-provided functions
         if (!is.function(f)) { stop(sprintf("%s must be a function.", name)) }
         args <- names(formals(f))
-        if (length(args) != 2 || !identical(args, c("tvec", "parameter_vector"))) {stop(sprintf("%s must have exactly two arguments named 'tvec' and 'parameter_vector'.", name))}
+        if (length(args) != 2)  { stop(sprintf("%s must have exactly two arguments.", name)) }
       }
       # Validate and assign mandatory functions
       validate_function(Kvectorized, "Kvectorized")
@@ -60,8 +60,9 @@ CustomCGF <- R6::R6Class(
 #' Create an additional CGF object.
 #' 
 #' This function generates a CGF object for univariate distributions, with vectorization to handle iid data.
-#' All functions must take two arguments: tvec (vector for independent variable values) 
-#' and parameter_vector (vector of underlying parameters).
+#' All functions must take exactly two arguments in the following order:
+#' 1. `tvec`: A vector each representing the independent variable values.
+#' 2. `parameter_vector`: A vector of underlying parameters.
 #' 
 #' @param Kvectorized A function representing the vectorized version of K.
 #' @param K1vectorized A function representing the vectorized version of K1 (first derivative of K).

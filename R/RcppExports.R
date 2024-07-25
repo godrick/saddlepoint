@@ -13,6 +13,10 @@ makeSavedVectorAdaptor <- function(fixed_parameter_values) {
     .Call(`_saddlepoint_makeSavedVectorAdaptor`, fixed_parameter_values)
 }
 
+adapt_CGF <- function(cgf, adaptor) {
+    .Call(`_saddlepoint_adapt_CGF`, cgf, adaptor)
+}
+
 makeADFunK1 <- function(tvec, theta, modelCGF) {
     .Call(`_saddlepoint_makeADFunK1`, tvec, theta, modelCGF)
 }
@@ -75,6 +79,42 @@ make_GammaCGF <- function() {
 
 make_GammaModelCGF <- function(shape_adaptor, rate_adaptor) {
     .Call(`_saddlepoint_make_GammaModelCGF`, shape_adaptor, rate_adaptor)
+}
+
+make_MultinomialCGF <- function() {
+    .Call(`_saddlepoint_make_MultinomialCGF`)
+}
+
+make_MultinomialModelCGF <- function(n_adaptor, prob_vector_adaptor) {
+    .Call(`_saddlepoint_make_MultinomialModelCGF`, n_adaptor, prob_vector_adaptor)
+}
+
+make_SubunitaryMultinomialModelCGF <- function(n_adaptor, prob_vector_adaptor) {
+    .Call(`_saddlepoint_make_SubunitaryMultinomialModelCGF`, n_adaptor, prob_vector_adaptor)
+}
+
+make_SumOfIIDCGF <- function(cgf, n) {
+    .Call(`_saddlepoint_make_SumOfIIDCGF`, cgf, n)
+}
+
+make_SumOfIndependentCGF <- function(cgf_list) {
+    .Call(`_saddlepoint_make_SumOfIndependentCGF`, cgf_list)
+}
+
+make_ConcatenationCGF <- function(cgf_length_list) {
+    .Call(`_saddlepoint_make_ConcatenationCGF`, cgf_length_list)
+}
+
+make_LinearlyMappedCGF <- function(cgf, Amat) {
+    .Call(`_saddlepoint_make_LinearlyMappedCGF`, cgf, Amat)
+}
+
+make_RandomlyStoppedSumCGF <- function(count_cgf, summand_cgf) {
+    .Call(`_saddlepoint_make_RandomlyStoppedSumCGF`, count_cgf, summand_cgf)
+}
+
+make_IIDReplicatesCGF <- function(cgf, block_size) {
+    .Call(`_saddlepoint_make_IIDReplicatesCGF`, cgf, block_size)
 }
 
 K_impl <- function(tvec, parameter_vector, base_cgf) {

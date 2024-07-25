@@ -31,8 +31,11 @@ An object of class 'CGF'.
 }
 \description{
 This function generates a CGF object for univariate distributions, with vectorization to handle iid data.
-All functions must take two arguments: tvec (vector for independent variable values)
-and parameter_vector (vector of underlying parameters).
+All functions must take exactly two arguments in the following order:
+\enumerate{
+\item \code{tvec}: A vector each representing the independent variable values.
+\item \code{parameter_vector}: A vector of underlying parameters.
+}
 }
 \examples{
 \dontrun{

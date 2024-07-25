@@ -56,6 +56,17 @@ GeometricCGF <- NULL
 ##' @export 
 GammaCGF <- NULL
 
+##' @title MultinomialCGF
+##' @description
+##' An CGF object containing the CGF and its related derivatives for the multinomial distribution
+##' @examples
+##' \dontrun{
+##'  ## For X~Multinomial(n = 10, prob = c(0.1, 0.2, 0.3, 0.4)), E(X) is
+##'  MultinomialCGF$K1(tvec = 0, parameter_vector = c(10, 0.1, 0.2, 0.3, 0.4))
+##'  }
+##'  @export
+MultinomialCGF <- NULL
+
 
 
 
@@ -66,4 +77,5 @@ GammaCGF <- NULL
   utils::assignInMyNamespace('ExponentialCGF', createCGF(make_ExponentialCGF()))
   utils::assignInMyNamespace('GeometricCGF', createCGF(make_GeometricCGF()))
   utils::assignInMyNamespace('GammaCGF', createCGF(make_GammaCGF()))
+  utils::assignInMyNamespace('MultinomialCGF', createCGF(make_MultinomialCGF()))
 }

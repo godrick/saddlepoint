@@ -18,23 +18,25 @@ to an adaptor if provided as a function.}
 }
 \description{
 Constructs a CGF object for the binomial distribution, supporting flexible parameter specifications through adaptors.
+}
+\details{
 This function allows for dynamic parameter adjustments in three ways:
 \enumerate{
-\item R functions for dynamically computing parameters.
-\item adaptor objects using indices to specify parameters (\code{\link{indices_adaptor}}).
-\item adaptor objects that set fixed values (\code{\link{fixed_parameter_adaptor}}).
-For static parameter values, it is recommended to use \code{fixed_parameter_adaptor}.
+\item \strong{Function-based adaptors}: Use R functions to dynamically compute parameters based on input vector.
+\item \strong{Index-based adaptors}: Subset parameters from a vector using specified indices (\code{\link{indices.adaptor}}).
+\item \strong{Fixed Value adaptors}: Set parameters to known constant values (\code{\link{fixed.parameter.adaptor}}).
+For fixed parameter values, it is recommended to use \code{fixed.parameter.adaptor} and not function-based adaptors.
 }
 }
 \examples{
 \dontrun{
 ## Example using a fixed parameter for `n` and an index adaptor for `prob`
-# `fixed_parameter_adaptor` sets `n` to a constant value of 10
-n_adaptor <- fixed_parameter_adaptor(10)  
+# `fixed.parameter.adaptor` sets `n` to a constant value of 10
+n_adaptor <- fixed.parameter.adaptor(10)  
 
-# `indices_adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
-# For example, if the parameter vector at runtime is c(0.5), then `indices_adaptor(1)` will use the first element.
-prob_adaptor <- indices_adaptor(1)  
+# `indices.adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
+# For example, if the parameter vector at runtime is c(0.5), then `indices.adaptor(1)` will use the first element.
+prob_adaptor <- indices.adaptor(1)  
 
 # Create the CGF object with these adaptors
 cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)

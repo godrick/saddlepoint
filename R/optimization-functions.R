@@ -345,20 +345,20 @@ compute.std.error <- function(observed.data, combined.estimates,
   matrix.H = matrix(computeNegll(tvec = estimated.tvec, theta = estimated.theta, 
                           observations = observed.data, modelCGF = cgf$get_ptr())$hessian,
                     nrow = length(estimated.theta))
-  print(matrix.H)
-  
-  # Define a function to evaluate the objective function as a function of theta
-  nll.as.a.function.of.theta <- function(theta){
-    tvec = sadd.eqn.fn(theta = theta, y = observed.data,
-                       cgf = cgf, starting.tvec = estimated.tvec,
-                       lb = lb.tvec, ub = ub.tvec,
-                       sadd.eqn.opts = sadd.eqn.opts)
-    objective.function(c(tvec, theta))$objective
-  }
-
-  matrix.H1 <- numDeriv::hessian(nll.as.a.function.of.theta, estimated.theta)
-  # # matrix.H <- optimHess(par = estimated.theta, fn = nll.as.a.function.of.theta)
-  print(matrix.H1)
+  # print(matrix.H)
+  # 
+  # # Define a function to evaluate the objective function as a function of theta
+  # nll.as.a.function.of.theta <- function(theta){
+  #   tvec = sadd.eqn.fn(theta = theta, y = observed.data,
+  #                      cgf = cgf, starting.tvec = estimated.tvec,
+  #                      lb = lb.tvec, ub = ub.tvec,
+  #                      sadd.eqn.opts = sadd.eqn.opts)
+  #   objective.function(c(tvec, theta))$objective
+  # }
+  # 
+  # matrix.H1 <- numDeriv::hessian(nll.as.a.function.of.theta, estimated.theta)
+  # # # matrix.H <- optimHess(par = estimated.theta, fn = nll.as.a.function.of.theta)
+  # print(matrix.H1)
   
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)),
