@@ -4,6 +4,7 @@
 #' This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes the observed data, a CGF object that represents the CGF of the observed data, and various other parameters related to the optimization procedure.
 #'
 #' @importFrom nloptr nloptr
+#' @importFrom utils head tail
 #'
 #' @param observed.data a numeric vector - See TO DO list
 #  TO DO: for a (block.size by m) dataset, nrow(observed.data) represents the
@@ -24,9 +25,6 @@
 #'   See the nloptr package documentation for more details about these options.
 #'   By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 #'   Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.
-#' @param sadd.eqn.opts A named list of options for the nloptr optimizer. This sets options for optimization which are
-#'   only needed when `std.error = TRUE` or `discrepancy = TRUE`. By default, ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0.
-#'   Note: `xtol_rel` argument is set to 1.0e-12 and changing it may affect std.error computations.
 #' @return A list of MLEs. If `std.error` is TRUE, the list also includes standard errors of MLEs and inverse Hessian. See TO DO list
 #  TO DO : Design this ...
 #' @examples
@@ -45,8 +43,7 @@ find.saddlepoint.MLE <- function(observed.data,
                                  std.error = FALSE,
                                  discrepancy = FALSE,
                                  user.ineq.constraint.function = NULL,
-                                 opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0),
-                                 sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)
+                                 opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0)
 ) {
 
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
@@ -78,15 +75,16 @@ find.saddlepoint.MLE <- function(observed.data,
   MLEs.tvec = head(MLEs$solution, length(lb.tvec))
   MLEs.theta = tail(MLEs$solution, length(lb.theta))
   
+  # if(MLEs$message != "NLOPT_XTOL_REACHED" && MLEs$message != "NLOPT_MAXEVAL_REACHED" && MLEs$message != "NLOPT_FTOL_REACHED") warning("Optimization did not converge: ", MLEs$message)
+  
   # Calculate standard errors of MLEs
   if(std.error == TRUE || discrepancy == TRUE){
-    res <- compute.std.error(observed.data = observed.data, combined.estimates = MLEs$solution,
+    res <- compute.std.error(observed.data = observed.data, 
+                             estimated.tvec = MLEs.tvec,
+                             estimated.theta = MLEs.theta,
                              cgf = cgf,
-                             objective.function = objective.function,
-                             # eq.constraint.function = eq.constraint.function,
-                             lb.tvec = lb.tvec, ub.tvec = ub.tvec,
-                             # ineq.constraint.function = ineq.constraint.function,
-                             sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0))
+                             non.saddlepoint.negll.function = NULL
+                             )
     MLEs$std.error <- res$std.error
     MLEs$inverse.hessian = res$inverse.hessian
   }
@@ -95,7 +93,7 @@ find.saddlepoint.MLE <- function(observed.data,
     FuncT = computeFuncT(tvec = MLEs.tvec,
                          theta = MLEs.theta,
                          observations = observed.data,
-                         modelCGF = cgf$get_ptr())
+                         cgf = cgf$get_ptr())
     # The formula for the discrepancy should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
     # However, we are minimising the negative log-likelihood which has positive definite Hessian, we therefore
     # omit the negative sign from the formula for this computation
