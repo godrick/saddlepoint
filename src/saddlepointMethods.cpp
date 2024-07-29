@@ -64,8 +64,8 @@ Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> cgf, Rcpp::XPtr<Adapto
 // [[Rcpp::export]]
 Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
                                          const vec& theta,
-                                         Rcpp::XPtr<CGF_with_AD> modelCGF){
-  const CGF_with_AD* cgf_ptr = modelCGF.get();
+                                         Rcpp::XPtr<CGF_with_AD> cgf){
+  const CGF_with_AD* cgf_ptr = cgf.get();
   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
@@ -79,15 +79,15 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
   std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-  attach_attributes(ptr, modelCGF);
+  attach_attributes(ptr, cgf);
   return ptr;
 }
 
 // [[Rcpp::export]]
 Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
                                             const vec& theta,
-                                            Rcpp::XPtr<CGF_with_AD> modelCGF){
-  const CGF_with_AD* cgf_ptr = modelCGF.get();
+                                            Rcpp::XPtr<CGF_with_AD> cgf){
+  const CGF_with_AD* cgf_ptr = cgf.get();
   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
@@ -100,15 +100,15 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
   std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-  attach_attributes(ptr, modelCGF);
+  attach_attributes(ptr, cgf);
   return ptr;
 }
 
 // [[Rcpp::export]]
 Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
                                                      const vec& theta,
-                                                     Rcpp::XPtr<CGF_with_AD> modelCGF){
-  const CGF_with_AD* cgf_ptr = modelCGF.get();
+                                                     Rcpp::XPtr<CGF_with_AD> cgf){
+  const CGF_with_AD* cgf_ptr = cgf.get();
   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
@@ -122,7 +122,7 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
   std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-  attach_attributes(ptr, modelCGF);
+  attach_attributes(ptr, cgf);
   return ptr;
 }
 
@@ -148,10 +148,10 @@ Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad:
 Rcpp::List computeFuncT(const vec& tvec,
                         const vec& theta,
                         const vec& observations,
-                        Rcpp::XPtr<CGF_with_AD> modelCGF){
+                        Rcpp::XPtr<CGF_with_AD> cgf){
   a_vector tvec_ad = tvec.cast<a_scalar>();
   a_vector observations_ad = observations.cast<a_scalar>();
-  const CGF_with_AD* cgf_ptr = modelCGF.get();
+  const CGF_with_AD* cgf_ptr = cgf.get();
 
   auto func = [cgf_ptr, tvec_ad, observations_ad](const std::vector<a_scalar>& x) {
     a_vector theta_ad = Eigen::Map<const a_vector>(x.data(), x.size());
@@ -176,10 +176,10 @@ Rcpp::List computeFuncT(const vec& tvec,
 Rcpp::List computeNegll(const vec& tvec,
                         const vec& theta,
                         const vec& observations,
-                        Rcpp::XPtr<CGF_with_AD> modelCGF){
+                        Rcpp::XPtr<CGF_with_AD> cgf){
   a_vector tvec_ad = tvec.cast<a_scalar>();
   a_vector observations_ad = observations.cast<a_scalar>();
-  const CGF_with_AD* cgf_ptr = modelCGF.get();
+  const CGF_with_AD* cgf_ptr = cgf.get();
 
   auto func = [cgf_ptr, tvec_ad, observations_ad](const std::vector<a_scalar>& x) {
     a_vector theta_ad = Eigen::Map<const a_vector>(x.data(), x.size());
