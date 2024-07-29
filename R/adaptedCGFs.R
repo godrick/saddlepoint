@@ -118,7 +118,7 @@ PoissonModelCGF <- function(lambda) {
 #' This function allows for dynamic adjustments of the rate parameter (\code{lambda}) using similar mechanisms as described for the binomial distribution.
 #' For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
 #'
-#' @param lambda Adaptor or function representing the rate parameter of the exponential distribution. 
+#' @param rate Adaptor or function representing the rate parameter of the exponential distribution. 
 #'               Automatically converted to an adaptor if provided as a function.
 #' @return 'CGF' object configured for the exponential distribution.
 #'
@@ -127,14 +127,14 @@ PoissonModelCGF <- function(lambda) {
 #'
 #' @examples
 #' \dontrun{
-#' # Example: lambda as a function
+#' # Example: rate as a function
 #' f <- function(x) { 0.1 * x }
-#' cgf <- ExponentialModelCGF(lambda = f)
+#' cgf <- ExponentialModelCGF(rate = f)
 #' cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
 #'}
-ExponentialModelCGF <- function(lambda) {
-  lambda = validate_and_transform_adaptor(lambda)
-  createCGF(make_ExponentialModelCGF(lambda_adaptor = lambda))
+ExponentialModelCGF <- function(rate) {
+  rate_ = validate_and_transform_adaptor(rate)
+  createCGF(make_ExponentialModelCGF(lambda_adaptor = rate_))
 }
 
 
