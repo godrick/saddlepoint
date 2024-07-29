@@ -71,7 +71,7 @@ linearlyMappedCGF <- function(cgf, matrix_A) {
 randomlyStoppedSumCGF <- function(count_cgf, summand_cgf) {
   if (!is(count_cgf, "CGF")) stop("'count_cgf' is not defined for ", class(count_cgf))
   if (!is(summand_cgf, "CGF")) stop("'summand_cgf' is not defined for ", class(summand_cgf))
-  createCGF(make_RandomlyStoppedSumCGF(count_cgf = count_cgf, summand_cgf = summand_cgf))
+  createCGF(make_RandomlyStoppedSumCGF(count_cgf = count_cgf$get_ptr(), summand_cgf = summand_cgf$get_ptr()))
 }
 
 #' Transforms a CGF object to an i.i.d-based CGF object.
