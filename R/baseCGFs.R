@@ -61,11 +61,12 @@ GammaCGF <- NULL
 ##' An CGF object containing the CGF and its related derivatives for the multinomial distribution
 ##' @examples
 ##' \dontrun{
-##'  ## For X~Multinomial(n = 10, prob = c(0.1, 0.2, 0.3, 0.4)), E(X) is
-##'  MultinomialCGF$K1(tvec = 0, parameter_vector = c(10, 0.1, 0.2, 0.3, 0.4))
-##'  }
-##'  @export
+##'   ## For X~Multinomial(n = 10, prob = c(0.1, 0.2, 0.3, 0.4)), E(X) is  
+##'   MultinomialCGF$K1(tvec = rep(0,4), parameter_vector = c(10, 0.1, 0.2, 0.3, 0.4)) 
+##'   }
+##' @export 
 MultinomialCGF <- NULL
+
 
 
 
