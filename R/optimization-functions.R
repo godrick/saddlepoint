@@ -15,7 +15,7 @@
 #' @export
 get.saddlepoint.nll.function <- function(tvec, theta, cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
-  adf.negll = makeADFunNegll(tvec = tvec, theta = theta, modelCGF = cgf$get_ptr())
+  adf.negll = makeADFunNegll(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
   saddlepoint.nll = function(a){computeCombinedGradient(combined_vector = a, adf = adf.negll)}
 }
@@ -52,7 +52,7 @@ get.saddlepoint.nll.function <- function(tvec, theta, cgf){
 #' @export
 get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is.numeric(observed.data), is(cgf, "CGF"))
-  adf.K1 = makeADFunK1(tvec = tvec, theta = theta, modelCGF = cgf$get_ptr())
+  adf.K1 = makeADFunK1(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
   saddlepoint.eq.constraint.function <- function(a){
     K1.and.grad = computeCombinedGradient(combined_vector = a, adf = adf.K1)
@@ -196,7 +196,7 @@ get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.
 #'
 #' @noRd
 create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
-  adf.ineq = makeADFunIneqConstraint(tvec = tvec, theta = theta, modelCGF = cgf$get_ptr())
+  adf.ineq = makeADFunIneqConstraint(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
   saddlepoint.ineq.constraint.function <- function(a) {
     ineqConst = computeCombinedGradient(combined_vector = a, adf = adf.ineq)
@@ -214,8 +214,8 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
 #'
 #' @importFrom nloptr nloptr
 #'
-#' @param y A numeric vector of observations.
 #' @param theta A numeric vector of model parameters for which the CGF is defined.
+#' @param y A numeric vector of observations.
 #' @param cgf An object of type "CGF".
 #' @param starting.tvec a numeric vector, vector of starting values for saddlepoint parameters, defaults to zeros.
 #' @param lb a numeric vector, vector of lower bounds for saddlepoints tvec, defaults to -Inf.
@@ -230,32 +230,24 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
 #' # TO DO: Add examples
 #'
 #' @export
-sadd.eqn.fn <- function(theta, y, cgf,
-                        starting.tvec = rep(0, times = length(y)),
-                        # tvec.ineq.constraint.function = NULL,
-                        lb = rep(-Inf, times=length(y)),
-                        ub = rep(Inf, times=length(y)),
-                        sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)) {
+saddlepoint.eqn.solve <- function(theta, y, cgf,
+                                  starting.tvec = rep(0, times = length(y)),
+                                  lb = rep(-Inf, times=length(y)),
+                                  ub = rep(Inf, times=length(y)),
+                                  sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)) {
   
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
-  if(length(lb) != length(starting.tvec) || length(ub) != length(starting.tvec) || !is.numeric(lb) || !is.numeric(ub)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
-  # if(!is.null(tvec.ineq.constraint.function) && !is.function(tvec.ineq.constraint.function)) stop("tvec.ineq.constraint.function is not defined for ", class(tvec.ineq.constraint.function))
-  
+  if(length(lb) != length(starting.tvec) || length(ub) != length(starting.tvec) || !is.numeric(lb) || !is.numeric(ub)) stop("lb or ub has an incorrect length or is not numeric")
+
   # get tvec-related ineq.constraint_function
   tvec.ineq.constraint.function = attributes(get.ineq.constraint.function(tvec = starting.tvec, theta = theta,
                                                                           cgf = cgf,
                                                                           user.ineq.constraint.function = NULL))$tvec.ineq.constraint.function
   objective.fun <- function(t.vec){
     cgf$K(t.vec, theta) - sum(t.vec*y)
-    # val = K(t.vec, theta, cgf) - t(as.matrix(t.vec)) %*% y
-    # # if(is.na(val)) val = Inf
-    # val
   }
   grad.objective.fun <- function(t.vec){
     cgf$K1(t.vec, theta) - y
-    # temp = as.vector(K1(t.vec, theta, cgf))
-    # # temp[is.na(temp)]  = -9999
-    # temp - y
   }
   eval_f <- function(t.vec) {
     list(objective = objective.fun(t.vec),
@@ -308,57 +300,48 @@ configure.sadd.eqn.opts <- function(sadd.eqn.opts) {
 
 #' Compute standard error and inverse Hessian
 #'
-#' This function calculates the standard error and the inverse of the Hessian matrix ....
+#' This function calculates the standard error and the inverse of the Hessian matrix 
+#' for a model incorporating both the saddlepoint likelihood and an optional 
+#' non-saddlepoint negative log-likelihood component.
+#' 
 #'
-#' @importFrom numDeriv hessian
-#' @importFrom utils head tail
+#' @param observed.data A numeric vector of observations used in the saddlepoint likelihood calculations.
+#' @param estimated.tvec A numeric vector of MLE values for the saddlepoint values `tvec`.
+#' @param estimated.theta A numeric vector of MLE values for the model parameters.
+#' @param cgf A CGF object used in the saddlepoint likelihood computation.
+#' @param non.saddlepoint.negll.function An optional function specifying a non-saddlepoint negative log-likelihood. If your model used for estimation incorporates a likelihood component that is not based on the saddlepoint approximation, this function must be provided. See details for more information.
 #'
-#' @param observed.data A numeric vector of observed data//TO DO: this is for saddlepoint component, if we build negll in components (corresponding to what the cgf expects)//
-#' @param combined.estimates TO DO A numeric vector of combined estimated parameters
-#' @param cgf A CGF object
-#' @param objective.function A function that defines the objective to be minimized...TO DO: this is the complete negll 
-#' @param lb.tvec A numeric vector specifying the lower bounds for tvec (default: -Inf)
-#' @param ub.tvec A numeric vector specifying the upper bounds for tvec (default: Inf)
-#' @param sadd.eqn.opts A list of options for the nlopt optimizer. This should be a named list, where the names are option names and the list elements are the corresponding option values.
-#'    The default options are: \code{list(algorithm="NLOPT_LD_SLSQP", ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)}.
-#'    Note that the option "algorithm" cannot be changed. See the documentation for the \code{nloptr} package for more details about the options.
-# #' @param ineq.constraint.function An optional function defining inequality constraints (default: NULL)
+#' @details
+#' The `non.saddlepoint.negll.function`, if provided, should have the form:
+#' \deqn{function(theta) \{ return(list(objective = ..., hessian = ...)) \}}
+#' It adds flexibility by allowing incorporation of likelihood components not based on the saddlepoint likelihood.
+#' It is important when the analysis combines the saddlepoint likelihood with an external likelihood. 
+#' If not provided, the function defaults to using solely the saddlepoint likelihood.
 #'
-#' @return A list containing the standard error (std.error) and the inverse Hessian matrix (inverse.hessian)
+#' @return A list containing:
+#'   \itemize{
+#'     \item std.error: Standard error computed from the diagonal of the inverse Hessian.
+#'     \item inverse.hessian: Inverse of the Hessian matrix.
+#'   }
 #'
 #' @examples
 #' # TODO: Add examples
 #'
 #' @export
-compute.std.error <- function(observed.data, combined.estimates,
-                              cgf, objective.function,
-                              # eq.constraint.function,
-                              lb.tvec = rep(-Inf, times=length(observed.data)),
-                              ub.tvec = rep(Inf, times=length(observed.data)),
-                              sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)
-                              # ineq.constraint.function = NULL
+compute.std.error <- function(observed.data, 
+                              estimated.tvec,
+                              estimated.theta,
+                              cgf, 
+                              non.saddlepoint.negll.function = NULL
 ) {
   
-  estimated.tvec <- head(combined.estimates, length(observed.data))
-  estimated.theta <- tail(combined.estimates, length(combined.estimates) - length(estimated.tvec))
-  
   matrix.H = matrix(computeNegll(tvec = estimated.tvec, theta = estimated.theta, 
-                          observations = observed.data, modelCGF = cgf$get_ptr())$hessian,
+                          observations = observed.data, cgf = cgf$get_ptr())$hessian,
                     nrow = length(estimated.theta))
-  # print(matrix.H)
-  # 
-  # # Define a function to evaluate the objective function as a function of theta
-  # nll.as.a.function.of.theta <- function(theta){
-  #   tvec = sadd.eqn.fn(theta = theta, y = observed.data,
-  #                      cgf = cgf, starting.tvec = estimated.tvec,
-  #                      lb = lb.tvec, ub = ub.tvec,
-  #                      sadd.eqn.opts = sadd.eqn.opts)
-  #   objective.function(c(tvec, theta))$objective
-  # }
-  # 
-  # matrix.H1 <- numDeriv::hessian(nll.as.a.function.of.theta, estimated.theta)
-  # # # matrix.H <- optimHess(par = estimated.theta, fn = nll.as.a.function.of.theta)
-  # print(matrix.H1)
+  
+  if (!is.null(non.saddlepoint.negll.function)) {
+    matrix.H = matrix.H + non.saddlepoint.negll.function(estimated.theta)$hessian
+  }
   
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)),
