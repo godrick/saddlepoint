@@ -58,41 +58,41 @@ BEGIN_RCPP
 END_RCPP
 }
 // makeADFunK1
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeADFunK1(tvec, theta, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunK1(tvec, theta, cgf));
     return rcpp_result_gen;
 END_RCPP
 }
 // makeADFunNegll
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, cgf));
     return rcpp_result_gen;
 END_RCPP
 }
 // makeADFunIneqConstraint
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_makeADFunIneqConstraint(SEXP tvecSEXP, SEXP thetaSEXP, SEXP modelCGFSEXP) {
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_makeADFunIneqConstraint(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeADFunIneqConstraint(tvec, theta, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunIneqConstraint(tvec, theta, cgf));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -109,30 +109,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // computeFuncT
-Rcpp::List computeFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_computeFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
+Rcpp::List computeFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_computeFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(computeFuncT(tvec, theta, observations, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeFuncT(tvec, theta, observations, cgf));
     return rcpp_result_gen;
 END_RCPP
 }
 // computeNegll
-Rcpp::List computeNegll(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> modelCGF);
-RcppExport SEXP _saddlepoint_computeNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP modelCGFSEXP) {
+Rcpp::List computeNegll(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_computeNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type modelCGF(modelCGFSEXP);
-    rcpp_result_gen = Rcpp::wrap(computeNegll(tvec, theta, observations, modelCGF));
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeNegll(tvec, theta, observations, cgf));
     return rcpp_result_gen;
 END_RCPP
 }

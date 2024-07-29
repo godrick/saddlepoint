@@ -17,28 +17,28 @@ adapt_CGF <- function(cgf, adaptor) {
     .Call(`_saddlepoint_adapt_CGF`, cgf, adaptor)
 }
 
-makeADFunK1 <- function(tvec, theta, modelCGF) {
-    .Call(`_saddlepoint_makeADFunK1`, tvec, theta, modelCGF)
+makeADFunK1 <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunK1`, tvec, theta, cgf)
 }
 
-makeADFunNegll <- function(tvec, theta, modelCGF) {
-    .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, modelCGF)
+makeADFunNegll <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, cgf)
 }
 
-makeADFunIneqConstraint <- function(tvec, theta, modelCGF) {
-    .Call(`_saddlepoint_makeADFunIneqConstraint`, tvec, theta, modelCGF)
+makeADFunIneqConstraint <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunIneqConstraint`, tvec, theta, cgf)
 }
 
 computeCombinedGradient <- function(combined_vector, adf) {
     .Call(`_saddlepoint_computeCombinedGradient`, combined_vector, adf)
 }
 
-computeFuncT <- function(tvec, theta, observations, modelCGF) {
-    .Call(`_saddlepoint_computeFuncT`, tvec, theta, observations, modelCGF)
+computeFuncT <- function(tvec, theta, observations, cgf) {
+    .Call(`_saddlepoint_computeFuncT`, tvec, theta, observations, cgf)
 }
 
-computeNegll <- function(tvec, theta, observations, modelCGF) {
-    .Call(`_saddlepoint_computeNegll`, tvec, theta, observations, modelCGF)
+computeNegll <- function(tvec, theta, observations, cgf) {
+    .Call(`_saddlepoint_computeNegll`, tvec, theta, observations, cgf)
 }
 
 make_BinomialCGF <- function() {

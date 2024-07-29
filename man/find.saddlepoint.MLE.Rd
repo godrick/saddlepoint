@@ -16,8 +16,7 @@ find.saddlepoint.MLE(
   std.error = FALSE,
   discrepancy = FALSE,
   user.ineq.constraint.function = NULL,
-  opts.user = list(ftol_abs = 0, maxeval = 10000, xtol_rel = 1e-07, print_level = 0),
-  sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1000, xtol_rel = 1e-12, print_level = 0)
+  opts.user = list(ftol_abs = 0, maxeval = 10000, xtol_rel = 1e-07, print_level = 0)
 )
 }
 \arguments{
@@ -49,10 +48,6 @@ maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
 See the nloptr package documentation for more details about these options.
 By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.}
-
-\item{sadd.eqn.opts}{A named list of options for the nloptr optimizer. This sets options for optimization which are
-only needed when \code{std.error = TRUE} or \code{discrepancy = TRUE}. By default, ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0.
-Note: \code{xtol_rel} argument is set to 1.0e-12 and changing it may affect std.error computations.}
 }
 \value{
 A list of MLEs. If \code{std.error} is TRUE, the list also includes standard errors of MLEs and inverse Hessian. See TO DO list

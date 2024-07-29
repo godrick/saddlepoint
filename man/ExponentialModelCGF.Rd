@@ -4,10 +4,10 @@
 \alias{ExponentialModelCGF}
 \title{ExponentialCGF with flexible parameterization}
 \usage{
-ExponentialModelCGF(lambda)
+ExponentialModelCGF(rate)
 }
 \arguments{
-\item{lambda}{Adaptor or function representing the rate parameter of the exponential distribution.
+\item{rate}{Adaptor or function representing the rate parameter of the exponential distribution.
 Automatically converted to an adaptor if provided as a function.}
 }
 \value{
@@ -20,9 +20,9 @@ For detailed explanations on using adaptors for dynamic parameter adjustments, s
 }
 \examples{
 \dontrun{
-# Example: lambda as a function
+# Example: rate as a function
 f <- function(x) { 0.1 * x }
-cgf <- ExponentialModelCGF(lambda = f)
+cgf <- ExponentialModelCGF(rate = f)
 cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
 }
 }

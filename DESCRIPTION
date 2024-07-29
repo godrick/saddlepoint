@@ -29,7 +29,6 @@ Imports:
     methods,
     Rcpp,
     RcppEigen,
-    numDeriv,
     nloptr,
     RTMB
 LinkingTo: 
