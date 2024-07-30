@@ -75,8 +75,8 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
   };
   
   std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.begin(), tvec.end(), combined_input.begin());
-  std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
+  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
   attach_attributes(ptr, cgf);
@@ -96,8 +96,8 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
   };
   
   std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.begin(), tvec.end(), combined_input.begin());
-  std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
+  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
   attach_attributes(ptr, cgf);
@@ -118,8 +118,8 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
   };
   
   std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.begin(), tvec.end(), combined_input.begin());
-  std::copy(theta.begin(), theta.end(), combined_input.begin() + tvec.size());
+  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
   
   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
   attach_attributes(ptr, cgf);
@@ -129,7 +129,7 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
 // [[Rcpp::export]]
 Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad::ADFun<>> adf){
   std::vector<double> combined_input(combined_vector.size());
-  std::copy(combined_vector.begin(), combined_vector.end(), combined_input.begin());
+  std::copy(combined_vector.data(), combined_vector.data()+combined_vector.size(), combined_input.begin());
   
   return Rcpp::List::create(Rcpp::Named("objective") = (*adf)(combined_input),
                             Rcpp::Named("gradient") = adf->Jacobian(combined_input));
