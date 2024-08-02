@@ -21,6 +21,30 @@ get.saddlepoint.nll.function <- function(tvec, theta, cgf){
 }
 
 
+#' @title Create a zeroth-order saddlepoint negative log-likelihood function
+#' @description This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
+#' @param tvec A numeric vector.
+#' @param theta A numeric vector.
+#' @param cgf An object of class 'CGF'.
+#' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
+#  the gradient of the function with respect to both \code{tvec} and \code{theta}.
+#' 
+#' @examples
+#' \dontrun{
+#'   TO DO: write a working example
+#' }
+#' 
+#' @export
+get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
+  adf.zeroth.nll = makeADFunZerothNegll(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
+  
+  zeroth.saddlepoint.nll = function(a){
+    computeCombinedGradient(combined_vector = a, adf = adf.zeroth.nll)
+  }
+}
+
+
 
 
 
@@ -207,6 +231,9 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
 
 
 
+
+
+
 #' Solution of the saddlepoint equation
 #'
 #' This function minimises the expression \eqn{K'(t, \theta)-y} of the saddlepoint equation, and returns
@@ -309,6 +336,7 @@ configure.sadd.eqn.opts <- function(sadd.eqn.opts) {
 #' @param estimated.tvec A numeric vector of MLE values for the saddlepoint values `tvec`.
 #' @param estimated.theta A numeric vector of MLE values for the model parameters.
 #' @param cgf A CGF object used in the saddlepoint likelihood computation.
+#' @param zeroth.order A logical value indicating whether the zeroth-order saddlepoint likelihood is used. Default is FALSE.
 #' @param non.saddlepoint.negll.function An optional function specifying a non-saddlepoint negative log-likelihood. If your model used for estimation incorporates a likelihood component that is not based on the saddlepoint approximation, this function must be provided. See details for more information.
 #'
 #' @details
@@ -332,15 +360,18 @@ compute.std.error <- function(observed.data,
                               estimated.tvec,
                               estimated.theta,
                               cgf, 
-                              non.saddlepoint.negll.function = NULL
-) {
-  
-  matrix.H = matrix(computeNegll(tvec = estimated.tvec, theta = estimated.theta, 
-                          observations = observed.data, cgf = cgf$get_ptr())$hessian,
+                              zeroth.order = FALSE,
+                              non.saddlepoint.negll.function = NULL) {
+  if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
+  computeNegll_fn <- if (zeroth.order) computeZerothNegll else computeNegll
+  matrix.H <- matrix(computeNegll_fn(tvec = estimated.tvec, theta = estimated.theta,
+                                    observations = observed.data, cgf = cgf$get_ptr())$hessian,
                     nrow = length(estimated.theta))
+
   
   if (!is.null(non.saddlepoint.negll.function)) {
-    matrix.H = matrix.H + non.saddlepoint.negll.function(estimated.theta)$hessian
+    if (!is.function(non.saddlepoint.negll.function)) stop("'non.saddlepoint.negll.function' must be a function")
+    matrix.H <- matrix.H + non.saddlepoint.negll.function(estimated.theta)$hessian
   }
   
   inverse.hessian <- solve(matrix.H)

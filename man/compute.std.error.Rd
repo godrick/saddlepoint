@@ -9,6 +9,7 @@ compute.std.error(
   estimated.tvec,
   estimated.theta,
   cgf,
+  zeroth.order = FALSE,
   non.saddlepoint.negll.function = NULL
 )
 }
@@ -20,6 +21,8 @@ compute.std.error(
 \item{estimated.theta}{A numeric vector of MLE values for the model parameters.}
 
 \item{cgf}{A CGF object used in the saddlepoint likelihood computation.}
+
+\item{zeroth.order}{A logical value indicating whether the zeroth-order saddlepoint likelihood is used. Default is FALSE.}
 
 \item{non.saddlepoint.negll.function}{An optional function specifying a non-saddlepoint negative log-likelihood. If your model used for estimation incorporates a likelihood component that is not based on the saddlepoint approximation, this function must be provided. See details for more information.}
 }

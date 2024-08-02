@@ -29,6 +29,10 @@ makeADFunIneqConstraint <- function(tvec, theta, cgf) {
     .Call(`_saddlepoint_makeADFunIneqConstraint`, tvec, theta, cgf)
 }
 
+makeADFunZerothNegll <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunZerothNegll`, tvec, theta, cgf)
+}
+
 computeCombinedGradient <- function(combined_vector, adf) {
     .Call(`_saddlepoint_computeCombinedGradient`, combined_vector, adf)
 }
@@ -37,8 +41,16 @@ computeFuncT <- function(tvec, theta, observations, cgf) {
     .Call(`_saddlepoint_computeFuncT`, tvec, theta, observations, cgf)
 }
 
+computeZerothFuncT <- function(tvec, theta, observations, cgf) {
+    .Call(`_saddlepoint_computeZerothFuncT`, tvec, theta, observations, cgf)
+}
+
 computeNegll <- function(tvec, theta, observations, cgf) {
     .Call(`_saddlepoint_computeNegll`, tvec, theta, observations, cgf)
+}
+
+computeZerothNegll <- function(tvec, theta, observations, cgf) {
+    .Call(`_saddlepoint_computeZerothNegll`, tvec, theta, observations, cgf)
 }
 
 make_BinomialCGF <- function() {

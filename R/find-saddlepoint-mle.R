@@ -1,11 +1,21 @@
 #' @title Find maximum likelihood estimates using the saddlepoint likelihood.
 #'
 #' @description
-#' This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes the observed data, a CGF object that represents the CGF of the observed data, and various other parameters related to the optimization procedure.
+#' This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes a CGF object that represents the CGF for a random variable, corresponding to the observed data, along with various parameters related to the optimization procedure. An alternative zeroth-order method can be enabled by setting the `zeroth.order` parameter to TRUE.
+#' 
 #'
 #' @importFrom nloptr nloptr
 #' @importFrom utils head tail
-#'
+#' 
+#' @details
+#' The `zeroth.order` argument allows toggling between the standard and zeroth-order saddlepoint likelihoods. 
+#' When `zeroth.order` is set to TRUE, the objective function is modified to the zeroth-order saddlepoint negative log-likelihood 
+#' \deqn{\hat{t} y - K_Y (\hat{t}; \theta).} 
+#' Here, the estimates of \eqn{\theta} are calculated based on observations \eqn{y}, 
+#' where \eqn{K_Y(t; \theta)} is the CGF of the underlying random variable, and \eqn{\hat{t}} is the solution 
+#' to the saddlepoint equation. When FALSE, the standard saddlepoint likelihood is used.
+#' 
+#' 
 #' @param observed.data a numeric vector - See TO DO list
 #  TO DO: for a (block.size by m) dataset, nrow(observed.data) represents the
 #        dimension of the observed vector and the columns correspond to i.i.d replicates of the vector.
@@ -25,6 +35,7 @@
 #'   See the nloptr package documentation for more details about these options.
 #'   By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 #'   Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.
+#' @param zeroth.order A logical value indicating whether to use the zeroth-order saddlepoint likelihood. Defaults to FALSE, using the standard saddlepoint likelihood.
 #' @return A list of MLEs. If `std.error` is TRUE, the list also includes standard errors of MLEs and inverse Hessian. See TO DO list
 #  TO DO : Design this ...
 #' @examples
@@ -43,7 +54,8 @@ find.saddlepoint.MLE <- function(observed.data,
                                  std.error = FALSE,
                                  discrepancy = FALSE,
                                  user.ineq.constraint.function = NULL,
-                                 opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0)
+                                 opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0),
+                                 zeroth.order = FALSE  # Logical flag to use zeroth order method
 ) {
 
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
@@ -52,8 +64,7 @@ find.saddlepoint.MLE <- function(observed.data,
   if(any(starting.theta < lb.theta) || any(starting.theta > ub.theta)) stop("starting.theta is not within the bounds specified")
   if(!is.numeric(observed.data)) stop("observed.data not defined for ", class(observed.data))
   if (length(starting.tvec) != length(observed.data)) stop("Size of observed.data and starting.tvec arguments do not match")
-  
-  
+ 
   # Combine tvec and theta arguments to a single vector
   a <- c(starting.tvec, starting.theta)
   
@@ -61,6 +72,10 @@ find.saddlepoint.MLE <- function(observed.data,
   objective.function <- get.saddlepoint.nll.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf)
   eq.constraint.function <- get.saddlepoint.eq.constraint.function(tvec = starting.tvec, theta = starting.theta, observed.data = observed.data, cgf = cgf)
   ineq.constraint.function <- get.ineq.constraint.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf, user.ineq.constraint.function = user.ineq.constraint.function)
+  
+  # Override objective function if zeroth order method is selected
+  if(zeroth.order) objective.function <- get.zeroth.saddlepoint.nll.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf)
+  
   
   # configure optimizer options
   opts = configure.opts(opts.user) # checks and modifies user-provided options for the optimizer.
@@ -83,6 +98,7 @@ find.saddlepoint.MLE <- function(observed.data,
                              estimated.tvec = MLEs.tvec,
                              estimated.theta = MLEs.theta,
                              cgf = cgf,
+                             zeroth.order = zeroth.order,
                              non.saddlepoint.negll.function = NULL
                              )
     MLEs$std.error <- res$std.error
@@ -90,10 +106,12 @@ find.saddlepoint.MLE <- function(observed.data,
   }
   if(discrepancy == TRUE){
     
-    FuncT = computeFuncT(tvec = MLEs.tvec,
-                         theta = MLEs.theta,
-                         observations = observed.data,
-                         cgf = cgf$get_ptr())
+    computeFuncT_fn <- if (zeroth.order) computeZerothFuncT else computeFuncT
+    
+    FuncT <- computeFuncT_fn(tvec = MLEs.tvec,
+                             theta = MLEs.theta,
+                             observations = observed.data,
+                             cgf = cgf$get_ptr())
     # The formula for the discrepancy should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
     # However, we are minimising the negative log-likelihood which has positive definite Hessian, we therefore
     # omit the negative sign from the formula for this computation
@@ -123,3 +141,5 @@ configure.opts <- function(opts.user) {
   if (!all(names(opts.user) %in% valid.option.names)) stop("Invalid option name(s) provided. Valid options are: ", paste(valid.option.names, collapse = ", "))
   modifyList(opts.default, opts.user)
 }
+
+

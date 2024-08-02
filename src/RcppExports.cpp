@@ -96,6 +96,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// makeADFunZerothNegll
+Rcpp::XPtr< TMBad::ADFun<> > makeADFunZerothNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_makeADFunZerothNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunZerothNegll(tvec, theta, cgf));
+    return rcpp_result_gen;
+END_RCPP
+}
 // computeCombinedGradient
 Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad::ADFun<>> adf);
 RcppExport SEXP _saddlepoint_computeCombinedGradient(SEXP combined_vectorSEXP, SEXP adfSEXP) {
@@ -122,6 +135,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// computeZerothFuncT
+Rcpp::List computeZerothFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_computeZerothFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeZerothFuncT(tvec, theta, observations, cgf));
+    return rcpp_result_gen;
+END_RCPP
+}
 // computeNegll
 Rcpp::List computeNegll(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
 RcppExport SEXP _saddlepoint_computeNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
@@ -133,6 +160,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
     rcpp_result_gen = Rcpp::wrap(computeNegll(tvec, theta, observations, cgf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// computeZerothNegll
+Rcpp::List computeZerothNegll(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_computeZerothNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeZerothNegll(tvec, theta, observations, cgf));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -481,9 +522,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
     {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 3},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
+    {"_saddlepoint_makeADFunZerothNegll", (DL_FUNC) &_saddlepoint_makeADFunZerothNegll, 3},
     {"_saddlepoint_computeCombinedGradient", (DL_FUNC) &_saddlepoint_computeCombinedGradient, 2},
     {"_saddlepoint_computeFuncT", (DL_FUNC) &_saddlepoint_computeFuncT, 4},
+    {"_saddlepoint_computeZerothFuncT", (DL_FUNC) &_saddlepoint_computeZerothFuncT, 4},
     {"_saddlepoint_computeNegll", (DL_FUNC) &_saddlepoint_computeNegll, 4},
+    {"_saddlepoint_computeZerothNegll", (DL_FUNC) &_saddlepoint_computeZerothNegll, 4},
     {"_saddlepoint_make_BinomialCGF", (DL_FUNC) &_saddlepoint_make_BinomialCGF, 0},
     {"_saddlepoint_make_BinomialModelCGF", (DL_FUNC) &_saddlepoint_make_BinomialModelCGF, 2},
     {"_saddlepoint_make_PoissonCGF", (DL_FUNC) &_saddlepoint_make_PoissonCGF, 0},

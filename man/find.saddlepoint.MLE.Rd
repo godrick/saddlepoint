@@ -16,7 +16,8 @@ find.saddlepoint.MLE(
   std.error = FALSE,
   discrepancy = FALSE,
   user.ineq.constraint.function = NULL,
-  opts.user = list(ftol_abs = 0, maxeval = 10000, xtol_rel = 1e-07, print_level = 0)
+  opts.user = list(ftol_abs = 0, maxeval = 10000, xtol_rel = 1e-07, print_level = 0),
+  zeroth.order = FALSE
 )
 }
 \arguments{
@@ -48,12 +49,22 @@ maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
 See the nloptr package documentation for more details about these options.
 By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.}
+
+\item{zeroth.order}{A logical value indicating whether to use the zeroth-order saddlepoint likelihood. Defaults to FALSE, using the standard saddlepoint likelihood.}
 }
 \value{
 A list of MLEs. If \code{std.error} is TRUE, the list also includes standard errors of MLEs and inverse Hessian. See TO DO list
 }
 \description{
-This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes the observed data, a CGF object that represents the CGF of the observed data, and various other parameters related to the optimization procedure.
+This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes a CGF object that represents the CGF for a random variable, corresponding to the observed data, along with various parameters related to the optimization procedure. An alternative zeroth-order method can be enabled by setting the \code{zeroth.order} parameter to TRUE.
+}
+\details{
+The \code{zeroth.order} argument allows toggling between the standard and zeroth-order saddlepoint likelihoods.
+When \code{zeroth.order} is set to TRUE, the objective function is modified to the zeroth-order saddlepoint negative log-likelihood
+\deqn{\hat{t} y - K_Y (\hat{t}; \theta).}
+Here, the estimates of \eqn{\theta} are calculated based on observations \eqn{y},
+where \eqn{K_Y(t; \theta)} is the CGF of the underlying random variable, and \eqn{\hat{t}} is the solution
+to the saddlepoint equation. When FALSE, the standard saddlepoint likelihood is used.
 }
 \examples{
 \dontrun{
