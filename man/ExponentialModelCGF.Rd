@@ -24,7 +24,7 @@ For detailed explanations on using adaptors for dynamic parameter adjustments, s
 f <- function(x) { 0.1 * x }
 cgf <- ExponentialModelCGF(rate = f)
 cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
-}
+}makeAdaptorUsingRfunctions
 }
 \seealso{
 \code{\link{ExponentialCGF}} \code{\link{BinomialModelCGF}}

@@ -23,19 +23,14 @@ It allows for custom behavior in parameter handling, allowing flexibility in par
   ## Adapting the BinomialCGF using indices
   # Suppose the parameter_vector is of any length (> 2) and we want to use the first two elements as parameters of the underlying Binomial distribution
   adapted_binomial_cgf <- adaptCGF(cgf = BinomialCGF,
-                                   adaptor = indices.adaptor(1:2) )
+                                   adaptor = adaptor(indices = 1:2) )
   ## Adapting the BinomialCGF using a function
   adapted_binomial_cgf1 <- adaptCGF(cgf = BinomialCGF,
                                     adaptor = function(x) { x[1:2] } )
-  ## Adapting the BinomialCGF using a fixed parameter
-  adapted_binomial_cgf2 <- adaptCGF(cgf = BinomialCGF,
-                                    adaptor = fixed.parameter.adaptor(c(10, 0.5)) )
-  
   res1 <- adapted_binomial_cgf$K1(tvec = 0, parameter_vector = c(10, 0.5, 90, 4, 3))
   res2 <- adapted_binomial_cgf1$K1(tvec = 0, parameter_vector = c(10, 0.5, 5))
-  res3 <- adapted_binomial_cgf2$K1(tvec = 0, parameter_vector = c(10, 0.5))
 }
 }
 \seealso{
-\code{\link{indices.adaptor}}, \code{\link{fixed.parameter.adaptor}}, \code{\link{BinomialModelCGF}}
+\code{\link{adaptor}}, \code{\link{BinomialModelCGF}}
 }

@@ -16,67 +16,57 @@
 #'@noRd
 setClass("adaptor", slots = list(.Data = "externalptr"))
 
-#' adaptor constructor
+#' Create an adaptor object
 #'
-#' This function constructs an object of class "adaptor" using a valid externalptr object.
+#' This function constructs an adaptor object based on the provided type of argument. 
 #'
-#' @param ptr An externalptr object. It should not be an empty externalptr object.
+#' @param indices Numeric vector of positive integers, used for creating an index-based adaptor. The indices are used to subset parameters from a vector using specified indices.
+#' @param fixed_param Numeric vector of fixed parameters, used to set constant values for the parameters. 
+#' @param r_func A function that dynamically compute parameters based on input vector. The function should return the required parameters based on its input.
+#' 
+#' @details
+#' The function must be called with exactly one named argument out of `indices`, `fixed_param`, or `r_func`. 
+#' For For fixed parameter values, it is recommended to use `fixed_param` argument and not `r_func` argument.
+#' 
 #'
 #' @return An object of class "adaptor".
-#' @examples
-#' \dontrun{
-#'   # assuming ptr is a valid externalptr object
-#'   adaptor <- adaptor(ptr)
-#' }
-#' @noRd
-adaptor <- function(ptr) {
-  if (!is(ptr, "externalptr")) stop("ptr must be of type externalptr")
-  if (isTRUE( identical(ptr, new("externalptr"))) ) stop("ptr is an empty externalptr object")
-  structure(.Data = ptr, class = "adaptor")
-}
-
-
-#' @title Create fixed parameter adaptor
-#'
-#' @description
-#' Instantiates an adaptor with fixed parameter values. Useful for models where some parameters do not change.
-#'
-#'
-#' @param fixed_param Numeric vector of fixed parameters.
-#'
-#' @return An adaptor object set with fixed parameters.
-#'
-#' @examples
-#' \dontrun{
-#' # This is especially useful for setting known values of parameters that will not change during estimation.
-#' # For instance, one might set the `n` parameter to `1` for a Bernoulli distribution (which is a special case of the binomial distribution).
-#' }
-#'
+#' 
 #' @export
-#' @seealso \code{\link{indices.adaptor}}
-fixed.parameter.adaptor <- function(fixed_param){
-  if(!is.numeric(fixed_param)) stop(" 'fixed_param' is not defined for ", class(fixed_param)) 
-  adaptor(makeSavedVectorAdaptor(fixed_parameter_values = fixed_param))
-}
-
-
-
-#' @title Create index-based adaptor
-#'
-#' @description
-#' Creates an adaptor that subsets parameters from a vector using specified indices.
-#'
-#' @param indices Numeric vector of positive integers for subsetting parameters.
-#'
-#' @return An adaptor object that subsets parameters by indices.
-#'
+#' @seealso \code{\link{BinomialModelCGF}}
+#' 
 #' @examples
 #' \dontrun{
+#'   # Example 1: Fixed and index-based parameter adaptors
+#'   # Create a CGF object for a binomial distribution with a fixed parameter `n = 10`.
+#'   # This configuration allows passing only the `prob` parameter in subsequent uses.
+#'   binom_cgf <- BinomialModelCGF(n = adaptor(fixed_param = 10), prob = adaptor(indices = 1))
+#'   # This CGF object will expect only the `prob` parameter to be passed, since `n` is already set.
+#'   binom_cgf$K1(tvec = 0, parameter_vector = 0.3)
+#'   
+#'   # Example 3: Function adaptor
+#'   # Dynamically compute probability parameter based on the input vector.
+#'   r_func_cgf <- BinomialModelCGF(n = adaptor(indices = 2), prob = function(y) y[1])
+#'   r_func_cgf$K1(tvec = 0, parameter_vector = c(0.3, 10))
 #' }
-#'
-#' @export
-#' @seealso \code{\link{fixed.parameter.adaptor}}
-indices.adaptor <- function(indices){
-  if (!is.numeric(indices) || any(indices != as.integer(indices)) || any(indices <= 0)) stop("indices must be positive integers")
-  adaptor(makeVectorSubsetByIndicesAdaptor(indices = indices))
+adaptor <- function(indices = NULL, fixed_param = NULL, r_func = NULL) {
+  args <- as.list(sys.call())[-1] # remove the function name from the captured call
+  if (length(args) != 1) stop("Please specify exactly one of 'indices', 'fixed_param', or 'r_func'")
+  if (is.null(names(args))) stop("Please specify the argument by its name")
+  # if (!names(args) %in% c("indices", "fixed_param")) stop("Please specify either 'indices' or 'fixed_param'")
+  
+  if (names(args) == "indices"){
+    if (!is.numeric(indices) || any(indices != as.integer(indices)) || any(indices <= 0)) stop("'indices' must be positive integers")
+    return(structure(.Data = makeVectorSubsetByIndicesAdaptor(indices = indices), class = "adaptor"))
+  }
+  if (names(args) == "fixed_param"){
+    if(!is.numeric(fixed_param)) stop(" 'fixed_param' is not defined for ", class(fixed_param)) 
+    return(structure(.Data = makeSavedVectorAdaptor(fixed_parameter_values = fixed_param), class = "adaptor"))
+  }
+  if (names(args) == "r_func"){
+    if(!is.function(r_func)) stop(" 'r_func' is not defined for ", class(r_func)) 
+    if (length(formals(r_func)) != 1) stop("The function must have exactly one argument.")
+    return(structure(.Data = makeAdaptorUsingRfunctions(r_function = r_func) , class = "adaptor"))
+  }
 }
+
+

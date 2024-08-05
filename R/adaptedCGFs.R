@@ -19,9 +19,9 @@ validate_and_transform_adaptor <- function(obj) {
 #' @details
 #' This function allows for dynamic parameter adjustments in three ways: 
 #' 1. **Function-based adaptors**: Use R functions to dynamically compute parameters based on input vector.
-#' 2. **Index-based adaptors**: Subset parameters from a vector using specified indices (\code{\link{indices.adaptor}}).
-#' 3. **Fixed Value adaptors**: Set parameters to known constant values (\code{\link{fixed.parameter.adaptor}}).
-#' For fixed parameter values, it is recommended to use `fixed.parameter.adaptor` and not function-based adaptors.
+#' 2. **Index-based adaptors**: Subset parameters from a vector using specified indices `adaptor(indices = ...)`.
+#' 3. **Fixed Value adaptors**: Set parameters to constant values `adaptor(fixed_param = ...)`.
+#' For fixed parameter values, it is recommended to use `adaptor(fixed_param = ...)` and not function-based adaptors.
 #'
 #'
 #'
@@ -36,13 +36,12 @@ validate_and_transform_adaptor <- function(obj) {
 #'
 #' @examples
 #' \dontrun{
-#' ## Example using a fixed parameter for `n` and an index adaptor for `prob`
-#' # `fixed.parameter.adaptor` sets `n` to a constant value of 10
-#' n_adaptor <- fixed.parameter.adaptor(10)  
+#' ## Example using a fixed parameter for `n` and an index-based adaptor for `prob`
+#' n_adaptor <- adaptor(fixed_param = 10) # Set `n` to a constant value of 10
 #' 
-#' # `indices.adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
-#' # For example, if the parameter vector at runtime is c(0.5), then `indices.adaptor(1)` will use the first element.
-#' prob_adaptor <- indices.adaptor(1)  
+#' # `indices` argument of the `adaptor()` function supposes that the target (here `prob`) is part of a parameter vector that will be accessed using the provided indices
+#' # For example, if the parameter vector at runtime is c(0.2, 7, 4), then `adaptor(indices = 1)` will use the first element for the `prob`.
+#' prob_adaptor <- adaptor(indices = 1) 
 #' 
 #' # Create the CGF object with these adaptors
 #' cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)
@@ -60,7 +59,7 @@ validate_and_transform_adaptor <- function(obj) {
 #' 
 #' # Example usage, assuming the parameter vector is supplied at runtime
 #' # For instance, the parameter vector might be supplied during a calculation call
-#' example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability of success
+#' example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability to be used
 #' cgf1$K1(tvec = 0, parameter_vector = example_params)
 #' 
 #'}
@@ -131,7 +130,7 @@ PoissonModelCGF <- function(lambda) {
 #' f <- function(x) { 0.1 * x }
 #' cgf <- ExponentialModelCGF(rate = f)
 #' cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
-#'}
+#'}makeAdaptorUsingRfunctions
 ExponentialModelCGF <- function(rate) {
   rate_ = validate_and_transform_adaptor(rate)
   createCGF(make_ExponentialModelCGF(lambda_adaptor = rate_))
@@ -193,7 +192,7 @@ GeometricModelCGF <- function(prob) {
 #' ## Example using a fixed parameter for `rate` and an index adaptor for `shape`
 #' # `rate` parameter fixed at 1
 #' # `shape` will be part of a parameter vector that will be accessed using the the first index
-#' cgf <- GammaModelCGF(shape = indices.adaptor(1), rate = fixed.parameter.adaptor(1))
+#' cgf <- GammaModelCGF(shape = adaptor(indices = 1), rate = adaptor(fixed_param = 1))
 #' cgf$K1(tvec = 0, parameter_vector = 0.2) == GammaCGF$K1(tvec = 0, parameter_vector = c(0.2, 1))
 #'}
 GammaModelCGF <- function(shape, rate) {
@@ -239,24 +238,19 @@ MultinomialModelCGF <- function(n, prob_vec) {
 #'
 #'
 #' @return A CGF object.
-#' @seealso \code{\link{indices.adaptor}}, \code{\link{fixed.parameter.adaptor}}, \code{\link{BinomialModelCGF}}
+#' @seealso \code{\link{adaptor}}, \code{\link{BinomialModelCGF}}
 #'
 #' @examples
 #' \dontrun{
 #'   ## Adapting the BinomialCGF using indices
 #'   # Suppose the parameter_vector is of any length (> 2) and we want to use the first two elements as parameters of the underlying Binomial distribution
 #'   adapted_binomial_cgf <- adaptCGF(cgf = BinomialCGF,
-#'                                    adaptor = indices.adaptor(1:2) )
+#'                                    adaptor = adaptor(indices = 1:2) )
 #'   ## Adapting the BinomialCGF using a function
 #'   adapted_binomial_cgf1 <- adaptCGF(cgf = BinomialCGF,
 #'                                     adaptor = function(x) { x[1:2] } )
-#'   ## Adapting the BinomialCGF using a fixed parameter
-#'   adapted_binomial_cgf2 <- adaptCGF(cgf = BinomialCGF,
-#'                                     adaptor = fixed.parameter.adaptor(c(10, 0.5)) )
-#'   
 #'   res1 <- adapted_binomial_cgf$K1(tvec = 0, parameter_vector = c(10, 0.5, 90, 4, 3))
 #'   res2 <- adapted_binomial_cgf1$K1(tvec = 0, parameter_vector = c(10, 0.5, 5))
-#'   res3 <- adapted_binomial_cgf2$K1(tvec = 0, parameter_vector = c(10, 0.5))
 #' }
 #' @export
 adaptCGF <- function(cgf, adaptor){
@@ -264,7 +258,6 @@ adaptCGF <- function(cgf, adaptor){
   param_adaptor = validate_and_transform_adaptor(adaptor)
   createCGF(adapt_CGF(cgf$get_ptr(), param_adaptor))
 }
-
 
 
 

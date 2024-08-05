@@ -23,20 +23,19 @@ Constructs a CGF object for the binomial distribution, supporting flexible param
 This function allows for dynamic parameter adjustments in three ways:
 \enumerate{
 \item \strong{Function-based adaptors}: Use R functions to dynamically compute parameters based on input vector.
-\item \strong{Index-based adaptors}: Subset parameters from a vector using specified indices (\code{\link{indices.adaptor}}).
-\item \strong{Fixed Value adaptors}: Set parameters to known constant values (\code{\link{fixed.parameter.adaptor}}).
-For fixed parameter values, it is recommended to use \code{fixed.parameter.adaptor} and not function-based adaptors.
+\item \strong{Index-based adaptors}: Subset parameters from a vector using specified indices \code{adaptor(indices = ...)}.
+\item \strong{Fixed Value adaptors}: Set parameters to constant values \code{adaptor(fixed_param = ...)}.
+For fixed parameter values, it is recommended to use \code{adaptor(fixed_param = ...)} and not function-based adaptors.
 }
 }
 \examples{
 \dontrun{
-## Example using a fixed parameter for `n` and an index adaptor for `prob`
-# `fixed.parameter.adaptor` sets `n` to a constant value of 10
-n_adaptor <- fixed.parameter.adaptor(10)  
+## Example using a fixed parameter for `n` and an index-based adaptor for `prob`
+n_adaptor <- adaptor(fixed_param = 10) # Set `n` to a constant value of 10
 
-# `indices.adaptor` assumes `prob` is part of a parameter vector that will be accessed using the provided index
-# For example, if the parameter vector at runtime is c(0.5), then `indices.adaptor(1)` will use the first element.
-prob_adaptor <- indices.adaptor(1)  
+# `indices` argument of the `adaptor()` function supposes that the target (here `prob`) is part of a parameter vector that will be accessed using the provided indices
+# For example, if the parameter vector at runtime is c(0.2, 7, 4), then `adaptor(indices = 1)` will use the first element for the `prob`.
+prob_adaptor <- adaptor(indices = 1) 
 
 # Create the CGF object with these adaptors
 cgf <- BinomialModelCGF(n = n_adaptor, prob = prob_adaptor)
@@ -54,7 +53,7 @@ cgf1 <- BinomialModelCGF(n = n_adaptor, prob = prob_function)
 
 # Example usage, assuming the parameter vector is supplied at runtime
 # For instance, the parameter vector might be supplied during a calculation call
-example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability of success
+example_params <- c(0.1, 0.7, 0.2)  # Example vector, where 0.2 is the probability to be used
 cgf1$K1(tvec = 0, parameter_vector = example_params)
 
 }
