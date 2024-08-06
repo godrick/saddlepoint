@@ -184,11 +184,11 @@ Rcpp::List computeFuncT(const vec& tvec,
 
   std::vector<double> theta_std(theta.data(), theta.data() + theta.size());
   TMBad::ADFun<> adf(func, theta_std);
-  TMBad::ADFun<> jac_adf = adf.JacFun();
+  // TMBad::ADFun<> jac_adf = adf.JacFun();
 
   return Rcpp::List::create(Rcpp::Named("value") = adf(theta_std),
-                            Rcpp::Named("gradient") = adf.Jacobian(theta_std),
-                            Rcpp::Named("hessian") = jac_adf.Jacobian(theta_std)
+                            Rcpp::Named("gradient") = adf.Jacobian(theta_std)
+                            // Rcpp::Named("hessian") = jac_adf.Jacobian(theta_std)
                             );
 
 }
@@ -212,11 +212,11 @@ Rcpp::List computeZerothFuncT(const vec& tvec,
   
   std::vector<double> theta_std(theta.data(), theta.data() + theta.size());
   TMBad::ADFun<> adf(func, theta_std);
-  TMBad::ADFun<> jac_adf = adf.JacFun();
+  // TMBad::ADFun<> jac_adf = adf.JacFun();
   
   return Rcpp::List::create(Rcpp::Named("value") = adf(theta_std),
-                            Rcpp::Named("gradient") = adf.Jacobian(theta_std),
-                            Rcpp::Named("hessian") = jac_adf.Jacobian(theta_std)
+                            Rcpp::Named("gradient") = adf.Jacobian(theta_std)
+                            // Rcpp::Named("hessian") = jac_adf.Jacobian(theta_std)
   );
 }
 
