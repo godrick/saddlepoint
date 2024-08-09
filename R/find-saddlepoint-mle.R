@@ -87,6 +87,8 @@ find.saddlepoint.MLE <- function(observed.data,
                         eval_g_ineq = ineq.constraint.function,
                         opts = opts,
                         lb =  c(lb.tvec, lb.theta), ub = c(ub.tvec, ub.theta))
+  if(MLEs$status < 0) stop("Optimization failed: ", MLEs$message)
+  
   MLEs.tvec = head(MLEs$solution, length(lb.tvec))
   MLEs.theta = tail(MLEs$solution, length(lb.theta))
   
