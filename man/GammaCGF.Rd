@@ -5,7 +5,7 @@
 \alias{GammaCGF}
 \title{GammaCGF}
 \format{
-An object of class \code{CGF} (inherits from \code{R6}) of length 8.
+An object of class \code{CGF} (inherits from \code{R6}) of length 9.
 }
 \usage{
 GammaCGF

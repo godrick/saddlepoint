@@ -81,7 +81,7 @@ get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, c
   saddlepoint.eq.constraint.function <- function(a){
     K1.and.grad = computeCombinedGradient(combined_vector = a, adf = adf.K1)
     list(constraints = K1.and.grad$objective - observed.data,
-         jacobian = matrix(K1.and.grad$gradient, nrow = length(tvec), byrow = TRUE))
+         jacobian =  matrix(K1.and.grad$gradient, nrow = length(tvec), byrow = TRUE))
   }
 }
 
@@ -142,7 +142,7 @@ get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.
         user.ineq.constraint <- user.ineq.constraint.function(theta)
         
         # Add zeros to the jacobian for the tvec components
-        jacobian.with.tvec <- cbind(matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(t.vec)),
+        jacobian.with.tvec <- cbind( matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
         
         # Return the constraints and jacobian including tvec
@@ -180,7 +180,7 @@ get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.
         saddlepoint.ineq.constraint <- saddlepoint.ineq.constraint.function(a)
         
         # Add zeros to the jacobian for the tvec components
-        jacobian.with.tvec <- cbind(matrix(0, 
+        jacobian.with.tvec <- cbind( matrix(0, 
                                            nrow = nrow(user.ineq.constraint$jacobian), 
                                            ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
@@ -225,7 +225,7 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
   saddlepoint.ineq.constraint.function <- function(a) {
     ineqConst = computeCombinedGradient(combined_vector = a, adf = adf.ineq)
     list(constraints = ineqConst$objective,
-         jacobian = matrix(ineqConst$gradient, nrow = length(ineqConst$objective), byrow = TRUE))
+         jacobian =  matrix(ineqConst$gradient, nrow = length(ineqConst$objective), byrow = TRUE))
   }
 }
 
@@ -364,7 +364,7 @@ compute.std.error <- function(observed.data,
                               non.saddlepoint.negll.function = NULL) {
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
   computeNegll_fn <- if (zeroth.order) computeZerothNegll else computeNegll
-  matrix.H <- matrix(computeNegll_fn(tvec = estimated.tvec, theta = estimated.theta,
+  matrix.H <-  matrix(computeNegll_fn(tvec = estimated.tvec, theta = estimated.theta,
                                     observations = observed.data, cgf = cgf$get_ptr())$hessian,
                     nrow = length(estimated.theta))
 
