@@ -1,13 +1,19 @@
 
+
+# This function allows direct use of R functions as adaptors
+# We also use rtmb_Xtra environment when a user supplies an R function
 validate_and_transform_adaptor <- function(obj) {
-  if (is.function(obj)) {
-    if (length(formals(obj)) != 1) {
-      stop("The function must have exactly one argument.")
-    }
-    return(makeAdaptorUsingRfunctions(obj))
+  if (!is.function(obj)) {
+    if (inherits(obj, "adaptor")) {return(obj)}
+    stop("Provided argument must be either a function or an object of type 'adaptor'.")
   }
-  if (!inherits(obj, "adaptor")) stop("Provided argument must be either a function or an object of type 'adaptor'.")
-  obj
+  if (length(formals(obj)) != 1) stop("The function used must have exactly one argument.")
+  r_func_adaptor <- function(x) {
+    base::attach(rtmb_Xtra, length(search()), name = "rtmb_Xtra-AD-overloads", warn=FALSE)
+    on.exit(base::detach("rtmb_Xtra-AD-overloads"))
+    obj(x)
+  }
+  makeAdaptorUsingRfunctions(r_func_adaptor)
 }
 
 
