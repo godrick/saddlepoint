@@ -18,6 +18,23 @@ a_vector get_a_vector_from_advector(const RADvector rax) {
   for (int i = 0; i < rax.size(); ++i) avec_x[i] = cplx2ad(rax[i]);
   return avec_x;
 }
+RADvector numeric2RAD(const Rcpp::NumericVector &x) {
+  RADvector ans(x.size());
+  for (int i=0; i<x.size(); i++) ans[i] = ad2cplx(ad(x[i]));
+  return as_advector(ans);
+}
+
+RADvector SEXP2RADvector(const SEXP &x) {
+  // TYPEOF(x) - REALSXP/14, INTSXP/13, CPLXSXP/15(RADvector), STRSXP/16, VECSXP/19(list), LGLSXP/10
+  // Rcpp::Rcout << "TYPEOF(x) = " << TYPEOF(x) << " (" << Rf_type2char(TYPEOF(x)) << ")" << std::endl;
+  if (TYPEOF(x) == REALSXP) return numeric2RAD(Rcpp::as<Rcpp::NumericVector>(x));
+  if (TYPEOF(x) == INTSXP){
+    Rcpp::IntegerVector iv = Rcpp::as<Rcpp::IntegerVector>(x);
+    Rcpp::NumericVector nv(iv.begin(), iv.end());
+    return numeric2RAD(nv);
+  } 
+  return Rcpp::as<RADvector>(x);
+}
 
 
 namespace saddlepoint {
@@ -25,31 +42,47 @@ namespace CGFs_with_Rcpp {
 
 
 
+
+
 class AdaptorUsingRFunctions: public CGFs_with_AD::Adaptor {
-  
+
 private:
   Rcpp::Function r_function;
-  
+
 public:
   AdaptorUsingRFunctions(Rcpp::Function r_fun)
     : r_function(r_fun) {}
   // The user supplies a function that transforms the parameter vector
   // when this vector is supplied as a const vec&
   // The supplied function must be compatible with RTMB methods (that keep the AD class attribute)
-  
+
   // double version
   vec operator()(const vec& model_parameter_vector) const override {
-    Eigen::Map<Eigen::VectorXd> res = Rcpp::as<Eigen::Map<Eigen::VectorXd> >(r_function(model_parameter_vector));
+    SEXP r_function_result = r_function(model_parameter_vector);
+    Rcpp::NumericVector numeric_result;
+    if (TYPEOF(r_function_result) == INTSXP) { // from IntegerVector to NumericVector
+      Rcpp::IntegerVector int_result = Rcpp::as<Rcpp::IntegerVector>(r_function_result);
+      numeric_result = Rcpp::NumericVector(int_result.begin(), int_result.end());
+    } 
+    else if (TYPEOF(r_function_result) == REALSXP) {
+      numeric_result = Rcpp::as<Rcpp::NumericVector>(r_function_result);
+    } 
+    else {
+      Rcpp::stop("The result of the adaptor function is not of a supported type");
+    }
+    Eigen::Map<Eigen::VectorXd> res(numeric_result.begin(), numeric_result.size());
     return res;
   }
-  // a_vector version
+  // a_vector version for automatic differentiation
   a_vector operator()(const a_vector& model_parameter_vector) const override {
-    RADvector f_advector = r_function(send_a_vector_to_advector(model_parameter_vector));
-    return get_a_vector_from_advector(f_advector);
+    SEXP r_function_result = r_function(send_a_vector_to_advector(model_parameter_vector));
+    
+    RADvector advector_result = SEXP2RADvector(r_function_result);
+    
+    return get_a_vector_from_advector(advector_result);
   }
+
 };
-
-
 
 
 
