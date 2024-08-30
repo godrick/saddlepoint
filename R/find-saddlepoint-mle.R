@@ -87,12 +87,15 @@ find.saddlepoint.MLE <- function(observed.data,
                         eval_g_ineq = ineq.constraint.function,
                         opts = opts,
                         lb =  c(lb.tvec, lb.theta), ub = c(ub.tvec, ub.theta))
-  if(MLEs$status < 0) stop("Optimization failed: ", MLEs$message)
+  
   
   MLEs.tvec = head(MLEs$solution, length(lb.tvec))
   MLEs.theta = tail(MLEs$solution, length(lb.theta))
   
-  # if(MLEs$message != "NLOPT_XTOL_REACHED" && MLEs$message != "NLOPT_MAXEVAL_REACHED" && MLEs$message != "NLOPT_FTOL_REACHED") warning("Optimization did not converge: ", MLEs$message)
+  if(MLEs$status < 0){
+    cat("Estimates: ", MLEs.theta, "\n")
+    stop("Optimization failed: ", MLEs$message)
+  } 
   
   # Calculate standard errors of MLEs
   if(std.error == TRUE || discrepancy == TRUE){
