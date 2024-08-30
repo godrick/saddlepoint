@@ -87,21 +87,25 @@ Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
 Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
                                             const vec& theta,
                                             Rcpp::XPtr<CGF_with_AD> cgf){
-  const CGF_with_AD* cgf_ptr = cgf.get();
-  auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
-    a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
-    a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
-    a_scalar result = cgf_ptr->neg_ll(tvec_ad, theta_ad);
-    return std::vector<a_scalar>{result};
-  };
-  
-  std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
-  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
-  
-  Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-  attach_attributes(ptr, cgf);
-  return ptr;
+  try{
+      const CGF_with_AD* cgf_ptr = cgf.get();
+      auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
+        a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
+        a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
+        a_scalar result = cgf_ptr->neg_ll(tvec_ad, theta_ad);
+        return std::vector<a_scalar>{result};
+      };
+      
+      std::vector<double> combined_input(tvec.size() + theta.size());
+      std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+      std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+      
+      Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+      attach_attributes(ptr, cgf);
+      return ptr;
+  } catch (...) {
+    Rcpp::stop("An unknown error occurred while creating ADFun object.");
+  }
 }
 
 // [[Rcpp::export]]
@@ -153,8 +157,11 @@ Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad:
   std::vector<double> combined_input(combined_vector.size());
   std::copy(combined_vector.data(), combined_vector.data()+combined_vector.size(), combined_input.begin());
   
+  // Rcpp::Named("gradient") = adf->Jacobian(combined_input)
+  
   return Rcpp::List::create(Rcpp::Named("objective") = (*adf)(combined_input),
-                            Rcpp::Named("gradient") = adf->Jacobian(combined_input));
+                            Rcpp::Named("gradient") = (*adf).Jacobian(combined_input)
+                            );
 }
 
 
