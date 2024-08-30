@@ -64,9 +64,13 @@ adaptor <- function(indices = NULL, fixed_param = NULL, r_func = NULL) {
   }
   if (names(args) == "r_func"){
     if(!is.function(r_func)) stop(" 'r_func' is not defined for ", class(r_func)) 
-    if (length(formals(r_func)) != 1) stop("The function must have exactly one argument.")
-    return(structure(.Data = makeAdaptorUsingRfunctions(r_function = r_func) , class = "adaptor"))
+    # if (length(formals(r_func)) != 1) stop("The function must have exactly one argument.")
+    adaptor_externalptr <- validate_and_transform_adaptor(r_func)
+    return(structure(.Data = adaptor_externalptr , class = "adaptor"))
   }
 }
+
+
+
 
 
