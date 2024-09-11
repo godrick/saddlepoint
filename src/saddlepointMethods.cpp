@@ -29,8 +29,13 @@ using namespace saddlepoint::CGFs_with_AD;
 using namespace saddlepoint::CGFs_with_Rcpp;
 
 
+
+
+
+
 // [[Rcpp::export]]
 Rcpp::XPtr<Adaptor> makeAdaptorUsingRfunctions(Rcpp::Function r_function) {
+
   Adaptor* adaptor_ptr = new AdaptorUsingRFunctions(r_function);
   Rcpp::XPtr<Adaptor> ptr(adaptor_ptr);
   attach_attributes(ptr, r_function);
@@ -56,108 +61,261 @@ Rcpp::XPtr<CGF_with_AD> adapt_CGF(Rcpp::XPtr<CGF_with_AD> cgf, Rcpp::XPtr<Adapto
 
 
 
-
-
-
-
+//************************************************************************************************
+// While it is possible to handle AD recording and create the ADFun object using the TMBad::ADFun constructor
+// (as shown in the commented code below), this approach fails to stop the AD recording in some cases (when an error ).
+// An alternative, we manually manage the AD recording using the ScopedADStop class. 
+// This  manual approach provides better control over the AD recording lifecycle, and the destructor ensures that sure that ad_stop() is always invoked. 
+class ScopedADStop {
+  TMBad::global& glob;
+public:
+  // Constructor starts the AD recording
+  ScopedADStop(TMBad::global& g) : glob(g) { glob.ad_start(); }
+  // To stop the AD recording even if an exception is thrown
+  ~ScopedADStop() { glob.ad_stop(); }
+};
 
 // [[Rcpp::export]]
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
-                                         const vec& theta,
-                                         Rcpp::XPtr<CGF_with_AD> cgf){
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunNegll(const vec& tvec, 
+                                          const vec& theta,
+                                          Rcpp::XPtr<CGF_with_AD> cgf,
+                                          bool optimize = false) {
   const CGF_with_AD* cgf_ptr = cgf.get();
-  auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
-    a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
-    a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
-    a_vector result = cgf_ptr->K1(tvec_ad, theta_ad);
-    std::vector<a_scalar> result_std(result.data(), result.data() + result.size());
-    return result_std;
-  };
+  size_t tvec_size = tvec.size();
+  size_t theta_size = theta.size();
   
-  std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
-  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+  std::vector<a_scalar> independent_vars(tvec_size + theta_size);
+  std::vector<a_scalar> dependent_vars; // This will hold the result
   
-  Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-  attach_attributes(ptr, cgf);
-  return ptr;
-}
-
-// [[Rcpp::export]]
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
-                                            const vec& theta,
-                                            Rcpp::XPtr<CGF_with_AD> cgf){
-  try{
-      const CGF_with_AD* cgf_ptr = cgf.get();
-      auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
-        a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
-        a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
-        a_scalar result = cgf_ptr->neg_ll(tvec_ad, theta_ad);
-        return std::vector<a_scalar>{result};
-      };
-      
-      std::vector<double> combined_input(tvec.size() + theta.size());
-      std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
-      std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
-      
-      Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
-      attach_attributes(ptr, cgf);
-      return ptr;
-  } catch (...) {
-    Rcpp::stop("An unknown error occurred while creating ADFun object.");
-  }
-}
-
-// [[Rcpp::export]]
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
-                                                     const vec& theta,
-                                                     Rcpp::XPtr<CGF_with_AD> cgf){
-  const CGF_with_AD* cgf_ptr = cgf.get();
-  auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
-    a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
-    a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
-    a_vector result = cgf_ptr->ineq_constraint(tvec_ad, theta_ad);
-    std::vector<a_scalar> result_std(result.data(), result.data() + result.size());
-    return result_std;
-  };
+  TMBad::global glob;  // Initialize global context for AD
+  ScopedADStop ad_guard(glob);  // This will automatically call glob.ad_stop() at the end
   
-  std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
-  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+  // Set independent variables
+  for (size_t i = 0; i < tvec_size; i++) { independent_vars[i] = TMBad::Value(tvec[i]); }
+  for (size_t i = 0; i < theta_size; i++) { independent_vars[tvec_size + i] = TMBad::Value(theta[i]); }
+  Independent(independent_vars);  // Mark them as independent
   
-  Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+  // Compute function //define your functor
+  a_vector tvec_ad = Eigen::Map<const a_vector>(independent_vars.data(), tvec_size);
+  a_vector theta_ad = Eigen::Map<const a_vector>(independent_vars.data() + tvec_size, theta_size);
+  a_scalar result = cgf_ptr->neg_ll(tvec_ad, theta_ad);
+  
+  // Set dependent variables
+  dependent_vars = std::vector<a_scalar>{result};
+  Dependent(dependent_vars);  // Mark result as dependent
+  
+  // Manually construct the ADFun object with glob and independent variables
+  TMBad::ADFun<>* ad_fun = new TMBad::ADFun<>();
+  ad_fun->glob = glob;  // Set the global context for ADFun
+  
+  if (optimize) { ad_fun->optimize(); } // Optimize the AD graph 
+  
+  Rcpp::XPtr<TMBad::ADFun<>> ptr(ad_fun, true);
   attach_attributes(ptr, cgf);
   return ptr;
 }
 
 
+
+
+
+
+
 // [[Rcpp::export]]
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunZerothNegll(const vec& tvec,
-                                                  const vec& theta,
-                                                  Rcpp::XPtr<CGF_with_AD> cgf){
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunK1(const vec& tvec,
+                                       const vec& theta,
+                                       Rcpp::XPtr<CGF_with_AD> cgf) {
   const CGF_with_AD* cgf_ptr = cgf.get();
-  auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
-    a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
-    a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
-    a_scalar result = -cgf_ptr->tilting_exponent(tvec_ad, theta_ad); // return negative log-likelihood
-    return std::vector<a_scalar>{result};
-  };
+  size_t tvec_size = tvec.size();
+  size_t theta_size = theta.size();
   
-  std::vector<double> combined_input(tvec.size() + theta.size());
-  std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
-  std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+  std::vector<a_scalar> independent_vars(tvec_size + theta_size);
+  std::vector<a_scalar> dependent_vars; 
   
-  Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+  TMBad::global glob;  
+  ScopedADStop ad_guard(glob);  
+  
+  for (size_t i = 0; i < tvec_size; i++) { independent_vars[i] = TMBad::Value(tvec[i]); }
+  for (size_t i = 0; i < theta_size; i++) { independent_vars[tvec_size + i] = TMBad::Value(theta[i]); }
+  Independent(independent_vars);  
+  
+  a_vector tvec_ad = Eigen::Map<const a_vector>(independent_vars.data(), tvec_size);
+  a_vector theta_ad = Eigen::Map<const a_vector>(independent_vars.data() + tvec_size, theta_size);
+  a_vector result = cgf_ptr->K1(tvec_ad, theta_ad);
+  
+  dependent_vars = std::vector<a_scalar>{result.data(), result.data() + result.size()};
+  Dependent(dependent_vars);  
+  
+  TMBad::ADFun<>* ad_fun = new TMBad::ADFun<>();
+  ad_fun->glob = glob;
+  
+  Rcpp::XPtr<TMBad::ADFun<>> ptr(ad_fun, true);
   attach_attributes(ptr, cgf);
   return ptr;
 }
+
+
+
+
+// // [[Rcpp::export]]
+// Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec,
+//                                          const vec& theta,
+//                                          Rcpp::XPtr<CGF_with_AD> cgf){
+//   const CGF_with_AD* cgf_ptr = cgf.get();
+//   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
+//     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
+//     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
+//     a_vector result = cgf_ptr->K1(tvec_ad, theta_ad);
+//     std::vector<a_scalar> result_std(result.data(), result.data() + result.size());
+//     return result_std;
+//   };
+//   
+//   std::vector<double> combined_input(tvec.size() + theta.size());
+//   std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+//   std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+//   
+//   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+//   attach_attributes(ptr, cgf);
+//   return ptr;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunIneqConstraint(const vec& tvec,
+                                                   const vec& theta,
+                                                   Rcpp::XPtr<CGF_with_AD> cgf) {
+  const CGF_with_AD* cgf_ptr = cgf.get();
+  size_t tvec_size = tvec.size();
+  size_t theta_size = theta.size();
+  
+  std::vector<a_scalar> independent_vars(tvec_size + theta_size);
+  std::vector<a_scalar> dependent_vars; 
+  
+  TMBad::global glob;  
+  ScopedADStop ad_guard(glob);  
+  
+  for (size_t i = 0; i < tvec_size; i++) { independent_vars[i] = TMBad::Value(tvec[i]); }
+  for (size_t i = 0; i < theta_size; i++) { independent_vars[tvec_size + i] = TMBad::Value(theta[i]); }
+  Independent(independent_vars);  
+  
+  a_vector tvec_ad = Eigen::Map<const a_vector>(independent_vars.data(), tvec_size);
+  a_vector theta_ad = Eigen::Map<const a_vector>(independent_vars.data() + tvec_size, theta_size);
+  a_vector result = cgf_ptr->ineq_constraint(tvec_ad, theta_ad);
+  
+  dependent_vars = std::vector<a_scalar>{result.data(), result.data() + result.size()};
+  Dependent(dependent_vars);  
+  
+  TMBad::ADFun<>* ad_fun = new TMBad::ADFun<>();
+  ad_fun->glob = glob;
+  
+  Rcpp::XPtr<TMBad::ADFun<>> ptr(ad_fun, true);
+  attach_attributes(ptr, cgf);
+  return ptr;
+}
+
+
+// // [[Rcpp::export]]
+// Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec,
+//                                                      const vec& theta,
+//                                                      Rcpp::XPtr<CGF_with_AD> cgf){
+//   const CGF_with_AD* cgf_ptr = cgf.get();
+//   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
+//     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
+//     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
+//     a_vector result = cgf_ptr->ineq_constraint(tvec_ad, theta_ad);
+//     std::vector<a_scalar> result_std(result.data(), result.data() + result.size());
+//     return result_std;
+//   };
+//   
+//   std::vector<double> combined_input(tvec.size() + theta.size());
+//   std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+//   std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+//   
+//   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+//   attach_attributes(ptr, cgf);
+//   return ptr;
+// }
+
+
+
+
+
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunZerothNegll(const vec& tvec,
+                                                   const vec& theta,
+                                                   Rcpp::XPtr<CGF_with_AD> cgf) {
+  const CGF_with_AD* cgf_ptr = cgf.get();
+  size_t tvec_size = tvec.size();
+  size_t theta_size = theta.size();
+  
+  std::vector<a_scalar> independent_vars(tvec_size + theta_size);
+  std::vector<a_scalar> dependent_vars; 
+  
+  TMBad::global glob;  
+  ScopedADStop ad_guard(glob);  
+  
+  for (size_t i = 0; i < tvec_size; i++) { independent_vars[i] = TMBad::Value(tvec[i]); }
+  for (size_t i = 0; i < theta_size; i++) { independent_vars[tvec_size + i] = TMBad::Value(theta[i]); }
+  Independent(independent_vars);  
+  
+  a_vector tvec_ad = Eigen::Map<const a_vector>(independent_vars.data(), tvec_size);
+  a_vector theta_ad = Eigen::Map<const a_vector>(independent_vars.data() + tvec_size, theta_size);
+  a_scalar result = -cgf_ptr->tilting_exponent(tvec_ad, theta_ad);
+  
+  dependent_vars = std::vector<a_scalar>{result};
+  Dependent(dependent_vars);  
+  
+  TMBad::ADFun<>* ad_fun = new TMBad::ADFun<>();
+  ad_fun->glob = glob;
+  
+  Rcpp::XPtr<TMBad::ADFun<>> ptr(ad_fun, true);
+  attach_attributes(ptr, cgf);
+  return ptr;
+}
+
+
+// // [[Rcpp::export]]
+// Rcpp::XPtr< TMBad::ADFun<> > makeADFunZerothNegll(const vec& tvec,
+//                                                   const vec& theta,
+//                                                   Rcpp::XPtr<CGF_with_AD> cgf){
+//   const CGF_with_AD* cgf_ptr = cgf.get();
+//   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
+//     a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
+//     a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
+//     a_scalar result = -cgf_ptr->tilting_exponent(tvec_ad, theta_ad); // return negative log-likelihood
+//     return std::vector<a_scalar>{result};
+//   };
+//   
+//   std::vector<double> combined_input(tvec.size() + theta.size());
+//   std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+//   std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+//   
+//   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+//   attach_attributes(ptr, cgf);
+//   return ptr;
+// }
 
 // [[Rcpp::export]]
 Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad::ADFun<>> adf){
   std::vector<double> combined_input(combined_vector.size());
   std::copy(combined_vector.data(), combined_vector.data()+combined_vector.size(), combined_input.begin());
-  
-  // Rcpp::Named("gradient") = adf->Jacobian(combined_input)
   
   return Rcpp::List::create(Rcpp::Named("objective") = (*adf)(combined_input),
                             Rcpp::Named("gradient") = (*adf).Jacobian(combined_input)
@@ -177,7 +335,9 @@ Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad:
 Rcpp::List computeFuncT(const vec& tvec,
                         const vec& theta,
                         const vec& observations,
-                        Rcpp::XPtr<CGF_with_AD> cgf){
+                        Rcpp::XPtr<CGF_with_AD> cgf,
+                        bool optimize = false
+                        ){
   a_vector tvec_ad = tvec.cast<a_scalar>();
   a_vector observations_ad = observations.cast<a_scalar>();
   const CGF_with_AD* cgf_ptr = cgf.get();
@@ -191,11 +351,10 @@ Rcpp::List computeFuncT(const vec& tvec,
 
   std::vector<double> theta_std(theta.data(), theta.data() + theta.size());
   TMBad::ADFun<> adf(func, theta_std);
-  // TMBad::ADFun<> jac_adf = adf.JacFun();
+  if (optimize) { adf.optimize(); }
 
   return Rcpp::List::create(Rcpp::Named("value") = adf(theta_std),
                             Rcpp::Named("gradient") = adf.Jacobian(theta_std)
-                            // Rcpp::Named("hessian") = jac_adf.Jacobian(theta_std)
                             );
 
 }
@@ -435,6 +594,8 @@ Rcpp::XPtr<CGF_with_AD> make_MultinomialCGF(){
 }
 // [[Rcpp::export]]
 Rcpp::XPtr<CGF_with_AD> make_MultinomialModelCGF(Rcpp::XPtr<Adaptor> n_adaptor, Rcpp::XPtr<Adaptor> prob_vector_adaptor){
+ 
+  
   CGF_with_AD* multinomial_model_cgf = new MultinomialModelCGF( new ScalarAdaptorFromVectorAdaptor(n_adaptor), prob_vector_adaptor);
   Rcpp::XPtr<CGF_with_AD> ptr(multinomial_model_cgf);
   attach_attributes(ptr, n_adaptor, prob_vector_adaptor);
@@ -610,5 +771,38 @@ Rcpp::XPtr<CGF_with_AD> make_CustomVectorizedScalarCGF(Rcpp::Function Kfunc, Rcp
 
 
 
+
+//************************************************************************************************
+//*****An alternative approch using TMBad::ADFun constructor
+// // [[Rcpp::export]]
+// Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec,
+//                                             const vec& theta,
+//                                             Rcpp::XPtr<CGF_with_AD> cgf){
+// 
+//   const CGF_with_AD* cgf_ptr = cgf.get();
+//   auto func = [cgf_ptr, tvec_size=tvec.size(), theta_size=theta.size()](const std::vector<a_scalar>& x) {
+//     try{
+//         a_vector tvec_ad = Eigen::Map<const a_vector>(x.data(), tvec_size);
+//         a_vector theta_ad = Eigen::Map<const a_vector>(x.data() + tvec_size, theta_size);
+//         a_scalar result = cgf_ptr->neg_ll(tvec_ad, theta_ad);
+//         return std::vector<a_scalar>{result};
+//     } catch (const std::exception& e) {
+//         // An issue: if the global AD context is shared across other parts of the code or threads, calling ad_stop()
+//         // will stop the recording for all computations using that same global AD context. But for now I do not foresee this as a problem.
+//         // A safer approach would be to use a ScopedADStop object of the class commented below in a function where the recording is manually started (code commented below).
+//         TMBad::get_glob()->ad_stop();
+//       Rcpp::stop("Failed AD function evaluation. If you are using an R function as an adaptor, ensure to add the overloads.");
+//     }
+//   };
+// 
+//   std::vector<double> combined_input(tvec.size() + theta.size());
+//   std::copy(tvec.data(), tvec.data()+tvec.size(), combined_input.begin());
+//   std::copy(theta.data(), theta.data()+theta.size(), combined_input.begin() + tvec.size());
+// 
+//   Rcpp::XPtr<TMBad::ADFun<>> ptr(new TMBad::ADFun<>(func, combined_input), true);
+//   attach_attributes(ptr, cgf);
+//   return ptr;
+// 
+// }
 
 
