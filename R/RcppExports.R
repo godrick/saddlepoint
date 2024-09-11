@@ -17,12 +17,12 @@ adapt_CGF <- function(cgf, adaptor) {
     .Call(`_saddlepoint_adapt_CGF`, cgf, adaptor)
 }
 
-makeADFunK1 <- function(tvec, theta, cgf) {
-    .Call(`_saddlepoint_makeADFunK1`, tvec, theta, cgf)
+makeADFunNegll <- function(tvec, theta, cgf, optimize = FALSE) {
+    .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, cgf, optimize)
 }
 
-makeADFunNegll <- function(tvec, theta, cgf) {
-    .Call(`_saddlepoint_makeADFunNegll`, tvec, theta, cgf)
+makeADFunK1 <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunK1`, tvec, theta, cgf)
 }
 
 makeADFunIneqConstraint <- function(tvec, theta, cgf) {
@@ -37,8 +37,8 @@ computeCombinedGradient <- function(combined_vector, adf) {
     .Call(`_saddlepoint_computeCombinedGradient`, combined_vector, adf)
 }
 
-computeFuncT <- function(tvec, theta, observations, cgf) {
-    .Call(`_saddlepoint_computeFuncT`, tvec, theta, observations, cgf)
+computeFuncT <- function(tvec, theta, observations, cgf, optimize = FALSE) {
+    .Call(`_saddlepoint_computeFuncT`, tvec, theta, observations, cgf, optimize)
 }
 
 computeZerothFuncT <- function(tvec, theta, observations, cgf) {

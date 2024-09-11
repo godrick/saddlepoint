@@ -8,12 +8,15 @@ validate_and_transform_adaptor <- function(obj) {
     stop("Provided argument must be either a function or an object of type 'adaptor'.")
   }
   if (length(formals(obj)) != 1) stop("The function used must have exactly one argument.")
+  
+  # if (!"package:RTMB" %in% search()) attachNamespace("RTMB")
   r_func_adaptor <- function(x) {
-    base::attach(rtmb_Xtra, length(search()), name = "rtmb_Xtra-AD-overloads", warn=FALSE)
-    on.exit(base::detach("rtmb_Xtra-AD-overloads"))
-    obj(x)
+      base::attach(rtmb_Xtra, length(search()), name = "rtmb_Xtra-AD-overloads", warn=FALSE)
+      on.exit(base::detach("rtmb_Xtra-AD-overloads"))
+      obj(x)
   }
   makeAdaptorUsingRfunctions(r_func_adaptor)
+
 }
 
 

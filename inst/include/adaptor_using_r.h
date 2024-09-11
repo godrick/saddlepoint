@@ -37,6 +37,9 @@ RADvector SEXP2RADvector(const SEXP &x) {
 }
 
 
+
+
+
 namespace saddlepoint {
 namespace CGFs_with_Rcpp {
 
@@ -75,12 +78,14 @@ public:
   }
   // a_vector version for automatic differentiation
   a_vector operator()(const a_vector& model_parameter_vector) const override {
+
     SEXP r_function_result = r_function(send_a_vector_to_advector(model_parameter_vector));
-    
+
     RADvector advector_result = SEXP2RADvector(r_function_result);
-    
+
     return get_a_vector_from_advector(advector_result);
   }
+  
 
 };
 

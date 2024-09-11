@@ -79,4 +79,5 @@ MultinomialCGF <- NULL
   utils::assignInMyNamespace('GeometricCGF', createCGF(make_GeometricCGF()))
   utils::assignInMyNamespace('GammaCGF', createCGF(make_GammaCGF()))
   utils::assignInMyNamespace('MultinomialCGF', createCGF(make_MultinomialCGF()))
+  
 }

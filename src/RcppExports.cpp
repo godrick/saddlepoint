@@ -57,8 +57,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// makeADFunNegll
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf, bool optimize);
+RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP, SEXP optimizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    Rcpp::traits::input_parameter< bool >::type optimize(optimizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, cgf, optimize));
+    return rcpp_result_gen;
+END_RCPP
+}
 // makeADFunK1
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunK1(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
 RcppExport SEXP _saddlepoint_makeADFunK1(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -70,21 +84,8 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// makeADFunNegll
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
-RcppExport SEXP _saddlepoint_makeADFunNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(makeADFunNegll(tvec, theta, cgf));
-    return rcpp_result_gen;
-END_RCPP
-}
 // makeADFunIneqConstraint
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunIneqConstraint(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunIneqConstraint(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
 RcppExport SEXP _saddlepoint_makeADFunIneqConstraint(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -97,7 +98,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // makeADFunZerothNegll
-Rcpp::XPtr< TMBad::ADFun<> > makeADFunZerothNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunZerothNegll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
 RcppExport SEXP _saddlepoint_makeADFunZerothNegll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -122,8 +123,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // computeFuncT
-Rcpp::List computeFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf);
-RcppExport SEXP _saddlepoint_computeFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP) {
+Rcpp::List computeFuncT(const vec& tvec, const vec& theta, const vec& observations, Rcpp::XPtr<CGF_with_AD> cgf, bool optimize);
+RcppExport SEXP _saddlepoint_computeFuncT(SEXP tvecSEXP, SEXP thetaSEXP, SEXP observationsSEXP, SEXP cgfSEXP, SEXP optimizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -131,7 +132,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const vec& >::type observations(observationsSEXP);
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
-    rcpp_result_gen = Rcpp::wrap(computeFuncT(tvec, theta, observations, cgf));
+    Rcpp::traits::input_parameter< bool >::type optimize(optimizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeFuncT(tvec, theta, observations, cgf, optimize));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -519,12 +521,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_makeVectorSubsetByIndicesAdaptor", (DL_FUNC) &_saddlepoint_makeVectorSubsetByIndicesAdaptor, 1},
     {"_saddlepoint_makeSavedVectorAdaptor", (DL_FUNC) &_saddlepoint_makeSavedVectorAdaptor, 1},
     {"_saddlepoint_adapt_CGF", (DL_FUNC) &_saddlepoint_adapt_CGF, 2},
+    {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 4},
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
-    {"_saddlepoint_makeADFunNegll", (DL_FUNC) &_saddlepoint_makeADFunNegll, 3},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
     {"_saddlepoint_makeADFunZerothNegll", (DL_FUNC) &_saddlepoint_makeADFunZerothNegll, 3},
     {"_saddlepoint_computeCombinedGradient", (DL_FUNC) &_saddlepoint_computeCombinedGradient, 2},
-    {"_saddlepoint_computeFuncT", (DL_FUNC) &_saddlepoint_computeFuncT, 4},
+    {"_saddlepoint_computeFuncT", (DL_FUNC) &_saddlepoint_computeFuncT, 5},
     {"_saddlepoint_computeZerothFuncT", (DL_FUNC) &_saddlepoint_computeZerothFuncT, 4},
     {"_saddlepoint_computeNegll", (DL_FUNC) &_saddlepoint_computeNegll, 4},
     {"_saddlepoint_computeZerothNegll", (DL_FUNC) &_saddlepoint_computeZerothNegll, 4},
