@@ -24,7 +24,8 @@ Imports:
     Rcpp,
     RcppEigen,
     nloptr,
-    RTMB
+    RTMB,
+    withr
 LinkingTo: 
     Rcpp,
     RcppEigen,
