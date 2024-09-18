@@ -49,9 +49,11 @@ public:
     return Rcpp::sum(result); 
   }
   a_scalar K(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector f_advector = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    // a_vector a_res = get_a_vector_from_advector(f_advector);
-    return get_a_vector_from_advector(f_advector).sum();
+    SEXP K_res = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    // a_vector a_res = get_a_vector_from_advector(K_res);
+    if (TMBad::get_glob() != NULL && !is_advector(K_res)) { Rcpp::stop("The result of the Kvectorized function is not of 'advector' type (lost class attribute?)"); }
+    RADvector advector_result = SEXP2RADvector(K_res);
+    return get_a_vector_from_advector(advector_result).sum();
   }
   // ---------------------------
   // ---------------------------
@@ -62,8 +64,10 @@ public:
     return res;
   }
   a_vector K1(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector f_advector = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    return get_a_vector_from_advector(f_advector);
+    SEXP K1_res = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    if (TMBad::get_glob() != NULL && !is_advector(K1_res)) { Rcpp::stop("The result of the K1vectorized function is not of 'advector' type (lost class attribute?)"); }
+    RADvector advector_result = SEXP2RADvector(K1_res);
+    return get_a_vector_from_advector(advector_result);
   }
   // ---------------------------
   // ---------------------------
@@ -84,8 +88,10 @@ public:
     return res.matrix().asDiagonal();
   }
   a_matrix K2(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector f_advector = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    return get_a_vector_from_advector(f_advector).matrix().asDiagonal();
+    SEXP K2_res = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    if (TMBad::get_glob() != NULL && !is_advector(K2_res)) { Rcpp::stop("The result of the K2vectorized function is not of 'advector' type (lost class attribute?)"); }
+    RADvector advector_result = SEXP2RADvector(K2_res);
+    return get_a_vector_from_advector(advector_result).matrix().asDiagonal();
   }
   
   double tilting_exponent(const vec& tvec, const vec& parameter_vector) const override {
@@ -96,10 +102,14 @@ public:
     return (vecres_K.array() - tvec.array()*vecres_K1.array()).sum();
   }
   a_scalar tilting_exponent(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector rfK_advector = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    RADvector rfK1_advector = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K_vals = get_a_vector_from_advector(rfK_advector);
-    a_vector K1_vals = get_a_vector_from_advector(rfK1_advector);
+    SEXP K_res = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    SEXP K1_res = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    
+    if (TMBad::get_glob() != NULL && !is_advector(K_res)) { Rcpp::stop("The result of the Kvectorized function is not of 'advector' type (lost class attribute?)"); }
+    if (TMBad::get_glob() != NULL && !is_advector(K1_res)) { Rcpp::stop("The result of the K1vectorized function is not of 'advector' type (lost class attribute?)"); }
+    
+    a_vector K_vals = get_a_vector_from_advector(SEXP2RADvector(K_res));
+    a_vector K1_vals = get_a_vector_from_advector(SEXP2RADvector(K1_res));
     return (K_vals.array() - tvec.array()*K1_vals.array()).sum();
   }
   
@@ -115,12 +125,17 @@ public:
     return (0.5*(2*M_PI*vecres_K2.array()).log() - (vecres_K.array() - tvec.array()*vecres_K1.array())).sum();
   }
   a_scalar neg_ll(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector rfK_advector = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    RADvector rfK1_advector = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    RADvector rfK2_advector = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K_vals = get_a_vector_from_advector(rfK_advector);
-    a_vector K1_vals = get_a_vector_from_advector(rfK1_advector);
-    a_vector K2_vals = get_a_vector_from_advector(rfK2_advector);
+    SEXP rfK_advector = Kvectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    SEXP rfK1_advector = K1vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    SEXP rfK2_advector = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    
+    if (TMBad::get_glob() != NULL && !is_advector(rfK_advector)) { Rcpp::stop("The result of the Kvectorized function is not of 'advector' type (lost class attribute?)"); }
+    if (TMBad::get_glob() != NULL && !is_advector(rfK1_advector)) { Rcpp::stop("The result of the K1vectorized function is not of 'advector' type (lost class attribute?)"); }
+    if (TMBad::get_glob() != NULL && !is_advector(rfK2_advector)) { Rcpp::stop("The result of the K2vectorized function is not of 'advector' type (lost class attribute?)"); }
+    
+    a_vector K_vals = get_a_vector_from_advector(SEXP2RADvector(rfK_advector));
+    a_vector K1_vals = get_a_vector_from_advector(SEXP2RADvector(rfK1_advector));
+    a_vector K2_vals = get_a_vector_from_advector(SEXP2RADvector(rfK2_advector));
     return (0.5*(2*M_PI*K2_vals.array()).log() - (K_vals.array() - tvec.array()*K1_vals.array())).sum();
   }
   
@@ -136,12 +151,17 @@ public:
     return (vecres_K4.array()/(8*k2sq_val.array()) - 5*vecres_K3.array()*vecres_K3.array()/(24*k2sq_val.array()*vecres_K2.array())).sum();
   }
   a_scalar func_T(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector rfK2_advector = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    RADvector rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    RADvector rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K2_vals = get_a_vector_from_advector(rfK2_advector);
-    a_vector K3_vals = get_a_vector_from_advector(rfK3_advector);
-    a_vector K4_vals = get_a_vector_from_advector(rfK4_advector);
+    SEXP rfK2_advector = K2vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    SEXP rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    SEXP rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    
+    if (TMBad::get_glob() != NULL && !is_advector(rfK2_advector)) { Rcpp::stop("The result of the K2vectorized function is not of 'advector' type (lost class attribute?)"); }
+    if (TMBad::get_glob() != NULL && !is_advector(rfK3_advector)) { Rcpp::stop("The result of the K3vectorized function is not of 'advector' type (lost class attribute?)"); }
+    if (TMBad::get_glob() != NULL && !is_advector(rfK4_advector)) { Rcpp::stop("The result of the K4vectorized function is not of 'advector' type (lost class attribute?)"); }
+    
+    a_vector K2_vals = get_a_vector_from_advector(SEXP2RADvector(rfK2_advector));
+    a_vector K3_vals = get_a_vector_from_advector(SEXP2RADvector(rfK3_advector));
+    a_vector K4_vals = get_a_vector_from_advector(SEXP2RADvector(rfK4_advector));
     a_vector k2sq_val = K2_vals.array() * K2_vals.array();
     return (K4_vals.array()/(8*k2sq_val.array()) - 5*K3_vals.array()*K3_vals.array()/(24*k2sq_val.array()*K2_vals.array())).sum();
   }
@@ -166,8 +186,9 @@ public:
     return ( vecres_K3.array() * v1.array() * v2.array() * v3.array() ).sum();
   }
   a_scalar K3operator(const a_vector& tvec, const a_vector& v1, const a_vector& v2, const a_vector& v3, const a_vector& parameter_vector) const override {
-    RADvector rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K3_vals = get_a_vector_from_advector(rfK3_advector);
+    SEXP rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    if (TMBad::get_glob() != NULL && !is_advector(rfK3_advector)) { Rcpp::stop("The result of the K3vectorized function is not of 'advector' type (lost class attribute?)"); }
+    a_vector K3_vals = get_a_vector_from_advector(SEXP2RADvector(rfK3_advector));
     return ( K3_vals.array() * v1.array() * v2.array() * v3.array() ).sum();
   }
   
@@ -177,8 +198,9 @@ public:
     return ( vecres_K4.array() * v1.array() * v2.array() * v3.array() * v4.array() ).sum();
   }
   a_scalar K4operator(const a_vector& tvec, const a_vector& v1, const a_vector& v2, const a_vector& v3, const a_vector& v4, const a_vector& parameter_vector) const override {
-    RADvector rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K4_vals = get_a_vector_from_advector(rfK4_advector);
+    SEXP rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    if(TMBad::get_glob() != NULL && !is_advector(rfK4_advector)) { Rcpp::stop("The result of the K4vectorized function is not of 'advector' type (lost class attribute?)"); }
+    a_vector K4_vals = get_a_vector_from_advector(SEXP2RADvector(rfK4_advector));
     return ( K4_vals.array() * v1.array() * v2.array() * v3.array() * v4.array() ).sum();
   }
   
@@ -190,8 +212,11 @@ public:
     return ( vecres_K4.array() * Q1.diagonal().array() * Q2.diagonal().array() ).sum();
   }
   a_scalar K4operatorAABB(const a_vector& tvec, const a_matrix& Q1, const a_matrix& Q2, const a_vector& parameter_vector) const override {
-    RADvector rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K4_vals = get_a_vector_from_advector(rfK4_advector);
+    SEXP rfK4_advector = K4vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    
+    if(TMBad::get_glob() != NULL && !is_advector(rfK4_advector)) { Rcpp::stop("The result of the K4vectorized function is not of 'advector' type (lost class attribute?)"); }
+    
+    a_vector K4_vals = get_a_vector_from_advector(SEXP2RADvector(rfK4_advector));
     return ( K4_vals.array() * Q1.diagonal().array() * Q2.diagonal().array() ).sum();
   }
   
@@ -202,8 +227,11 @@ public:
     return ( (Q1.diagonal().array()*vecres_K3.array() ).matrix().asDiagonal() * Q2 * (Q3.diagonal().array()*vecres_K3.array() ).matrix().asDiagonal() ).sum() ;
   }
   a_scalar K3K3operatorAABBCC(const a_vector& tvec, const a_matrix& Q1, const a_matrix& Q2, const a_matrix& Q3, const a_vector& parameter_vector) const override {
-    RADvector rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    a_vector K3_vals = get_a_vector_from_advector(rfK3_advector);
+    SEXP rfK3_advector = K3vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    
+    if(TMBad::get_glob() != NULL && !is_advector(rfK3_advector)) { Rcpp::stop("The result of the K3vectorized function is not of 'advector' type (lost class attribute?)"); }
+    
+    a_vector K3_vals = get_a_vector_from_advector(SEXP2RADvector(rfK3_advector));
     return ( (Q1.diagonal().array()*K3_vals.array() ).matrix().asDiagonal() * Q2 * (Q3.diagonal().array()*K3_vals.array() ).matrix().asDiagonal() ).sum() ;
   }
   
@@ -294,9 +322,12 @@ public:
     for(int i = 0; i < result.size(); i++) { res[i] = result[i]; }
     return res;
   }
+  // the a_vector version of the ineq_constraint function will only ever be used when the result of the vec version is of length > 0
   a_vector ineq_constraint(const a_vector& tvec, const a_vector& parameter_vector) const override {
-    RADvector f_advector = ineq_constraint_vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
-    return get_a_vector_from_advector(f_advector);
+    SEXP f_advector = ineq_constraint_vectorized_rfunction(send_a_vector_to_advector(tvec), send_a_vector_to_advector(parameter_vector));
+    if (TMBad::get_glob() != NULL && !is_advector(f_advector)) { Rcpp::stop("The result of the ineq_constraint function is not of 'advector' type (lost class attribute?)"); }
+    
+    return get_a_vector_from_advector(SEXP2RADvector(f_advector));
   }
   
   
