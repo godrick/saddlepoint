@@ -78,9 +78,19 @@ public:
   }
   // a_vector version for automatic differentiation
   a_vector operator()(const a_vector& model_parameter_vector) const override {
-
+    // This a_vector version should be called sometime during AD recording
+    // so we expect the ad_context to be true, i.e., TMBad::get_glob() != NULL.
+    // During this recording, r_function_result should be an advector type, if not, we stop.
+    // TO DO: check if a similar check is required somewhere for adsparse types: is_adsparse(...)
+    // The adsparse check might be needed when we create a cgf object from an R-based K2 function?
+    
     SEXP r_function_result = r_function(send_a_vector_to_advector(model_parameter_vector));
-
+    
+    if (TMBad::get_glob() != NULL && !is_advector(r_function_result)) { 
+      // the check for TMBad::get_glob() != NULL is redundant???
+      Rcpp::stop("The result of the adaptor function is not of 'advector' type (lost class attribute?)");
+    }
+    
     RADvector advector_result = SEXP2RADvector(r_function_result);
 
     return get_a_vector_from_advector(advector_result);
@@ -88,10 +98,6 @@ public:
   
 
 };
-
-
-
-
 
 class AdaptorWithStoredData
   : public CGFs_with_AD::Adaptor {
