@@ -16,13 +16,22 @@ CustomCGF <- R6::R6Class(
         args <- names(formals(f))
         if (length(args) != 2)  { stop(sprintf("%s must have exactly two arguments.", name)) }
       }
-      # Validate and assign mandatory functions
+      
+      wrap_function_with_ADoverloads <- function(func) {
+        function(tvec, parameter_vector) {
+          base::attach(rtmb_Xtra, length(search()), name = "rtmb_Xtra-AD-overloads", warn = FALSE)
+          on.exit(base::detach("rtmb_Xtra-AD-overloads"))
+          func(tvec, parameter_vector)
+        }
+      }
+      
+      # Validate, wrap, and assign mandatory functions
       validate_function(Kvectorized, "Kvectorized")
       validate_function(K1vectorized, "K1vectorized")
       validate_function(K2vectorized, "K2vectorized")
-      self$Kvectorized = Kvectorized
-      self$K1vectorized = K1vectorized
-      self$K2vectorized = K2vectorized
+      self$Kvectorized = wrap_function_with_ADoverloads(Kvectorized)
+      self$K1vectorized = wrap_function_with_ADoverloads(K1vectorized)
+      self$K2vectorized = wrap_function_with_ADoverloads(K2vectorized)
       
 
       # Assign or default and validate optional functions
@@ -30,19 +39,19 @@ CustomCGF <- R6::R6Class(
         function(tvec, parameter_vector) rep(0, length(tvec))
       } else {
         validate_function(K3vectorized, "K3vectorized")
-        K3vectorized
+        wrap_function_with_ADoverloads(K3vectorized)
       }
       self$K4vectorized <- if (is.null(K4vectorized)) {
         function(tvec, parameter_vector) rep(0, length(tvec))
       } else {
         validate_function(K4vectorized, "K4vectorized")
-        K4vectorized
+        wrap_function_with_ADoverloads(K4vectorized)
       }
       self$ineq_vectorized <- if (is.null(ineq_vectorized)) {
         function(tvec, parameter_vector) numeric(0)
       } else {
         validate_function(ineq_vectorized, "ineq_vectorized")
-        ineq_vectorized
+        wrap_function_with_ADoverloads(ineq_vectorized)
       }
     },
     
