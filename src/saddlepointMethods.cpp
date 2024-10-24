@@ -291,6 +291,56 @@ Rcpp::XPtr<TMBad::ADFun<>> makeADFunZerothNegll(const vec& tvec,
 }
 
 
+
+
+
+
+
+// [[Rcpp::export]]
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunCustom1Negll(const vec& tvec,
+                                                const vec& theta,
+                                                Rcpp::XPtr<CGF_with_AD> cgf) {
+  const CGF_with_AD* cgf_ptr = cgf.get();
+  size_t tvec_size = tvec.size();
+  size_t theta_size = theta.size();
+  
+  std::vector<a_scalar> independent_vars(tvec_size + theta_size);
+  std::vector<a_scalar> dependent_vars; 
+  
+  TMBad::global glob;  
+  ScopedADStop ad_guard(glob);  
+  
+  for (size_t i = 0; i < tvec_size; i++) { independent_vars[i] = TMBad::Value(tvec[i]); }
+  for (size_t i = 0; i < theta_size; i++) { independent_vars[tvec_size + i] = TMBad::Value(theta[i]); }
+  Independent(independent_vars);  
+  
+  a_vector tvec_ad = Eigen::Map<const a_vector>(independent_vars.data(), tvec_size);
+  a_vector theta_ad = Eigen::Map<const a_vector>(independent_vars.data() + tvec_size, theta_size);
+  matrix<a_scalar> K2_val = cgf_ptr->K2(tvec_ad, theta_ad);
+  
+  
+  
+  matrix<a_scalar> adjusted_K2 = Eigen::Matrix<a_scalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(tvec_size, tvec_size) + 2*M_PI*K2_val;
+  a_scalar result = - cgf_ptr->tilting_exponent(tvec_ad, theta_ad) + 0.5*atomic::logdet(adjusted_K2);
+  
+  dependent_vars = std::vector<a_scalar>{result};
+  Dependent(dependent_vars);  
+  
+  TMBad::ADFun<>* ad_fun = new TMBad::ADFun<>();
+  ad_fun->glob = glob;
+  
+  Rcpp::XPtr<TMBad::ADFun<>> ptr(ad_fun, true);
+  attach_attributes(ptr, cgf);
+  return ptr;
+}
+
+
+
+
+
+
+
+
 // // [[Rcpp::export]]
 // Rcpp::XPtr< TMBad::ADFun<> > makeADFunZerothNegll(const vec& tvec,
 //                                                   const vec& theta,

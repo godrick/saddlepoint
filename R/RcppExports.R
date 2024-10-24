@@ -33,6 +33,10 @@ makeADFunZerothNegll <- function(tvec, theta, cgf) {
     .Call(`_saddlepoint_makeADFunZerothNegll`, tvec, theta, cgf)
 }
 
+makeADFunCustom1Negll <- function(tvec, theta, cgf) {
+    .Call(`_saddlepoint_makeADFunCustom1Negll`, tvec, theta, cgf)
+}
+
 computeCombinedGradient <- function(combined_vector, adf) {
     .Call(`_saddlepoint_computeCombinedGradient`, combined_vector, adf)
 }
