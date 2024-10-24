@@ -110,6 +110,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// makeADFunCustom1Negll
+Rcpp::XPtr<TMBad::ADFun<>> makeADFunCustom1Negll(const vec& tvec, const vec& theta, Rcpp::XPtr<CGF_with_AD> cgf);
+RcppExport SEXP _saddlepoint_makeADFunCustom1Negll(SEXP tvecSEXP, SEXP thetaSEXP, SEXP cgfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const vec& >::type tvec(tvecSEXP);
+    Rcpp::traits::input_parameter< const vec& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
+    rcpp_result_gen = Rcpp::wrap(makeADFunCustom1Negll(tvec, theta, cgf));
+    return rcpp_result_gen;
+END_RCPP
+}
 // computeCombinedGradient
 Rcpp::List computeCombinedGradient(const vec& combined_vector, Rcpp::XPtr<TMBad::ADFun<>> adf);
 RcppExport SEXP _saddlepoint_computeCombinedGradient(SEXP combined_vectorSEXP, SEXP adfSEXP) {
@@ -525,6 +538,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_makeADFunK1", (DL_FUNC) &_saddlepoint_makeADFunK1, 3},
     {"_saddlepoint_makeADFunIneqConstraint", (DL_FUNC) &_saddlepoint_makeADFunIneqConstraint, 3},
     {"_saddlepoint_makeADFunZerothNegll", (DL_FUNC) &_saddlepoint_makeADFunZerothNegll, 3},
+    {"_saddlepoint_makeADFunCustom1Negll", (DL_FUNC) &_saddlepoint_makeADFunCustom1Negll, 3},
     {"_saddlepoint_computeCombinedGradient", (DL_FUNC) &_saddlepoint_computeCombinedGradient, 2},
     {"_saddlepoint_computeFuncT", (DL_FUNC) &_saddlepoint_computeFuncT, 5},
     {"_saddlepoint_computeZerothFuncT", (DL_FUNC) &_saddlepoint_computeZerothFuncT, 4},
