@@ -320,6 +320,7 @@ public:
 
     template <class t_vector_type, class A_matrix_type, class... ParamTypes>
     auto K(const t_vector_type& tvec, const A_matrix_type& A, ParamTypes&&... other_params) const {
+        if (A.rows() != tvec.size()) throw std::runtime_error("Dimension mismatch. The dimension of linear transformation matrix is incompatible with the dimension of the input vector.");
         // Key identity: K_Y(t) = K_X(A^T t) (with t assumed to be a column vector)
         return base_cgf()->K(A.transpose() * tvec, std::forward<ParamTypes>(other_params)...);
     }
