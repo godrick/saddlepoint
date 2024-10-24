@@ -103,6 +103,7 @@ iidReplicatesCGF <- function(cgf, block_size) {
 #' @export
 concatenationCGF <- function(...) {
   args <- list(...)
+  if (length(args) == 1 && is.list(args[[1]])) args <- args[[1]]
   if (length(args) == 0) stop("At least one CGF object and its corresponding length must be provided.")
   if (length(args) %% 2 != 0) stop("Arguments must be provided in pairs of CGF objects and their lengths.")
   if (length(args) / 2 < 2) stop("At least two pairs of CGF objects and their lengths must be provided to perform concatenation.")
