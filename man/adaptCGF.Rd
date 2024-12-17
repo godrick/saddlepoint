@@ -2,40 +2,35 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{adaptCGF}
 \alias{adaptCGF}
-\title{adaptCGF}
+\title{Adapt a CGF object}
 \usage{
-adaptCGF(baseCGF, adaptor)
+adaptCGF(cgf, adaptor)
 }
 \arguments{
-\item{baseCGF}{A 'CGF' object to be adapted}
+\item{cgf}{A 'CGF' object to be adapted}
 
-\item{adaptor}{An 'adaptor' object created by one of the adaptor creating functions.}
+\item{adaptor}{An 'adaptor' object or a function that modifies or provides parameters dynamically.}
 }
 \value{
 A CGF object.
 }
 \description{
-Adapts a CGF object using a specified adaptor.
-}
-\details{
-The function create...
+This function modifies a given CGF object by applying an adaptor or a function for dynamic parameterization.
+It allows for custom behavior in parameter handling, allowing flexibility in parameter specification.
 }
 \examples{
 \dontrun{
-  # Adapting the BinomialCGF with a fixed parameter adaptor
-  adaptedCGF <- adapt.CGF(baseCGF = BinomialCGF,
-                          adaptor = adaptorUsingFixedParam(c(10, 0.5)) )
-
-  # Creating a Binomial Model CGF with the same parameters
-  modelCGF <- BinomialModelCGF(n = adaptorUsingFixedParam(10),
-                               prob = adaptorUsingFixedParam(0.5))
-
-  # Testing if the adaptedCGF and modelCGF give the same result when used as baseCGF in function K
-  res1 <- K(tvec = 0.003, parameter.vector = c(10,0.5), baseCGF = adaptedCGF)
-  res2 <- K(tvec = 0.003, parameter.vector = c(10,0.5), baseCGF = modelCGF)
-  print(all.equal(res1, res2)) # Should print TRUE
+  ## Adapting the BinomialCGF using indices
+  # Suppose the parameter_vector is of any length (> 2) and we want to use the first two elements as parameters of the underlying Binomial distribution
+  adapted_binomial_cgf <- adaptCGF(cgf = BinomialCGF,
+                                   adaptor = adaptor(indices = 1:2) )
+  ## Adapting the BinomialCGF using a function
+  adapted_binomial_cgf1 <- adaptCGF(cgf = BinomialCGF,
+                                    adaptor = function(x) { x[1:2] } )
+  res1 <- adapted_binomial_cgf$K1(tvec = 0, parameter_vector = c(10, 0.5, 90, 4, 3))
+  res2 <- adapted_binomial_cgf1$K1(tvec = 0, parameter_vector = c(10, 0.5, 5))
 }
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{adaptor}}, \code{\link{BinomialModelCGF}}
 }

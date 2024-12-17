@@ -2,26 +2,21 @@
 % Please edit documentation in R/CGF-operations.R
 \name{concatenationCGF}
 \alias{concatenationCGF}
-\title{Concatenation CGF}
+\title{Concatenation of CGF objects.}
 \usage{
-concatenationCGF(cgfWithLengths)
+concatenationCGF(...)
 }
 \arguments{
-\item{cgfWithLengths}{A list where each entry consists of a CGF object and its associated vector length. Each element is a sublist containing:
-\itemize{
-\item The CGF object (CGF object).
-\item The associated vector length for that CGF (positive integer).
-}}
+\item{...}{A sequence of alternating CGF objects and integers. Each CGF object must be immediately followed by its corresponding vector length, which denotes the dimension of the underlying random variable.}
 }
 \value{
 A CGF object.
 }
 \description{
-Enables the combination of multiple CGFs into a concatenated structure where each CGF has an associated vector length.
+Computes the CGF object for a concatenated vector of independent random variables, with each represented by its respective CGF object and a corresponding dimension. It facilitates the modeling of a concatenated random vector, where each segment of the vector is specified by its CGF object and a corresponding dimension.
 }
 \examples{
 \dontrun{
-# TO DO
 }
 
 }

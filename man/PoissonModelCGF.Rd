@@ -2,19 +2,30 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{PoissonModelCGF}
 \alias{PoissonModelCGF}
-\title{Poisson Model-Based CGF}
+\title{PoissonCGF with flexible parameterization}
 \usage{
 PoissonModelCGF(lambda)
 }
 \arguments{
-\item{lambda}{An object of class 'adaptor', representing the rate parameter lambda in a Poisson distribution.}
+\item{lambda}{Adaptor or function representing the rate parameter of the Poisson distribution.
+Automatically converted to an adaptor if provided as a function.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object configured for the Poisson distribution.
 }
 \description{
-Generates a CGF based on the Poisson distribution.
+Constructs a CGF object for the Poisson distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic adjustments of the rate parameter (\code{lambda}) using similar mechanisms as described for the binomial distribution.
+For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+}
+\examples{
+\dontrun{
+# Example: lambda as a function
+f <- function(x) { 2 + 0.1 * x }
+cgf <- PoissonModelCGF(lambda = f)
+cgf$K1(tvec = 0, parameter_vector = 3) == PoissonCGF$K1(tvec = 0, parameter_vector = 2 + 0.1 * 3)
+}
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{PoissonCGF}} \code{\link{BinomialModelCGF}}
 }

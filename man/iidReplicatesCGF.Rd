@@ -4,10 +4,10 @@
 \alias{iidReplicatesCGF}
 \title{Transforms a CGF object to an i.i.d-based CGF object.}
 \usage{
-iidReplicatesCGF(baseCGF, block_size)
+iidReplicatesCGF(cgf, block_size)
 }
 \arguments{
-\item{baseCGF}{(CGF object): The CGF for the random vector of dimension (block_size).}
+\item{cgf}{(CGF object): The CGF for the random vector of dimension (block_size).}
 
 \item{block_size}{(positive integer): The vector length of a single replicate.}
 }

@@ -2,17 +2,17 @@
 % Please edit documentation in R/CGF-operations.R
 \name{sumOfiidCGF}
 \alias{sumOfiidCGF}
-\title{CGF of a sum of 'n' i.i.d random variables.}
+\title{Sum of 'n' i.i.d random variables.}
 \usage{
-sumOfiidCGF(baseCGF, n)
+sumOfiidCGF(cgf, n)
 }
 \arguments{
-\item{baseCGF}{A CGF object the single random variable.}
+\item{cgf}{A CGF object for the random variable to be summed.}
 
 \item{n}{An integer representing the number of i.i.d random variables to be summed.}
 }
 \value{
-A CGF object representing the sum of 'n' i.i.d random variables.
+A CGF object.
 }
 \description{
 Computes the CGF object for the sum of 'n' i.i.d random variables.

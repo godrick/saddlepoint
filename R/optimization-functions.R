@@ -2,7 +2,7 @@
 #' @description This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector.
-#' @param model.cgf An object of class 'CGF'.
+#' @param cgf An object of class 'CGF'.
 #' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
 #  the gradient of the function with respect to both \code{tvec} and \code{theta}.
 #'
@@ -13,24 +13,19 @@
 #'   f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
 #' }
 #' @export
-get.saddlepoint.nll.function <- function(tvec, theta, model.cgf){
-  stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
-  # ADfun.negll = make.ADFunNegll(tvec = tvec, theta = theta, ModelCGF = model.cgf)
-  ADfun.negll = makeADFunNegll(tvec = tvec, theta = theta, modelCGF = model.cgf)
+get.saddlepoint.nll.function <- function(tvec, theta, cgf){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
+  adf.negll = makeADFunNegll(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
-  saddlepoint.nll = function(a){
-    ll_with_gradient(combined_vector = a, ADfun_ll = ADfun.negll)
-  }
+  saddlepoint.nll = function(a){computeCombinedGradient(combined_vector = a, adf = adf.negll)}
 }
 
 
-
-
-#' @title Create a Zeroth order saddlepoint negative log-likelihood function
+#' @title Create a zeroth-order saddlepoint negative log-likelihood function
 #' @description This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector.
-#' @param model.cgf An object of class 'CGF'.
+#' @param cgf An object of class 'CGF'.
 #' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
 #  the gradient of the function with respect to both \code{tvec} and \code{theta}.
 #' 
@@ -40,12 +35,12 @@ get.saddlepoint.nll.function <- function(tvec, theta, model.cgf){
 #' }
 #' 
 #' @export
-get.zeroth.saddlepoint.ll.function <- function(tvec, theta, model.cgf){
-  stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
-  ADfun.ll = makeADFunZerothLL(tvec = tvec, theta = theta, modelCGF = model.cgf)
+get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
+  adf.zeroth.nll = makeADFunZerothNegll(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
-  zeroth.saddlepoint.ll = function(a){
-    ll_with_gradient(combined_vector = a, ADfun_ll = ADfun.ll)
+  zeroth.saddlepoint.nll = function(a){
+    computeCombinedGradient(combined_vector = a, adf = adf.zeroth.nll)
   }
 }
 
@@ -56,7 +51,8 @@ get.zeroth.saddlepoint.ll.function <- function(tvec, theta, model.cgf){
 
 
 
-#' @title Create saddlepoint equality constraint function
+
+#' @title Create the saddlepoint equality constraint function
 #'
 #' @description
 #' This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
@@ -69,23 +65,23 @@ get.zeroth.saddlepoint.ll.function <- function(tvec, theta, model.cgf){
 #' @param theta A numeric vector.
 #' @param observed.data A numeric vector. See TO DO list.
 #  TO DO: Add something on the length ...
-#' @param model.cgf An object of class 'CGF'.
+#' @param cgf An object of class 'CGF'.
 #' @return A function that accepts a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to this function, it generates a list containing 'constraints' and 'jacobian'. 'constraints' are computed as \eqn{K'(t;\theta) - y}, and 'jacobian' represents the gradient of these constraints with respect to both \code{tvec} and \code{theta}.
 #' @examples
 #' \dontrun{
 #' TO DO: write a working example
-#'   f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, model.cgf)
+#'   f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
 #'   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
 #' }
 #' @export
-get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, model.cgf){
-  stopifnot(is.numeric(tvec), is.numeric(theta), is.numeric(observed.data), is(model.cgf, "CGF"))
-  ADfun.K1 = make.ADFunK1(tvec = tvec, theta = theta, ModelCGF = model.cgf)
+get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, cgf){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is.numeric(observed.data), is(cgf, "CGF"))
+  adf.K1 = makeADFunK1(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
   saddlepoint.eq.constraint.function <- function(a){
-    K1.and.grad = K1_with_gradient(combined_vector = a, ADfunK1 = ADfun.K1)
-    list(constraints = K1.and.grad$fn - observed.data,
-         jacobian = matrix(K1.and.grad$gr, nrow = length(tvec), byrow = TRUE))
+    K1.and.grad = computeCombinedGradient(combined_vector = a, adf = adf.K1)
+    list(constraints = K1.and.grad$objective - observed.data,
+         jacobian =  matrix(K1.and.grad$gradient, nrow = length(tvec), byrow = TRUE))
   }
 }
 
@@ -94,36 +90,37 @@ get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, m
 #'
 #'
 #' @details
-#' This function constructs and integrates an inequality constraint based on \code{model.cgf}
+#' This function constructs and integrates an inequality constraint based on \code{cgf}
 #' with any user-defined inequality constraint function specified in \code{user.ineq.constraint.function}.
-#' If \code{user.ineq.constraint.function} is `NULL`, the function checks whether the \code{model.cgf} itself
+#' If \code{user.ineq.constraint.function} is `NULL`, the function checks whether the \code{cgf} itself
 #' includes an inherent inequality constraint.
 #'
 #'
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector.
-#' @param model.cgf An object of class 'CGF'.
+#' @param cgf An object of class 'CGF'.
 #' @param user.ineq.constraint.function An optional additional inequality added by a user. Default is NULL. See TO DO list.
 #  TO DO: Add additional documentation on this.
 #' @return A function that takes a vector `a` as an argument. This function returns either NULL or a list with 'constraints' and 'jacobian'.
 #' @examples
 #' \dontrun{
 #' TO DO: Add a working example
-#'   f <- get.ineq_constraint.function(tvec, theta, model.cgf)
+#'   f <- get.ineq_constraint.function(tvec, theta, cgf)
 #'   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
 #' }
 #' @export
-get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.constraint.function = NULL){
-  stopifnot(is.numeric(tvec), is.numeric(theta), is(model.cgf, "CGF"))
+get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.function = NULL){
+  stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
   #...
   # This function returns ineq.constraint.function which is either NULL or a function with a single argument 'a'
   # As a result, the output of this function can be directly used in the optimiser.
   m = length(tvec)
   
   
-  # First check if the model.cgf is subject to any constraints, i.e., tvec is constrained
+  # First check if the cgf is subject to any constraints, i.e., tvec is constrained
   # We do this by checking if the saddlepoint-based ineq_constraint returns any value
-  vector.of.ineq.constraint.values <- ineq_constraint(tvec, theta, model.cgf)
+  vector.of.ineq.constraint.values <- cgf$ineq_constraint(tvec, theta)
+  
   
   if (!length(vector.of.ineq.constraint.values)) {
     # tvec is not constrained
@@ -132,7 +129,7 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
     
     # If a user defines some constraint on theta, we incorporate the tvec-related jacobian, which is expected by the optimiser
     if (!is.null(user.ineq.constraint.function)) {
-      # SOme checks
+      # some checks
       if (!is.function(user.ineq.constraint.function)) stop("user.ineq.constraint.function must be a function")
       if (!all(c("constraints", "jacobian") %in% names(user.ineq.constraint.function(theta)))) stop("user.ineq.constraint.function must have 'constraints' and 'jacobian' as output")
       
@@ -145,7 +142,7 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
         user.ineq.constraint <- user.ineq.constraint.function(theta)
         
         # Add zeros to the jacobian for the tvec components
-        jacobian.with.tvec <- cbind(matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(t.vec)),
+        jacobian.with.tvec <- cbind( matrix(0, nrow = nrow(user.ineq.constraint$jacobian), ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
         
         # Return the constraints and jacobian including tvec
@@ -157,17 +154,17 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
     
     saddlepoint.ineq.constraint.function <- create_saddlepoint.ineq.constraint_function(tvec = tvec,
                                                                                         theta = theta,
-                                                                                        model.cgf = model.cgf)
+                                                                                        cgf = cgf)
     
-    # If user does not define any constraint on theta, the optimiser only needs the saddlepoint-based constraints
+    # If user does not define any constraint on theta, the optimiser only needs the saddlepoint-based constraints (cgf/tvec constraints)
     ineq.constraint.function <- function(a) {
-      # Evaluate are return saddlepoint-based inequality constraint function for tvec and theta
+      # Evaluate and return saddlepoint-based inequality constraint function for tvec and theta
       saddlepoint.ineq.constraint.function(a)
     }
     tvec.ineq.constraint.function <- ineq.constraint.function
     
     if (!is.null(user.ineq.constraint.function)) {
-      # Check if user.ineq.constraint.function is a function
+      # some checks
       if (!is.function(user.ineq.constraint.function)) stop("user.ineq.constraint.function must be a function")
       if (!all(c("constraints", "jacobian") %in% names(user.ineq.constraint.function(theta)))) stop("user.ineq.constraint.function must have 'constraints' and 'jacobian' as output")
       
@@ -183,7 +180,7 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
         saddlepoint.ineq.constraint <- saddlepoint.ineq.constraint.function(a)
         
         # Add zeros to the jacobian for the tvec components
-        jacobian.with.tvec <- cbind(matrix(0, 
+        jacobian.with.tvec <- cbind( matrix(0, 
                                            nrow = nrow(user.ineq.constraint$jacobian), 
                                            ncol = length(t.vec)),
                                     user.ineq.constraint$jacobian)
@@ -201,9 +198,14 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
     }
     
   }
+  
+  if (is.null(ineq.constraint.function)) { return(NULL) }
   attributes(ineq.constraint.function) <- list(tvec.ineq.constraint.function = tvec.ineq.constraint.function)
-  if(!length(ineq.constraint.function)) ineq.constraint.function = NULL
-  return(ineq.constraint.function)
+  ineq.constraint.function
+  
+  # attributes(ineq.constraint.function) <- list(tvec.ineq.constraint.function = tvec.ineq.constraint.function)
+  # if(!length(ineq.constraint.function)) ineq.constraint.function = NULL
+  # ineq.constraint.function
 }
 
 #' Create saddlepoint (CGF-based) inequality constraint function
@@ -212,20 +214,23 @@ get.ineq.constraint.function <- function(tvec, theta, model.cgf, user.ineq.const
 #'
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector of model parameters.
-#' @param model.cgf An object of class 'CGF'.
+#' @param cgf An object of class 'CGF'.
 #'
 #' @return A function that accepts a single vector argument 'a'. When `a = c(tvec, theta)` is passed, the function yields a list in the form \code{list(constraints = , jacobian = )}, where 'constraints' are the calculated inequalities and 'jacobian' is the gradient of the constraints with respect to both \code{tvec} and \code{theta}.
 #'
 #' @noRd
-create_saddlepoint.ineq.constraint_function <- function(tvec, theta, model.cgf){
-  ADfun.ineq = make.ADFunIneqConstraint(tvec = tvec, theta = theta, ModelCGF = model.cgf)
+create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
+  adf.ineq = makeADFunIneqConstraint(tvec = tvec, theta = theta, cgf = cgf$get_ptr())
   
   saddlepoint.ineq.constraint.function <- function(a) {
-    ineqConst = ineqConstraint_with_gradient(combined_vector = a, ADfun_ineqConstraint = ADfun.ineq)
-    list(constraints = ineqConst$fn,
-         jacobian = matrix(ineqConst$gr, nrow = length(ineqConst$fn), byrow = TRUE))
+    ineqConst = computeCombinedGradient(combined_vector = a, adf = adf.ineq)
+    list(constraints = ineqConst$objective,
+         jacobian =  matrix(ineqConst$gradient, nrow = length(ineqConst$objective), byrow = TRUE))
   }
 }
+
+
+
 
 
 
@@ -236,8 +241,8 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, model.cgf){
 #'
 #' @importFrom nloptr nloptr
 #'
-#' @param y A numeric vector of observations.
 #' @param theta A numeric vector of model parameters for which the CGF is defined.
+#' @param y A numeric vector of observations.
 #' @param cgf An object of type "CGF".
 #' @param starting.tvec a numeric vector, vector of starting values for saddlepoint parameters, defaults to zeros.
 #' @param lb a numeric vector, vector of lower bounds for saddlepoints tvec, defaults to -Inf.
@@ -252,30 +257,24 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, model.cgf){
 #' # TO DO: Add examples
 #'
 #' @export
-sadd.eqn.fn <- function(theta, y, cgf,
-                        starting.tvec = rep(0, times = length(y)),
-                        # tvec.ineq.constraint.function = NULL,
-                        lb = rep(-Inf, times=length(y)),
-                        ub = rep(Inf, times=length(y)),
-                        sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)) {
+saddlepoint.eqn.solve <- function(theta, y, cgf,
+                                  starting.tvec = rep(0, times = length(y)),
+                                  lb = rep(-Inf, times=length(y)),
+                                  ub = rep(Inf, times=length(y)),
+                                  sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)) {
   
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
-  if(length(lb) != length(starting.tvec) || length(ub) != length(starting.tvec) || !is.numeric(lb) || !is.numeric(ub)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
-  # if(!is.null(tvec.ineq.constraint.function) && !is.function(tvec.ineq.constraint.function)) stop("tvec.ineq.constraint.function is not defined for ", class(tvec.ineq.constraint.function))
-  
+  if(length(lb) != length(starting.tvec) || length(ub) != length(starting.tvec) || !is.numeric(lb) || !is.numeric(ub)) stop("lb or ub has an incorrect length or is not numeric")
+
   # get tvec-related ineq.constraint_function
   tvec.ineq.constraint.function = attributes(get.ineq.constraint.function(tvec = starting.tvec, theta = theta,
-                                                                          model.cgf = cgf,
+                                                                          cgf = cgf,
                                                                           user.ineq.constraint.function = NULL))$tvec.ineq.constraint.function
   objective.fun <- function(t.vec){
-    val = K(t.vec, theta, cgf) - t(as.matrix(t.vec)) %*% y
-    # if(is.na(val)) val = Inf
-    val
+    cgf$K(t.vec, theta) - sum(t.vec*y)
   }
   grad.objective.fun <- function(t.vec){
-    temp = as.vector(K1(t.vec, theta, cgf))
-    # temp[is.na(temp)]  = -9999
-    temp - y
+    cgf$K1(t.vec, theta) - y
   }
   eval_f <- function(t.vec) {
     list(objective = objective.fun(t.vec),
@@ -328,51 +327,52 @@ configure.sadd.eqn.opts <- function(sadd.eqn.opts) {
 
 #' Compute standard error and inverse Hessian
 #'
-#' This function calculates the standard error and the inverse of the Hessian matrix ....
+#' This function calculates the standard error and the inverse of the Hessian matrix 
+#' for a model incorporating both the saddlepoint likelihood and an optional 
+#' non-saddlepoint negative log-likelihood component.
+#' 
 #'
-#' @importFrom numDeriv hessian
-#' @importFrom utils head tail
+#' @param observed.data A numeric vector of observations used in the saddlepoint likelihood calculations.
+#' @param estimated.tvec A numeric vector of MLE values for the saddlepoint values `tvec`.
+#' @param estimated.theta A numeric vector of MLE values for the model parameters.
+#' @param cgf A CGF object used in the saddlepoint likelihood computation.
+#' @param zeroth.order A logical value indicating whether the zeroth-order saddlepoint likelihood is used. Default is FALSE.
+#' @param non.saddlepoint.negll.function An optional function specifying a non-saddlepoint negative log-likelihood. If your model used for estimation incorporates a likelihood component that is not based on the saddlepoint approximation, this function must be provided. See details for more information.
 #'
-#' @param observed.data A numeric vector of observed data
-#' @param combined.estimates TO DO A numeric vector of combined estimated parameters
-#' @param model.cgf A CGF object
-#' @param objective.function A function that defines the objective to be minimized...TO DO
-#' @param lb.tvec A numeric vector specifying the lower bounds for tvec (default: -Inf)
-#' @param ub.tvec A numeric vector specifying the upper bounds for tvec (default: Inf)
-#' @param sadd.eqn.opts A list of options for the nlopt optimizer. This should be a named list, where the names are option names and the list elements are the corresponding option values.
-#'    The default options are: \code{list(algorithm="NLOPT_LD_SLSQP", ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)}.
-#'    Note that the option "algorithm" cannot be changed. See the documentation for the \code{nloptr} package for more details about the options.
-# #' @param ineq.constraint.function An optional function defining inequality constraints (default: NULL)
+#' @details
+#' The `non.saddlepoint.negll.function`, if provided, should have the form:
+#' \deqn{function(theta) \{ return(list(objective = ..., hessian = ...)) \}}
+#' It adds flexibility by allowing incorporation of likelihood components not based on the saddlepoint likelihood.
+#' It is important when the analysis combines the saddlepoint likelihood with an external likelihood. 
+#' If not provided, the function defaults to using solely the saddlepoint likelihood.
 #'
-#' @return A list containing the standard error (std.error) and the inverse Hessian matrix (inverse.hessian)
+#' @return A list containing:
+#'   \itemize{
+#'     \item std.error: Standard error computed from the diagonal of the inverse Hessian.
+#'     \item inverse.hessian: Inverse of the Hessian matrix.
+#'   }
 #'
 #' @examples
 #' # TODO: Add examples
 #'
 #' @export
-compute.std.error <- function(observed.data, combined.estimates,
-                              model.cgf, objective.function,
-                              # eq.constraint.function,
-                              lb.tvec = rep(-Inf, times=length(observed.data)),
-                              ub.tvec = rep(Inf, times=length(observed.data)),
-                              sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)
-                              # ineq.constraint.function = NULL
-) {
+compute.std.error <- function(observed.data, 
+                              estimated.tvec,
+                              estimated.theta,
+                              cgf, 
+                              zeroth.order = FALSE,
+                              non.saddlepoint.negll.function = NULL) {
+  if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
+  computeNegll_fn <- if (zeroth.order) computeZerothNegll else computeNegll
+  matrix.H <-  matrix(computeNegll_fn(tvec = estimated.tvec, theta = estimated.theta,
+                                    observations = observed.data, cgf = cgf$get_ptr())$hessian,
+                    nrow = length(estimated.theta))
+
   
-  estimated.tvec <- head(combined.estimates, length(observed.data))
-  estimated.theta <- tail(combined.estimates, length(combined.estimates) - length(estimated.tvec))
-  
-  
-  # Define a function to evaluate the objective function as a function of theta
-  nll.as.a.function.of.theta <- function(theta){
-    tvec = sadd.eqn.fn(theta = theta, y = observed.data,
-                       cgf = model.cgf, starting.tvec = estimated.tvec,
-                       lb = lb.tvec, ub = ub.tvec,
-                       sadd.eqn.opts = sadd.eqn.opts)
-    objective.function(c(tvec, theta))$objective
+  if (!is.null(non.saddlepoint.negll.function)) {
+    if (!is.function(non.saddlepoint.negll.function)) stop("'non.saddlepoint.negll.function' must be a function")
+    matrix.H <- matrix.H + non.saddlepoint.negll.function(estimated.theta)$hessian
   }
-  
-  matrix.H <- numDeriv::hessian(nll.as.a.function.of.theta, estimated.theta)
   
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)),

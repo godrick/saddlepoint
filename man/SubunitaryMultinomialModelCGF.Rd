@@ -12,7 +12,7 @@ SubunitaryMultinomialModelCGF(n, prob_vec)
 \item{prob_vec}{An object of class 'adaptor' representing the probabilities associated with the non-zero outcomes in the modified Multinomial distribution. The sum of these probabilities should be strictly less than one to validate the occurrence of the known zero outcome.}
 }
 \value{
-An object of class 'CGF'.
+A 'CGF' object.
 }
 \description{
 Generates a CGF object derived from a modified Multinomial distribution. This modification accommodates instances where certain outcomes are explicitly zero, and consequently, the probabilities associated with the remaining non-zero outcomes sum to a value less than one.
@@ -25,5 +25,5 @@ this CGF is designed to integrate the occurrence of a known zero outcome, \eqn{x
 This approach allows for the modeling and analysis of Multinomial distributions in situations where some categories are known not to be observed and the probabilities of observing the other categories are adjusted accordingly.
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{MultinomialModelCGF}}
 }

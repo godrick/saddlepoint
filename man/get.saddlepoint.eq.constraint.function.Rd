@@ -2,9 +2,9 @@
 % Please edit documentation in R/optimization-functions.R
 \name{get.saddlepoint.eq.constraint.function}
 \alias{get.saddlepoint.eq.constraint.function}
-\title{Create saddlepoint equality constraint function}
+\title{Create the saddlepoint equality constraint function}
 \usage{
-get.saddlepoint.eq.constraint.function(tvec, theta, observed.data, model.cgf)
+get.saddlepoint.eq.constraint.function(tvec, theta, observed.data, cgf)
 }
 \arguments{
 \item{tvec}{A numeric vector.}
@@ -13,7 +13,7 @@ get.saddlepoint.eq.constraint.function(tvec, theta, observed.data, model.cgf)
 
 \item{observed.data}{A numeric vector. See TO DO list.}
 
-\item{model.cgf}{An object of class 'CGF'.}
+\item{cgf}{An object of class 'CGF'.}
 }
 \value{
 A function that accepts a vector 'a' as an argument. When \code{a = c(tvec, theta)} is passed to this function, it generates a list containing 'constraints' and 'jacobian'. 'constraints' are computed as \eqn{K'(t;\theta) - y}, and 'jacobian' represents the gradient of these constraints with respect to both \code{tvec} and \code{theta}.
@@ -27,7 +27,7 @@ In this set up, the expression of the saddlepoint equation is defined by \eqn{K'
 \examples{
 \dontrun{
 TO DO: write a working example
-  f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, model.cgf)
+  f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
 }
 }

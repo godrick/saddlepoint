@@ -2,16 +2,17 @@
 % Please edit documentation in R/CGF-operations.R
 \name{sumOfIndependentCGF}
 \alias{sumOfIndependentCGF}
-\title{CGF of a sum of independent random variables.}
+\title{Sum of Independent CGFs}
 \usage{
-sumOfIndependentCGF(baseCGF_list)
+sumOfIndependentCGF(...)
 }
 \arguments{
-\item{baseCGF_list}{List of an arbitrary number of CGF objects, each corresponding to an independent random variable.}
+\item{...}{CGF objects: Any number of CGF objects.
+Each argument passed through \code{...} must be an object of class 'CGF', each corresponding to an independent random variable.}
 }
 \value{
-A CGF object representing the sum of independent random variables.
+A CGF object for the sum of independent random variables.
 }
 \description{
-Evaluates the CGF object for the sum of independent(identical or non-identical) random variables.
+Computes the CGF object for the sum of independent (identical or non-identical) random variables.
 }

@@ -2,21 +2,23 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{MultinomialModelCGF}
 \alias{MultinomialModelCGF}
-\title{Multinomial Model-Based CGF}
+\title{MultinomialCGF with flexible parameterization}
 \usage{
 MultinomialModelCGF(n, prob_vec)
 }
 \arguments{
-\item{n}{An object of class 'adaptor'.}
+\item{n}{Adaptor or function representing the number of trials parameter of the multinomial distribution.}
 
-\item{prob_vec}{An object of class 'adaptor', representing a vector of Multinomial probabilities.}
+\item{prob_vec}{Adaptor or function representing the probability vector parameter of the multinomial distribution.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object configured for the multinomial distribution.
 }
 \description{
-Generates a CGF based on the Multinomial distribution.
+Constructs a CGF object for the multinomial distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic adjustments of (\code{n} and \code{prob_vec}) parameters using similar mechanisms as described for the binomial distribution.
+For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{MultinomialCGF}} \code{\link{BinomialModelCGF}}
 }

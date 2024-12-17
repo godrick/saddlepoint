@@ -67,7 +67,8 @@ public:
         // tvec < -log(1-p)
         // The value of this function is constrained to be non-positive
         // tvec + log(1 - p) < 0
-        return tvec.array() + log(1 - p);
+        // return tvec.array() + log(1 - p);
+        return (1-p)*exp(tvec.array()) - 1;
     }
 };
 //----------------

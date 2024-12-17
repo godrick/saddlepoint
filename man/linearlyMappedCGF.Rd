@@ -4,16 +4,16 @@
 \alias{linearlyMappedCGF}
 \title{CGF of a linearly mapped random variable.}
 \usage{
-linearlyMappedCGF(baseCGF, matrix_A)
+linearlyMappedCGF(cgf, matrix_A)
 }
 \arguments{
-\item{baseCGF}{The CGF object representing the random variable before the linear transformation.}
+\item{cgf}{The CGF object for the random variable before the linear transformation.}
 
 \item{matrix_A}{The transformation matrix applied to the random variable.}
 }
 \value{
-A CGF object representing the transformed random variable.
+A CGF object
 }
 \description{
-Evaluates the CGF object of a linearly transformed random variable.
+Computes the CGF object of a linearly transformed random variable.
 }

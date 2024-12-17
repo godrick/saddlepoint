@@ -2,19 +2,30 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{ExponentialModelCGF}
 \alias{ExponentialModelCGF}
-\title{Exponential Model-Based CGF}
+\title{ExponentialCGF with flexible parameterization}
 \usage{
 ExponentialModelCGF(rate)
 }
 \arguments{
-\item{rate}{An object of class 'adaptor', representing the rate parameter in the Exponential distribution.}
+\item{rate}{Adaptor or function representing the rate parameter of the exponential distribution.
+Automatically converted to an adaptor if provided as a function.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object configured for the exponential distribution.
 }
 \description{
-Generates a CGF based on the Exponential distribution.
+Constructs a CGF object for the exponential distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic adjustments of the rate parameter (\code{lambda}) using similar mechanisms as described for the binomial distribution.
+For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+}
+\examples{
+\dontrun{
+# Example: rate as a function
+f <- function(x) { 0.1 * x }
+cgf <- ExponentialModelCGF(rate = f)
+cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
+}makeAdaptorUsingRfunctions
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{ExponentialCGF}} \code{\link{BinomialModelCGF}}
 }

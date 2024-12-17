@@ -1,20 +1,18 @@
 #ifndef SADDLEPOINT_TYPES_H_INCLUDED
 #define SADDLEPOINT_TYPES_H_INCLUDED
 
-// [[Rcpp::plugins("cpp17")]]
+// [[Rcpp::depends(TMB)]]
+#include <RTMB.h>
+
 // [[Rcpp::depends(RcppEigen)]]
-# include <Rcpp.h>
 # include <RcppEigen.h>
 
-#include <cppad/cppad.hpp>
-
-
-typedef Eigen::VectorXd vec;
-typedef Eigen::MatrixXd mat;
-
-typedef CppAD::AD<double> a_scalar;
+using a_scalar = ad;
 typedef Eigen::Matrix<a_scalar, Eigen::Dynamic, 1> a_vector;
 typedef Eigen::Matrix<a_scalar, Eigen::Dynamic, Eigen::Dynamic> a_matrix;
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> vec;
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> mat;
 
 namespace saddlepoint{
 namespace CGFs_with_AD{

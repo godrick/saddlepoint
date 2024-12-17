@@ -2,19 +2,30 @@
 % Please edit documentation in R/adaptedCGFs.R
 \name{GeometricModelCGF}
 \alias{GeometricModelCGF}
-\title{Geometric Model-Based CGF}
+\title{GeometricCGF with flexible parameterization}
 \usage{
 GeometricModelCGF(prob)
 }
 \arguments{
-\item{prob}{An object of class 'adaptor', representing the probability parameter in a Geometric distribution.}
+\item{prob}{Adaptor or function representing the probability of success parameter of the geometric distribution.
+Automatically converted to an adaptor if provided as a function.}
 }
 \value{
-An object of class 'CGF'.
+'CGF' object configured for the geometric distribution.
 }
 \description{
-Generates a CGF based on the Geometric distribution.
+Constructs a CGF object for the geometric distribution, supporting flexible parameter specifications through adaptors.
+This function allows for dynamic adjustments of the probability of success (\code{prob}) using similar mechanisms as described for the binomial distribution.
+For detailed explanations on using adaptors for dynamic parameter adjustments, see \code{\link{BinomialModelCGF}}.
+}
+\examples{
+\dontrun{
+# Example: probability of success as a function
+f <- function(x) { log(x) }
+cgf <- GeometricModelCGF(prob = f)
+cgf$K1(tvec = 0, parameter_vector = 1.05) == GeometricCGF$K1(tvec = 0, parameter_vector = log(1.05))
+}
 }
 \seealso{
-\code{\link{adaptorUsingRFunctions}}, \code{\link{adaptorUsingIndices}}, \code{\link{adaptorUsingFixedParam}}
+\code{\link{GeometricCGF}} \code{\link{BinomialModelCGF}}
 }

@@ -6,36 +6,44 @@
 \usage{
 compute.std.error(
   observed.data,
-  combined.estimates,
-  model.cgf,
-  objective.function,
-  lb.tvec = rep(-Inf, times = length(observed.data)),
-  ub.tvec = rep(Inf, times = length(observed.data)),
-  sadd.eqn.opts = list(ftol_abs = 0, maxeval = 1000, xtol_rel = 1e-12, print_level = 0)
+  estimated.tvec,
+  estimated.theta,
+  cgf,
+  zeroth.order = FALSE,
+  non.saddlepoint.negll.function = NULL
 )
 }
 \arguments{
-\item{observed.data}{A numeric vector of observed data}
+\item{observed.data}{A numeric vector of observations used in the saddlepoint likelihood calculations.}
 
-\item{combined.estimates}{TO DO A numeric vector of combined estimated parameters}
+\item{estimated.tvec}{A numeric vector of MLE values for the saddlepoint values \code{tvec}.}
 
-\item{model.cgf}{A CGF object}
+\item{estimated.theta}{A numeric vector of MLE values for the model parameters.}
 
-\item{objective.function}{A function that defines the objective to be minimized...TO DO}
+\item{cgf}{A CGF object used in the saddlepoint likelihood computation.}
 
-\item{lb.tvec}{A numeric vector specifying the lower bounds for tvec (default: -Inf)}
+\item{zeroth.order}{A logical value indicating whether the zeroth-order saddlepoint likelihood is used. Default is FALSE.}
 
-\item{ub.tvec}{A numeric vector specifying the upper bounds for tvec (default: Inf)}
-
-\item{sadd.eqn.opts}{A list of options for the nlopt optimizer. This should be a named list, where the names are option names and the list elements are the corresponding option values.
-The default options are: \code{list(algorithm="NLOPT_LD_SLSQP", ftol_abs = 0, maxeval = 1e3, xtol_rel = 1.0e-12, print_level = 0)}.
-Note that the option "algorithm" cannot be changed. See the documentation for the \code{nloptr} package for more details about the options.}
+\item{non.saddlepoint.negll.function}{An optional function specifying a non-saddlepoint negative log-likelihood. If your model used for estimation incorporates a likelihood component that is not based on the saddlepoint approximation, this function must be provided. See details for more information.}
 }
 \value{
-A list containing the standard error (std.error) and the inverse Hessian matrix (inverse.hessian)
+A list containing:
+\itemize{
+\item std.error: Standard error computed from the diagonal of the inverse Hessian.
+\item inverse.hessian: Inverse of the Hessian matrix.
+}
 }
 \description{
-This function calculates the standard error and the inverse of the Hessian matrix ....
+This function calculates the standard error and the inverse of the Hessian matrix
+for a model incorporating both the saddlepoint likelihood and an optional
+non-saddlepoint negative log-likelihood component.
+}
+\details{
+The \code{non.saddlepoint.negll.function}, if provided, should have the form:
+\deqn{function(theta) \{ return(list(objective = ..., hessian = ...)) \}}
+It adds flexibility by allowing incorporation of likelihood components not based on the saddlepoint likelihood.
+It is important when the analysis combines the saddlepoint likelihood with an external likelihood.
+If not provided, the function defaults to using solely the saddlepoint likelihood.
 }
 \examples{
 # TODO: Add examples

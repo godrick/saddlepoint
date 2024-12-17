@@ -46,8 +46,8 @@ public:
   template <class vector_type>
   auto operator()(const vector_type& parameter_vector) const {
     auto pvec = parameter_vector.tail(parameter_vector.size() - 1);
-    if((pvec.array() < 0).any() || pvec.sum() >= 1)
-      throw std::invalid_argument("Each element of probability vector must be non-negative and the sum must be strictly less than 1.");
+    if((pvec.array() < 0).any() || pvec.sum() > 1)
+      throw std::invalid_argument("Each element of probability vector must be non-negative and the sum must not exceed 1. ");
     // if(pvec.sum() >= 1 || pvec.sum() <= 0) throw std::invalid_argument("The sum of prob_vec must be non-negative and strictly less than 1.");
     return std::make_pair(parameter_vector[0], pvec);
   }

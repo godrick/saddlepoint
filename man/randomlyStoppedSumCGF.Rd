@@ -4,18 +4,18 @@
 \alias{randomlyStoppedSumCGF}
 \title{CGF of a randomly stopped sum.}
 \usage{
-randomlyStoppedSumCGF(countCGF, summandCGF)
+randomlyStoppedSumCGF(count_cgf, summand_cgf)
 }
 \arguments{
-\item{countCGF}{The CGF object representing the random variable \eqn{N}.}
+\item{count_cgf}{The CGF object representing the random variable \eqn{N}.}
 
-\item{summandCGF}{The CGF object representing the random variables \eqn{\tilde{X}_i}.}
+\item{summand_cgf}{The CGF object representing the random variables \eqn{\tilde{X}_i}.}
 }
 \value{
 A CGF object of the random variable \eqn{\tilde{Y}}.
 }
 \description{
-Evaluates the CGF for a randomly stopped sum \eqn{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}{Y = sum(X[1], X[2], ..., X[N])}, where \eqn{N} and \eqn{\tilde{X}_i} are random variables.
+Computes the CGF object for a randomly stopped sum \eqn{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}{Y = sum(X[1], X[2], ..., X[N])}, where \eqn{N} and \eqn{\tilde{X}_i} are random variables. Here, \eqn{\tilde{X}_i} are i.i.d. random variables independent of \eqn{N}, which is a non-negative integer-valued random variable.
 }
 \details{
 The setup is as follows:
