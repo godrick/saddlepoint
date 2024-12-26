@@ -112,9 +112,6 @@ public:
   auto K4operatorAABB(const t_vector_type& tvec, const Q_matrix_type& Q1, const Q_matrix_type& Q2, const ParameterTypes&... params) const
     //        -> decltype( K4operatorAABB_factored(tvec, Q1.ldlt().matrixL().eval(), Q1.ldlt().vectorD(), Q1.ldlt().matrixL().eval(), Q2.ldlt().vectorD(), params...) )
   {
-    // Print out the dimensions of Q1 // // delete
-    std::cout << "Q1 dimensions: " << Q1.rows() << " x " << Q1.cols() << std::endl;
-    
     auto ldlt1 = Q1.ldlt();
     auto ldlt2 = Q2.ldlt();
 
