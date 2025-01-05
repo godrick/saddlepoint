@@ -1,34 +1,39 @@
+# R/find-saddlepoint-mle.R
+# Objects: find.saddlepoint.MLE
+
+
 #' @title Find maximum likelihood estimates using the saddlepoint likelihood.
 #'
 #' @description
-#' This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). It takes a CGF object that represents the CGF for a random variable, corresponding to the observed data, along with various parameters related to the optimization procedure. An alternative zeroth-order method can be enabled by setting the `zeroth.order` parameter to TRUE.
+#' This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs). 
+#' It takes a CGF object along with various parameters related to the optimization procedure. 
+#' An alternative zeroth-order method can be enabled by setting the `zeroth.order` parameter to `TRUE`. 
 #' 
-#'
-#' @importFrom nloptr nloptr
-#' @importFrom utils head tail
 #' 
 #' @details
-#' The `zeroth.order` argument allows toggling between the standard and zeroth-order saddlepoint likelihoods. 
-#' When `zeroth.order` is set to TRUE, the objective function is modified to the zeroth-order saddlepoint negative log-likelihood 
-#' \deqn{\hat{t} y - K_Y (\hat{t}; \theta).} 
-#' Here, the estimates of \eqn{\theta} are calculated based on observations \eqn{y}, 
-#' where \eqn{K_Y(t; \theta)} is the CGF of the underlying random variable, and \eqn{\hat{t}} is the solution 
-#' to the saddlepoint equation. When FALSE, the standard saddlepoint likelihood is used.
+#' - **Observed Data**: `observed.data` can be a numeric vector or a matrix/data frame.
+#'   If it's a matrix/data frame, columns are treated as i.i.d. replicate blocks.
+#'   
+#' - **Zeroth-order**: The `zeroth.order` argument allows toggling between the standard and zeroth-order saddlepoint likelihoods. 
+#'   When `zeroth.order` is set to TRUE, the objective function is modified to the zeroth-order saddlepoint approximation to the negative log-likelihood 
+#'   \deqn{\hat{t} y - K_Y (\hat{t}; \theta).} 
+#'   The estimates of \eqn{\theta} are calculated based on observations \eqn{y}, 
+#'   where \eqn{K_Y(t; \theta)} is the CGF of the underlying random variable, and \eqn{\hat{t}} is the solution 
+#'   to the saddlepoint equation. When FALSE, the standard saddlepoint likelihood is used.
 #' 
 #' 
-#' @param observed.data a numeric vector - See TO DO list
-#  TO DO: for a (block.size by m) dataset, nrow(observed.data) represents the
-#        dimension of the observed vector and the columns correspond to i.i.d replicates of the vector.
-#' @param cgf a CGF object corresponding to the observed data.
-#' @param starting.theta a numeric vector of starting values for model parameters.
-#' @param lb.theta a numeric vector, vector of lower bounds for model parameters, defaults to -Inf for all parameters.
-#' @param ub.theta a numeric vector, vector of upper bounds for model parameters, defaults to Inf for all parameters.
-#' @param starting.tvec a numeric vector, vector of starting values for saddlepoint parameters, defaults to zeros.
-#' @param lb.tvec a numeric vector, vector of lower bounds for saddlepoint parameters, defaults to -Inf for all parameters.
-#' @param ub.tvec a numeric vector, vector of upper bounds for saddlepoint parameters, defaults to Inf for all parameters.
-#' @param std.error a logical value indicating whether to compute standard error for the estimates, defaults to FALSE.
-#' @param discrepancy a logical value indicating whether to compute discrepancy on the estimates resulting from using saddlepoint likelihood, defaults to FALSE.
-#' @param user.ineq.constraint.function a function, user-defined inequality constraint function, defaults to NULL.
+#' @param observed.data A numeric vector, matrix, or data frame containing the observed data.
+#' @param cgf A CGF object corresponding to the distribution of the observed data.
+#' @param starting.theta A numeric vector of starting values for model parameters.
+#' @param lb.theta A numeric vector of lower bounds for `theta`. Defaults to \code{-Inf}.
+#' @param ub.theta A numeric vector of upper bounds for `theta`. Defaults to \code{Inf}.
+#' @param starting.tvec A numeric vector of starting values for the saddlepoint \eqn{t}. Defaults to \code{0}.
+#' @param lb.tvec A numeric vector, vector of lower bounds for saddlepoint parameters, defaults to -Inf for all parameters.
+#' @param ub.tvec A numeric vector, vector of upper bounds for saddlepoint parameters, defaults to Inf for all parameters.
+#' @param std.error Logical. If `TRUE`, standard errors of the MLEs are computed. Defaults to `FALSE`.
+#' @param discrepancy Logical. If `TRUE`, compute a discrepancy measure that approximates 
+#'   how different the saddlepoint approximation-based estimates are from the unknown true MLEs. Defaults to `FALSE`.
+#' @param user.ineq.constraint.function Optional user-defined inequality constraints. Defaults to `NULL`.
 #' @param opts.user A named list of options for the nloptr optimizer. This
 #'   should be a subset of the following elements: ftol_abs (> 0),
 #'   maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
@@ -36,8 +41,16 @@
 #'   By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 #'   Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.
 #' @param zeroth.order A logical value indicating whether to use the zeroth-order saddlepoint likelihood. Defaults to FALSE, using the standard saddlepoint likelihood.
-#' @return A list of MLEs. If `std.error` is TRUE, the list also includes standard errors of MLEs and inverse Hessian. See TO DO list
-#  TO DO : Design this ...
+#' 
+#' 
+#' @return A list containing:
+#'   \itemize{
+#'     \item \code{MLEs.tvec, MLEs.theta}: The estimated saddlepoint \eqn{\hat{t}} and parameter vector \eqn{\hat{\theta}}.
+#'     \item \code{std.error}, \code{inverse.hessian}: If \code{std.error=TRUE}, these hold the standard errors and the inverse Hessian.
+#'     \item \code{discrepancy}: If \code{discrepancy=TRUE}, this is the approximated discrepancy between the resulting saddlepoint approximation-based MLEs and the unknown true MLEs.
+#'     \item \code{solution, status, message}: The raw output from \code{nloptr}.
+#'   }
+#'
 #' @examples
 #' \dontrun{
 #' # TO DO: Add examples
@@ -57,16 +70,20 @@ find.saddlepoint.MLE <- function(observed.data,
                                  opts.user = list(ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0),
                                  zeroth.order = FALSE  # Logical flag to use zeroth order method
 ) {
-
+  
+  if (is.matrix(observed.data) || is.data.frame(observed.data)) {
+    message("Treating columns of 'observed.data' as i.i.d. replicate blocks.")
+    observed.data <- as.numeric(observed.data)
+  }
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
   if(length(lb.theta) != length(starting.theta) || length(ub.theta) != length(starting.theta) || !is.numeric(lb.theta) || !is.numeric(ub.theta)) stop("lb.theta or ub.theta has an incorrect length or is not numeric")
   if(length(lb.tvec) != length(starting.tvec) || length(ub.tvec) != length(starting.tvec) || !is.numeric(lb.tvec) || !is.numeric(ub.tvec)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
   if(any(starting.theta < lb.theta) || any(starting.theta > ub.theta)) stop("starting.theta is not within the bounds specified")
   if(!is.numeric(observed.data)) stop("observed.data not defined for ", class(observed.data))
   if (length(starting.tvec) != length(observed.data)) stop("Size of observed.data and starting.tvec arguments do not match")
- 
-  # Combine tvec and theta arguments to a single vector
-  a <- c(starting.tvec, starting.theta)
+  
+  # Combine tvec and theta arguments into a single vector for the optimizer
+  initial_x <- c(starting.tvec, starting.theta)
   
   # Define objective, equality constraint and inequality constraint functions
   objective.function <- get.saddlepoint.nll.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf)
@@ -81,12 +98,13 @@ find.saddlepoint.MLE <- function(observed.data,
   opts = configure.opts(opts.user) # checks and modifies user-provided options for the optimizer.
   
   # Find the maximum likelihood estimates of the parameters using NLOPT
-  MLEs = nloptr::nloptr(x0 = a,
-                        eval_f = objective.function,
-                        eval_g_eq = eq.constraint.function,
+  MLEs = nloptr::nloptr(x0          = initial_x,
+                        eval_f      = objective.function,
+                        eval_g_eq   = eq.constraint.function,
                         eval_g_ineq = ineq.constraint.function,
-                        opts = opts,
-                        lb =  c(lb.tvec, lb.theta), ub = c(ub.tvec, ub.theta))
+                        opts        = opts,
+                        lb          = c(lb.tvec, lb.theta), 
+                        ub          = c(ub.tvec, ub.theta))
   
   
   MLEs.tvec = head(MLEs$solution, length(lb.tvec))
@@ -98,33 +116,40 @@ find.saddlepoint.MLE <- function(observed.data,
   } 
   
   # Calculate standard errors of MLEs
-  if(std.error == TRUE || discrepancy == TRUE){
-    res <- compute.std.error(observed.data = observed.data, 
-                             estimated.tvec = MLEs.tvec,
-                             estimated.theta = MLEs.theta,
-                             cgf = cgf,
-                             zeroth.order = zeroth.order,
+  if(std.error || discrepancy){
+    res <- compute.std.error(observed.data    = observed.data, 
+                             estimated.tvec   = MLEs.tvec,
+                             estimated.theta  = MLEs.theta,
+                             cgf              = cgf,
+                             zeroth.order     = zeroth.order,
                              non.saddlepoint.negll.function = NULL
-                             )
+    )
     MLEs$std.error <- res$std.error
     MLEs$inverse.hessian = res$inverse.hessian
   }
-  if(discrepancy == TRUE){
+  
+  if (discrepancy) {
+    # We'll use 'compute.funcT' with gradient=TRUE to get the derivative 
+    # wrt 'theta' of the correction term at the final MLEs
+    out_funcT <- compute.funcT(
+      theta         = MLEs.theta,
+      observed.data = observed.data,
+      cgf           = cgf,
+      tvec.hat      = MLEs.tvec,    
+      gradient      = TRUE,         # needed for discrepancy
+      hessian       = FALSE,        # not needed
+      zeroth.order  = zeroth.order
+    )
     
-    computeFuncT_fn <- if (zeroth.order) computeZerothFuncT else computeFuncT
-    
-    FuncT <- computeFuncT_fn(tvec = MLEs.tvec,
-                             theta = MLEs.theta,
-                             observations = observed.data,
-                             cgf = cgf$get_ptr())
-    # The formula for the discrepancy should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
+    # out_funcT$gradient is the gradient wrt 'theta'
+    # The formula for the discrepancy approximation should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
     # However, we are minimising the negative log-likelihood which has positive definite Hessian, we therefore
     # omit the negative sign from the formula for this computation
-    disc = MLEs$inverse.hessian %*% FuncT$gradient
-    MLEs$discrepancy = disc
+    disc <- MLEs$inverse.hessian %*% out_funcT$gradient
+    MLEs$discrepancy <- as.vector(disc)   
   }
   
-  MLEs$MLEs.tvec = MLEs.tvec
+  MLEs$MLEs.tvec  = MLEs.tvec
   MLEs$MLEs.theta = MLEs.theta
   MLEs
 }
@@ -146,5 +171,3 @@ configure.opts <- function(opts.user) {
   if (!all(names(opts.user) %in% valid.option.names)) stop("Invalid option name(s) provided. Valid options are: ", paste(valid.option.names, collapse = ", "))
   modifyList(opts.default, opts.user)
 }
-
-

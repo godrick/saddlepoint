@@ -1,4 +1,10 @@
 
+// To streamline interactions between R and C++, all matrix operations are handled in R.
+// Previously, sparse matrices caused issues, but with RTMB's current support for them,
+// it's advantageous to manage all functions on the R side.
+// In C++, we work exclusively with vectors.
+
+
 #include "atomic_implicit_function.h"
 
 
@@ -18,25 +24,20 @@ a_vector get_a_vector_from_advector(const RADvector rax) {
 
 
 
-
-// This class represents your specific implicit function object for tvec_hat.
-// It inherits from ImplicitFunctionFO and uses an R6 CGF object with methods K1 and K2.
+// Function object implementing the ImplicitFunctionFO interface.
+// Interfaces with R functions K1 and dfdu_solve for computations.
 struct TvecHatImplicitFunctionFO : public ImplicitFunctionFO {
 private:
-  // Store a reference to the R6 CGF object environment.
-  // Assume you have something like: my_r6_obj = new.env(); with methods my_r6_obj$K1 and my_r6_obj$K2 in R.
-  Rcpp::Environment r6_obj_env;
-  Rcpp::Function K1_r;  
-  Rcpp::Function K2_r;  
+  Rcpp::Function K1_r;         ///< R function for computing f(u, v)
+  Rcpp::Function dfdu_solve_r; ///< R function for solving (df/du)^{-1} w
   
 public:
-  // Constructor takes the R environment (or however you access the R6 object)
-  TvecHatImplicitFunctionFO(const Rcpp::Environment& env) 
-  : r6_obj_env(env), 
-    K1_r(env["K1"]),  
-    K2_r(env["K2"]) {}
+  // Constructor that initializes R function callbacks.
+  TvecHatImplicitFunctionFO(Rcpp::Function K1_func, Rcpp::Function dfdu_solve_func)
+    : K1_r(K1_func), dfdu_solve_r(dfdu_solve_func) {}
   
   // f(u,v) calling K1
+  // Overrides the f(u, v) method by invoking the R K1 function.
   a_vector f(const a_vector& tvec, const a_vector& theta) const override {
     ADrep res_r(K1_r(send_a_vector_to_advector(tvec), 
                      send_a_vector_to_advector(theta)));
@@ -44,82 +45,64 @@ public:
     return get_a_vector_from_advector(advector_result);
   }
   
-  
-  
-  
-  
+  // dfdu_solve implemented via R function
+  // Overrides the dfdu_solve method for double types by invoking the R dfdu_solve function.
   matrix<double> dfdu_solve(const ConstDoubleVecMap& tvec,
                             const ConstDoubleVecMap& theta,
                             const ConstDoubleVecMap& w) const override {
-
-    Eigen::Matrix<double, Eigen::Dynamic, 1> tvec_converted = tvec;
-    Eigen::Matrix<double, Eigen::Dynamic, 1> theta_converted = theta;
-
-    SEXP K2_val_r = K2_r(tvec_converted, theta_converted);
-    Rcpp::NumericMatrix K2_val(K2_val_r);
-
-    matrix<double> K2_val_converted(K2_val.nrow(), K2_val.ncol());
-    for (int i=0; i<K2_val.nrow(); i++)
-      for (int j=0; j<K2_val.ncol(); j++)
-        K2_val_converted(i,j) = K2_val(i,j);
-
-    matrix<double> w_converted = w;
-
-    return atomic::matmul(atomic::matinv(K2_val_converted), w_converted);
-  }
-
-
+                              // Convert inputs to R-compatible formats
+                              Rcpp::NumericVector tvec_r = Rcpp::wrap(tvec);
+                              Rcpp::NumericVector theta_r = Rcpp::wrap(theta);
+                              Rcpp::NumericVector w_r = Rcpp::wrap(w);
+                              
+                              
+                              // Call the dfdu_solve R function
+                              Rcpp::NumericVector solution_r = dfdu_solve_r(tvec_r, theta_r, w_r);
+                              
+                              
+                              // Convert the solution back to matrix<double>
+                              Eigen::VectorXd solution_eigen = Rcpp::as<Eigen::VectorXd>(solution_r);
+                              matrix<double> res = solution_eigen;
+                              return res;
+                            }
+  
   matrix<ad> dfdu_solve(const ConstADVecMap& tvec,
                         const ConstADVecMap& theta,
                         const ConstADVecMap& w) const override {
-
-    Eigen::Matrix<ad, Eigen::Dynamic, 1> tvec_converted = tvec;
-    Eigen::Matrix<ad, Eigen::Dynamic, 1> theta_converted = theta;
-
-    ADrep k2_val_ad(K2_r(send_a_vector_to_advector(tvec_converted),
-                         send_a_vector_to_advector(theta_converted)) );
-
-    if (k2_val_ad.size() == 1) {
-      // Ensuring single-element ADrep is handled as a 1x1 matrix:
-      // If K2_r function returns a single-element ADrep (i.e., size() == 1),
-      // it is initially treated as a scalar (vector without explicit dimensions).
-      // Rcpp::ComplexMatrix/MatrixInput function requires dimension attributes to treat the data as a matrix.
-      // Thus, we manually set the dimensions for single-element ADrep to be treated as a 1x1 matrix.
-      Rcpp::IntegerVector new_dim = Rcpp::IntegerVector::create(1, 1);
-      Rf_setAttrib(k2_val_ad, R_DimSymbol, new_dim);
-    }
-
-    ConstMapMatrix K2_val_admat = MatrixInput(k2_val_ad);
-    matrix<ad> w_converted = w;
-
-    return atomic::matmul(atomic::matinv(matrix<ad>(K2_val_admat)), w_converted);
-  }
-  
+                          
+                          
+                          Eigen::Matrix<ad, Eigen::Dynamic, 1> tvec_converted = tvec;
+                          Eigen::Matrix<ad, Eigen::Dynamic, 1> theta_converted = theta;
+                          Eigen::Matrix<ad, Eigen::Dynamic, 1> w_converted = w;
+                          
+                          // Convert inputs to R-compatible formats
+                          RADvector tvec_r = send_a_vector_to_advector(tvec_converted);
+                          RADvector theta_r = send_a_vector_to_advector(theta_converted);
+                          RADvector w_r = send_a_vector_to_advector(w_converted);
+                          
+                          
+                          // Call the dfdu_solve R function
+                          RADvector solution_r = dfdu_solve_r(tvec_r, theta_r, w_r);
+                          
+                          // Convert the solution back to matrix<ad>
+                          a_vector solution = get_a_vector_from_advector(solution_r);
+                          matrix<ad> res = solution;
+                          return res;
+                        }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 template<class Type>
 vector<Type> tvec_hat(const vector<Type>& tvec, 
                       const vector<Type>& theta, 
                       const vector<Type>& observations, 
-                      const Rcpp::Environment& cgf_env){
-  
+                      Rcpp::Function K1,         
+                      Rcpp::Function dfdu_solve        
+){
   // Create an instance of the function object
-  TvecHatImplicitFunctionFO* fobj = new TvecHatImplicitFunctionFO(cgf_env);
+  TvecHatImplicitFunctionFO* fobj = new TvecHatImplicitFunctionFO(K1, dfdu_solve);
+  
+  // std::unique_ptr<TvecHatImplicitFunctionFO> fobj(new TvecHatImplicitFunctionFO(K1, dfdu_solve));
   
   CppAD::vector<Type> arg(tvec.size()+theta.size()+observations.size());
   for(int i=0;i<tvec.size();++i){arg[i]=tvec(i);}
@@ -134,32 +117,46 @@ vector<Type> tvec_hat(const vector<Type>& tvec,
 }
 
 
-//**** At the time of writing this ADrep class is still not available in the master branch of RTMB.
+
+//**** At the time of writing this, ADrep class is still not available in the master branch of RTMB.
 // //**** Remember to revert to Rcpp::ComplexVector if ADrep remains unavailable. 
 // [[Rcpp::export]]
-ADrep tvec_hat(ADrep tvec, ADrep theta, ADrep observations, SEXP cgf_env){
+ADrep tvec_hat(ADrep theta, 
+               vec tvec,
+               vec observations,
+               SEXP K1_fn,    
+               SEXP dfdu_solve_fn 
+){
+  
+  Rcpp::Function K1_r(K1_fn);
+  Rcpp::Function dfdu_solve_r(dfdu_solve_fn);
   
   // Extract raw pointers to the underlying array of 'ad' elements.
   // 'adptr(x)' returns a pointer (ad*) to the first element of x.
   // We can then treat these pointers as arrays and index them.
-  const a_scalar* tvec_ptr = adptr(tvec);
   const a_scalar* theta_ptr = adptr(theta);
-  const a_scalar* observations_ptr = adptr(observations);
+              // const a_scalar* tvec_ptr = adptr(tvec);
+              // const a_scalar* observations_ptr = adptr(observations);
+  
   
   
   // Convert ADrep (R objects) to vector<a_scalar> (C++ objects).
   // We copy the elements from the pointers into our C++ vectors.
   vector<a_scalar> tvec_ad(tvec.size()), theta_ad(theta.size()), observations_ad(observations.size());
-  for (size_t i=0; i<tvec.size(); i++) tvec_ad(i)=tvec_ptr[i];
-  for (size_t i=0; i<theta.size(); i++) theta_ad(i)=theta_ptr[i];
-  for (size_t i=0; i<observations.size(); i++) observations_ad(i)=observations_ptr[i];
+  // for (size_t i=0; i<tvec.size(); i++) tvec_ad(i)=tvec_ptr[i];
+  // for (size_t i=0; i<observations.size(); i++) observations_ad(i)=observations_ptr[i];
+  for (Eigen::Index i=0; i<static_cast<Eigen::Index>(theta.size()); i++) theta_ad(i)=theta_ptr[i];
+  for (Eigen::Index i=0; i<tvec.size(); i++) tvec_ad(i)=tvec(i);
+  for (Eigen::Index i=0; i<observations.size(); i++) observations_ad(i)=observations(i);
+  
+
   
   // Call the main tvec_hat function that works with vector<a_scalar>.
-  vector<a_scalar> result = tvec_hat(tvec_ad, theta_ad, observations_ad, cgf_env);
-  
+  vector<a_scalar> result = tvec_hat(tvec_ad, theta_ad, observations_ad, K1_r, dfdu_solve_r);
   ADrep out_res(result.size());
   a_scalar* out_ptr = adptr(out_res);
-  for (size_t i=0; i<result.size(); i++) out_ptr[i] = result[i];
+  for (Eigen::Index i=0; i<static_cast<Eigen::Index>(result.size()); i++) out_ptr[i] = result[i];
   return out_res;
 }
+
 

@@ -1,102 +1,194 @@
-#' Create a Poisson CGF Object
+# R/PoissonCGF.R
+# Objects: PoissonCGF, PoissonModelCGF, PoissonNonIdenticalModelCGF
+
+
+
+
+
+#' Poisson CGF Object
+#'
+#' A ready-to-use CGF object for the Poisson distribution. 
+#' 
+#' #' @details
+#' **Parameter Vector**: The `parameter_vector` for \code{PoissonCGF} is 
+#' interpreted as the rate \eqn{\lambda}. By default, this object is vectorized 
+#' for i.i.d. replicates of Poisson variables.
+#' 
+#' @format An object of class \code{CGF} (an R6 class), with standard methods 
+#' \code{K}, \code{K1}, \code{K2}, \code{K3operator}, and \code{K4operator}, etc.
+#'
+#' @examples
+#' # Evaluate K at t = 0.1 for lambda = 2
+#' # PoissonCGF$K(0.1, 2)
+#' 
+#' @export
+PoissonCGF <- createCGF_fromVectorisedFunctions(
+  K_vectorized_func = function(tvec, lambda) { lambda * (exp(tvec) - 1) },
+  K1_vectorized_func = function(tvec, lambda) {  lambda * exp(tvec) },
+  K2_vectorized_func = function(tvec, lambda) { lambda * exp(tvec) },
+  K3_vectorized_func = function(tvec, lambda) { lambda * exp(tvec) },
+  K4_vectorized_func = function(tvec, lambda) { lambda * exp(tvec) },
+  param_adaptor = function(x) x[1]
+  ,analytic_tvec_hat_func = function(y, lambda)  log(y / lambda) # solution of the saddlepoint equation
+  , op_name = "PoissonCGF"
+)
+
+
+       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#' Create a Parametric Poisson CGF Object
 #'
 #' @description
-#' Creates a cumulant generating function (CGF) object for a Poisson-distributed random variable
-#' with rate parameter `lambda`.
+#' Creates a CGF object for the Poisson distribution with a rate parameter (\eqn{\lambda}) defined by user-provided parameters.
+#' Users supply an adaptor function that maps their parameter vector to \eqn{\lambda}, allowing for flexible parametric modeling.
 #'
-#' The Poisson random variable \(X\) with parameter \(\lambda\) has:
-#' \[
-#' K(t) = \lambda(e^t - 1),
-#' \]
+#' @param lambda A function that accepts a single parameter vector and returns the Poisson rate parameter (\eqn{\lambda}). This function defines how model parameters influence \eqn{\lambda}. 
+#' @param iidReps Integer. Specifies the number of i.i.d. replicates expected by the resulting CGF object. Must be a positive integer. Defaults to \code{1}.
+#' @param ... Additional arguments passed to the base CGF creation function, such as optional method overrides.
 #'
-#'
-#' @param lambda A positive numeric scalar. The rate parameter of the Poisson distribution.
-#'
-#' @return A `CGF` object (as created by `createCGF()`) specialized for the Poisson distribution.
-#' It provides:
-#' - `K(tvec, params)` returns \(\lambda(e^tvec - 1)\).
-#' - `K1(tvec, params)` returns \(\lambda e^tvec\).
-#' - `K2(tvec, params)` returns a matrix
-#' - `K3operator(tvec, v1, v2, v3, params)` 
-#' - `K4operator(tvec, v1, v2, v3, v4, params)` 
-#'
-#' All other methods of the `CGF` class (like `tilting_exponent`, `neg_ll`, and `func_T`) can be used on this object.
-#'
-#'
-#' @noRd
-createPoissonCGF <- function() {
+#' @return A CGF object.
+#' @export
+PoissonModelCGF <- function(lambda, iidReps = 1, ...) {
+  if (!is.function(lambda)) stop("`lambda` must be a valid function that returns the Poisson rate parameter (lambda).")
+      # lambda should accept only one argument
+  if (length(formals(lambda)) != 1) stop("`lambda` must be a function that accepts exactly one argument.")
+  if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1 || iidReps != as.integer(iidReps)) stop("`iidReps` must be a positive integer.")
   
-  # Adaptor: extracts lambda from parameter_vector
-  adaptor <- function(parameter_vector) {
-    lambda <- parameter_vector[1]
-    if (!is.numeric(lambda) || lambda <= 0) {
-      stop("parameter_vector must be a numeric vector of length 1 with a positive value for lambda.")
-    }
-    lambda
+  check_tvec <- function(tvec) {
+    if (length(tvec) != iidReps) stop(sprintf("`tvec` must have length %d (got %d).", iidReps, length(tvec)))
   }
   
-  K_vectorized <- function(tvec, lambda) { lambda * (exp(tvec) - 1) }
-  K_func <- function(tvec, lambda) {   sum(K_vectorized(tvec, lambda)) }
-  K1_func <- function(tvec, lambda) {  lambda * exp(tvec) }
-  K2_vectorized <- function(tvec, lambda) { lambda * exp(tvec) }
-  K2_func <- function(tvec, lambda) { diag(lambda * exp(tvec), nrow = length(tvec)) }
-  
-  K3_vectorized <- function(tvec, lambda) { lambda * exp(tvec) }
-  K3operator_func <- function(tvec, v1, v2, v3, lambda) { sum(K3_vectorized(tvec, lambda) * v1 * v2 * v3) }
-  
-  K4_vectorized <- function(tvec, lambda) { lambda * exp(tvec) }
-  K4operator_func <- function(tvec, v1, v2, v3, v4, lambda) {  sum(K4_vectorized(tvec, lambda) * v1 * v2 * v3 * v4)  }
-  
-  tilting_exponent_vectorized <- function(tvec, lambda) { K_vectorized(tvec, lambda) - tvec * K1(tvec, lambda) }
-  tilting_exponent_func <- function(tvec, lambda) { sum(tilting_exponent_vectorized(tvec, lambda)) }
-  
-  neg_ll_func <- function(tvec, lambda) {
-    sum(0.5 * log(2*pi*K2_vectorized(tvec, lambda)) - tilting_exponent_vectorized(tvec, lambda))
-  }
-  
-  func_T_func <- function(tvec, lambda) {
-    k2val <- K2_vectorized(tvec, lambda)
-    k2sq_val <- k2val^2
-    k3val <- K3_vectorized(tvec, lambda)
-    k4val <- K4_vectorized(tvec, lambda)
-    sum(k4val / (8 * k2sq_val) - 5 * k3val^2 / (24 * k2sq_val * k2val))
-  }
-  
-  K4operatorAABB_func <- function(tvec, Q1, Q2, lambda) {
-    sum(K4_vectorized(tvec, lambda) * diag(Q1) * diag(Q2))
-  }
-  K3K3operatorAABBCC_func <- function(tvec, Q1, Q2, Q3, lambda) {
-    k3_vals <- K3_vectorized(tvec, lambda)
-    sum( (diag(Q1) * k3_vals) %*% Q2 %*% (diag(Q3) * k3_vals) )
-  }
-  K3K3operatorABCABC_func <- function(tvec, Q1, Q2, Q3, lambda) {
-    k3_vals <- K3_vectorized(tvec, lambda)
-    mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
-    sum(mat_k3_vals %*% (Q1 %*% Q2 %*% Q3) %*% mat_k3_vals)
-  }
-  ineq_constraint_vectorized <- function(tvec, lambda) { numeric(0) }
-  
-  
-  
-  # Use createCGF to build the CGF object
-  createCGF(
-    K = K_func, 
-    K1 = K1_func, 
-    K2 = K2_func, 
-    K3operator = K3operator_func, 
-    K4operator = K4operator_func, 
-    ineq_constraint = NULL,
-    param_adaptor = adaptor,
-    tilting_exponent = tilting_exponent_func,
-    neg_ll = neg_ll_func,
-    func_T = func_T_func,
-    K2operator = NULL,
-    K2operatorAK2AT = NULL,
-    K4operatorAABB = K4operatorAABB_func,
-    K3K3operatorAABBCC = K3K3operatorAABBCC_func,
-    K3K3operatorABCABC = K3K3operatorABCABC_func,
-    K4operatorAABB_factored = NULL,
-    K3K3operatorAABBCC_factored = NULL,
-    K3K3operatorABCABC_factored = NULL
+  # Create the base Poisson CGF
+  base_cgf <- createCGF_fromVectorisedFunctions(
+    K_vectorized_func  = function(tvec, lam) { 
+      check_tvec(tvec)
+      lam[1] * (exp(tvec) - 1) 
+    },
+    K1_vectorized_func = function(tvec, lam) { 
+      check_tvec(tvec)
+      lam[1] * exp(tvec) 
+    },
+    K2_vectorized_func = function(tvec, lam) { 
+      check_tvec(tvec)
+      lam[1] * exp(tvec) 
+    },
+    K3_vectorized_func = function(tvec, lam) { 
+      check_tvec(tvec)
+      lam[1] * exp(tvec) 
+    },
+    K4_vectorized_func = function(tvec, lam) { 
+      check_tvec(tvec)
+      lam[1] * exp(tvec) 
+    },
+    param_adaptor          = lambda,
+    analytic_tvec_hat_func = function(y, lam)  {
+      if (length(y) != iidReps) stop(sprintf("`y` must have length %d (got %d).", iidReps, length(y)))
+      log(y / lam)
+    }, 
+    op_name = "PoissonModelCGF",
+    ...  # Pass any additional optional arguments
   )
+  base_cgf
+}
+
+
+
+
+
+
+
+
+
+
+
+#' Create an IID Replicate CGF Object for a Vector of Non-Identical Poisson Variables
+#'
+#' @description
+#' Constructs a CGF object where each replicate is an independent copy of a vector of Poisson random variables,
+#' each with distinct rate parameters (\eqn{\lambda_i}).
+#'
+#' @param lambda A function that accepts a single parameter vector and returns a vector of Poisson rate parameters (\eqn{\lambda_1, \lambda_2, ..., \lambda_d}). This vector defines the rate for each Poisson variable in the vector.
+#' @param iidReps Integer. Specifies the number of IID replicate vectors to create. Must be a positive integer.
+#' @param ... Additional arguments passed to the base CGF creation function, such as optional method overrides.
+#'
+#' @return A CGF object tailored for IID replicates of a vector of Non-IID Poisson distributions.
+#' @export
+PoissonNonIdenticalModelCGF <- function(lambda, iidReps = 1, ...) {
+  
+  if (!is.function(lambda)) stop("`lambda` must be a valid function that returns a vector of Poisson rate parameters.")
+  if (length(formals(lambda)) != 1) stop("`lambda` must be a function that accepts exactly one argument (the parameter vector).")
+  
+  if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1 || iidReps != as.integer(iidReps)) {
+    stop("`iidReps` must be a positive integer.")
+  }
+  
+
+  base_cgf <- createCGF_fromVectorisedFunctions(
+    K_vectorized_func  = function(tvec, params) { 
+      ## if (iidReps <= 0 || length(tvec) %% iidReps != 0) stop(sprintf("`tvec` length must be a multiple of `iidReps` (%d) to determine `d`.", iidReps))
+      
+      # get the number of Poisson variables (d)
+      d <- length(params)
+      expected_length <- d * iidReps
+      # validate tvec length
+      if (length(tvec) != expected_length)  stop(sprintf("`tvec` has length %d; expected %d based on parameter length.", length(tvec), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      
+      lambdas_replicated * (exp(tvec) - 1) 
+    },
+    K1_vectorized_func = function(tvec, params) { 
+      d <- length(params)
+      expected_length <- d * iidReps
+      if (length(tvec) != expected_length)  stop(sprintf("`tvec` has length %d; expected %d based on parameter length.", length(tvec), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      lambdas_replicated * exp(tvec) 
+    },
+    K2_vectorized_func = function(tvec, params) { 
+      d <- length(params)
+      expected_length <- d * iidReps
+      if (length(tvec) != expected_length)  stop(sprintf("`tvec` has length %d; expected %d based on parameter length.", length(tvec), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      lambdas_replicated * exp(tvec)
+    },
+    K3_vectorized_func = function(tvec, params) { 
+      d <- length(params)
+      expected_length <- d * iidReps
+      if (length(tvec) != expected_length)  stop(sprintf("`tvec` has length %d; expected %d based on parameter length.", length(tvec), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      lambdas_replicated * exp(tvec)
+    },
+    K4_vectorized_func = function(tvec, params) { 
+      d <- length(params)
+      expected_length <- d * iidReps
+      if (length(tvec) != expected_length)  stop(sprintf("`tvec` has length %d; expected %d based on parameter length.", length(tvec), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      lambdas_replicated * exp(tvec)
+    },
+    param_adaptor      = lambda,
+    analytic_tvec_hat_func = function(y, params) {
+      d <- length(params)
+      expected_length <- d * iidReps
+      if (length(y) != expected_length)  stop(sprintf("`y` has length %d; expected %d based on parameter length.", length(y), expected_length))
+      lambdas_replicated <- rep(params, times = iidReps)
+      log(y / lambdas_replicated)
+    },
+    op_name = "PoissonNonIdenticalModelCGF",
+    ...  # Pass any additional optional arguments
+  )
+  
+  base_cgf
 }

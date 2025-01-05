@@ -2,7 +2,7 @@
 % Please edit documentation in R/optimization-functions.R
 \name{get.saddlepoint.nll.function}
 \alias{get.saddlepoint.nll.function}
-\title{Create a saddlepoint negative log-likelihood function}
+\title{Create the saddlepoint negative log-likelihood function}
 \usage{
 get.saddlepoint.nll.function(tvec, theta, cgf)
 }

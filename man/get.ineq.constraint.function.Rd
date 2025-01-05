@@ -2,7 +2,7 @@
 % Please edit documentation in R/optimization-functions.R
 \name{get.ineq.constraint.function}
 \alias{get.ineq.constraint.function}
-\title{Create an inequality constraint function}
+\title{Create the inequality constraint function}
 \usage{
 get.ineq.constraint.function(
   tvec,
