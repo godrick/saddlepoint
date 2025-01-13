@@ -4,17 +4,17 @@
 \alias{sumOfIndependentCGF}
 \title{CGF Object for the sum of independent random variables}
 \usage{
-sumOfIndependentCGF(cgf_list, adaptor = function(x) x, iidReps = 1, ...)
+sumOfIndependentCGF(cgf_list, iidReps = 1, adaptor = function(x) x, ...)
 }
 \arguments{
 \item{cgf_list}{A non-empty list of CGF objects. Each of class \code{"CGF"}.}
 
-\item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
-It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-Defaults to the identity function (\code{function(theta) theta}).}
-
 \item{iidReps}{Integer. If greater than 1, replicates the resulting CGF \code{iidReps} times.
 Must be a positive integer. Defaults to 1.}
+
+\item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
+It should accept a numeric vector \code{theta} and return a transformed numeric vector.
+Defaults to the identity function.}
 
 \item{...}{Additional named arguments passed to \code{\link{createCGF}} or \code{\link{iidReplicatesCGF}}.}
 }

@@ -2,21 +2,26 @@
 % Please edit documentation in R/PoissonCGF.R
 \name{PoissonNonIdenticalModelCGF}
 \alias{PoissonNonIdenticalModelCGF}
-\title{Create an IID Replicate CGF Object for a Vector of Non-Identical Poisson Variables}
+\title{A CGF Object for a vector of Non-Identical Poisson variables}
 \usage{
-PoissonNonIdenticalModelCGF(lambda, iidReps = 1, ...)
+PoissonNonIdenticalModelCGF(lambda_vec, iidReps = 1, ...)
 }
 \arguments{
-\item{lambda}{A function that accepts a single parameter vector and returns a vector of Poisson rate parameters (\eqn{\lambda_1, \lambda_2, ..., \lambda_d}). This vector defines the rate for each Poisson variable in the vector.}
+\item{lambda_vec}{A function that accepts a single parameter vector and returns a vector of Poisson rate parameters (\eqn{\lambda_1, \lambda_2, ..., \lambda_d}). This vector defines the rate for each Poisson variable in the vector.}
 
 \item{iidReps}{Integer. Specifies the number of IID replicate vectors to create. Must be a positive integer.}
 
 \item{...}{Additional arguments passed to the base CGF creation function, such as optional method overrides.}
 }
 \value{
-A CGF object tailored for IID replicates of a vector of Non-IID Poisson distributions.
+A CGF object.
 }
 \description{
-Constructs a CGF object where each replicate is an independent copy of a vector of Poisson random variables,
-each with distinct rate parameters (\eqn{\lambda_i}).
+Constructs a CGF object for a \eqn{d}-dimensional vector of independent, non-identically distributed Poisson random variables.
+Each coordinate \eqn{i} of the vector is associated with its own rate parameter \eqn{\lambda_i},
+determined by the user-provided function \code{lambda_vec}. This function maps a user-specified parameter
+vector (e.g., \eqn{\theta}) to distinct rates \eqn{(\lambda_1, \ldots, \lambda_d)}, one for each coordinate.
+
+While the primary focus is the vector of independent and non-identical Poisson variables,
+the design also supports IID replication of these vectors if needed.
 }

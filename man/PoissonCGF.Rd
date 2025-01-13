@@ -6,7 +6,7 @@
 \title{Poisson CGF Object}
 \format{
 An object of class \code{CGF} (an R6 class), with standard methods
-\code{K}, \code{K1}, \code{K2}, \code{K3operator}, and \code{K4operator}, etc.
+\code{K}, \code{K1}, \code{K2}, \code{K3operator}, etc.
 }
 \usage{
 PoissonCGF

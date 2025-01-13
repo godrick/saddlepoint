@@ -57,16 +57,18 @@ MultinomialModelCGF <- function(N,
                                 iidReps = 1,
                                 ...) {
   
-  # quick checks
-  if (!is.function(N)) stop("`N` must be a valid function that returns the total count parameter of the multinomial distribution.")
-  if (!is.function(prob_vec)) stop("`prob_vec` must be a valid function that returns the probability vector of the multinomial distribution.")
-  if (length(formals(N)) != 1) stop("`N` must be a function that accepts exactly one argument.")
-  if (length(formals(prob_vec)) != 1) stop("`prob_vec` must be a function that accepts exactly one argument.")
+  # # quick checks
+  # if (!is.function(N)) stop("`N` must be a valid function that returns the total count parameter of the multinomial distribution.")
+  # if (!is.function(prob_vec)) stop("`prob_vec` must be a valid function that returns the probability vector of the multinomial distribution.")
+  # if (length(formals(N)) != 1) stop("`N` must be a function that accepts exactly one argument.")
+  # if (length(formals(prob_vec)) != 1) stop("`prob_vec` must be a function that accepts exactly one argument.")
   
   if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1) stop("'iidReps' must be a positive integer.")
+  N_fn <- validate_function_or_adaptor(N)
+  prob_vec_fn <- validate_function_or_adaptor(prob_vec)
   
   # adapt the user param into c(N, p1, p2, ..., p_d) 
-  param_adaptor <- function(theta) c(N(theta), prob_vec(theta))
+  param_adaptor <- function(theta) c(N_fn(theta), prob_vec_fn(theta))
   
   
   multinom_cgf <- createMultinomialFamilyCGF(

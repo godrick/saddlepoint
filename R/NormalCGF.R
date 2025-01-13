@@ -1,6 +1,16 @@
 # R/NormalCGF.R
 # Objects: NormalCGF, UnivariateNormalModelCGF, MultivariateNormalModelCGF
 
+
+
+
+
+
+
+
+
+
+
 #' Univariate Normal CGF object
 #'
 #' A ready-to-use CGF object for the univariate Normal distribution with mean
@@ -85,15 +95,15 @@ NormalCGF <- createCGF_fromVectorisedFunctions(
 #' @return A CGF object.
 #' @export
 UnivariateNormalModelCGF <- function(mean, sd, iidReps = 1, ...) {
-  if (!is.function(mean) || !is.function(sd)) stop("`mean` and `sd` must be functions (theta) -> numeric")
-  if (!is.numeric(iidReps) || length(iidReps)!=1 || iidReps<1) stop("`iidReps` must be a positive integer.")
-  if (length(formals(mean))!=1 || length(formals(sd))!=1) stop("`mean` and `sd` must be functions of a single parameter vector.")
+  # if (!is.function(mean) || !is.function(sd)) stop("`mean` and `sd` must be functions (theta) -> numeric")
+  # if (!is.numeric(iidReps) || length(iidReps)!=1 || iidReps<1) stop("`iidReps` must be a positive integer.")
+  # if (length(formals(mean))!=1 || length(formals(sd))!=1) stop("`mean` and `sd` must be functions of a single parameter vector.")
   
-  
+  mean_fn <- validate_function_or_adaptor(mean)
+  sd_fn   <- validate_function_or_adaptor(sd)
+  if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1 || iidReps != as.integer(iidReps)) stop("'iidReps' must be a positive integer.")
   check_tvec <- function(tvec) {
-    if (length(tvec) != iidReps) {
-      stop(sprintf("`tvec` must have length %d (got %d).", iidReps, length(tvec)))
-    }
+    if (length(tvec) != iidReps) stop(sprintf("`tvec` must have length %d (got %d).", iidReps, length(tvec)))
   }
   
   
@@ -135,7 +145,7 @@ UnivariateNormalModelCGF <- function(mean, sd, iidReps = 1, ...) {
       if (length(y) != iidReps) stop(sprintf("`y` must have length %d (got %d).", iidReps, length(y)))
       (y - mu)/sigma2
     },
-    param_adaptor = function(theta) c(mean(theta), sd(theta)),
+    param_adaptor = function(theta) c(mean_fn(theta), sd_fn(theta)),
     op_name = "UnivariateNormalModelCGF",
     ...
   )
@@ -143,6 +153,33 @@ UnivariateNormalModelCGF <- function(mean, sd, iidReps = 1, ...) {
 
 
 
+
+
+
+
+
+
+
+# unflatten => returns list(mu=..., sigma=...)
+# We'll also deduce 'd' from param length or from tvec.
+#' @noRd
+unwrapParam <- function(param, tvecLength, iidReps) {
+  # If single block => tvecLength = d. If multiple => tvecLength= d*iidReps => d= tvecLength / iidReps
+  # So let's define:
+  d <- tvecLength 
+  # param must have length (d + d^2)
+  expectedParamLen <- d + d^2
+  if (length(param) != expectedParamLen) {
+    stop(sprintf("param has length %d; expected %d = d + d*d with d=%.0f based on tvec length %d / 1 %d",
+                 length(param), expectedParamLen, d, tvecLength, iidReps))
+  }
+  muVec  <- param[1:d]
+  sigmaF <- param[(d+1) : (d + d*d)]
+  # We'll interpret sigmaVal as a matrix(d,d) in row-major form
+  sigmaMat <- matrix(sigmaF, nrow=d, ncol=d, byrow=TRUE) # Matrix(advector(...),...) yields an error
+  
+  list(d=d, mu=muVec, sigma=sigmaMat)
+}
 
 
 
@@ -177,16 +214,17 @@ UnivariateNormalModelCGF <- function(mean, sd, iidReps = 1, ...) {
 #' @export
 MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   
-  if (!is.function(mu) || !is.function(sigma)) stop("`mu` and `sigma` must be functions.")
-  if (length(formals(mu))!=1 || length(formals(sigma))!=1) stop("`mu` and `sigma` must be functions of a single parameter vector.")
-  if (!is.numeric(iidReps) || length(iidReps)!=1 || iidReps<1) stop("`iidReps` must be a positive integer.")
+  # if (!is.function(mu) || !is.function(sigma)) stop("`mu` and `sigma` must be functions.")
+  # if (length(formals(mu))!=1 || length(formals(sigma))!=1) stop("`mu` and `sigma` must be functions of a single parameter vector.")
+  # if (!is.numeric(iidReps) || length(iidReps)!=1 || iidReps<1) stop("`iidReps` must be a positive integer.")
   
-  
+  mu_fn <- validate_function_or_adaptor(mu)
+  sigma_fn <- validate_function_or_adaptor(sigma)
   
   # param_adaptor: calls mu(theta) and sigma(theta), flattens
   param_adaptor_ <- function(theta) {
-    muVal    <- mu(theta)      # must be length d
-    sigmaVal <- sigma(theta)   # must be d x d
+    muVal    <- mu_fn(theta)      # must be length d
+    sigmaVal <- sigma_fn(theta)   # must be d x d
     # We won't know d until we see these results or see tvec, so we won't check here
     # but let's flatten them anyway
     c( muVal, as.vector(sigmaVal) )  # assume sigmaVal is row-major => must unwrap consistently
@@ -195,7 +233,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   
   Kfun <- function(tvec, param) {
     # unflatten
-    up <- unwrapParam(param, length(tvec))
+    up <- unwrapParam(param, length(tvec), iidReps)
     muVal    <- up$mu
     SigmaVal <- up$sigma
     d <- up$d
@@ -213,7 +251,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   }
   
   K1fun <- function(tvec, param) {
-    up <- unwrapParam(param, length(tvec))
+    up <- unwrapParam(param, length(tvec), iidReps)
     muVal    <- up$mu
     SigmaVal <- up$sigma
     d <- up$d
@@ -222,7 +260,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   }
   
   K2fun <- function(tvec, param) {
-    up <- unwrapParam(param, length(tvec))
+    up <- unwrapParam(param, length(tvec), iidReps)
     d <- up$d
     if (length(tvec) != d) stop("length of tvec is inconsistent with the parameter dimension")
     up$sigma
@@ -233,12 +271,12 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   
   
   K2opfun <- function(tvec, param, x, y) {
-    up <- unwrapParam(param, length(tvec))
+    up <- unwrapParam(param, length(tvec), iidReps)
     as.vector( t(x) %*% (up$sigma %*% y) )
   }
    
   K2opAK2ATfun <- function(tvec, param, A) {
-    up <- unwrapParam(param, length(tvec))
+    up <- unwrapParam(param, length(tvec), iidReps)
     A %*% up$sigma %*% t(A)
   }
 
@@ -254,7 +292,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
   func_Tfun <- function(tvec, param) 0
   
   saddlepoint_t_MVN <- function(y, param) {
-    up <- unwrapParam(param, length(y))
+    up <- unwrapParam(param, length(y), iidReps)
     solve(up$sigma, y - up$mu)
   }
   
@@ -288,25 +326,6 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps=1, ...) {
 
 
 
-# unflatten => returns list(mu=..., sigma=...)
-# We'll also deduce 'd' from param length or from tvec.
-#' @noRd
-unwrapParam <- function(param, tvecLength) {
-  # If single block => tvecLength = d. If multiple => tvecLength= d*iidReps => d= tvecLength / iidReps
-  # So let's define:
-  d <- tvecLength 
-  # param must have length (d + d^2)
-  expectedParamLen <- d + d^2
-  if (length(param) != expectedParamLen) {
-    stop(sprintf("param has length %d; expected %d = d + d*d with d=%.0f based on tvec length %d / 1 %d",
-                 length(param), expectedParamLen, d, tvecLength, iidReps))
-  }
-  muVec  <- param[1:d]
-  sigmaF <- param[(d+1) : (d + d*d)]
-  # We'll interpret sigmaVal as a matrix(d,d) in row-major form
-  sigmaMat <- Matrix(sigmaF, nrow=d, ncol=d, byrow=TRUE)
-  
-  list(d=d, mu=muVec, sigma=sigmaMat)
-}
+
 
 

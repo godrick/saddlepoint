@@ -15,11 +15,11 @@
 #'
 #'
 #' @param cgf_list A non-empty list of CGF objects. Each of class \code{"CGF"}.
-#' @param adaptor A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
-#'   It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-#'   Defaults to the identity function (\code{function(theta) theta}).
 #' @param iidReps Integer. If greater than 1, replicates the resulting CGF \code{iidReps} times.
 #'   Must be a positive integer. Defaults to 1.
+#' @param adaptor A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
+#'   It should accept a numeric vector \code{theta} and return a transformed numeric vector.
+#'   Defaults to the identity function.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}} or \code{\link{iidReplicatesCGF}}.
 #'
 #'
@@ -96,7 +96,7 @@
 #'
 #' @return A CGF object
 #' @export
-sumOfIndependentCGF <- function(cgf_list, adaptor = function(x) x, iidReps = 1, ...) {
+sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, ...) {
   # Basic validations
   if (!is.list(cgf_list) || length(cgf_list) == 0) stop("'cgf_list' must be a non-empty list of CGF objects.")
   if ( any(vapply(cgf_list, function(x) !inherits(x, "CGF"), FALSE)) ) stop("Every element of 'cgf_list' must be of class 'CGF'." )
