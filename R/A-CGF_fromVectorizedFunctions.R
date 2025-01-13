@@ -1,4 +1,4 @@
-# R/CGF_fromVectorizedFunctions.R
+# R/A-CGF_fromVectorizedFunctions.R
 # Objects: VectorizedFunctionsCGF, createCGF_fromVectorisedFunctions
 
 # The Setup of the followiing class.

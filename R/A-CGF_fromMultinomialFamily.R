@@ -1,4 +1,4 @@
-# R/CGF_fromMultinomialFamily.R
+# R/A-CGF_fromMultinomialFamily.R
 # Objects: MultinomialFamilyCGF, createMultinomialFamilyCGF
 
 # Strictly speaking, all we need for the CGF is of the form
