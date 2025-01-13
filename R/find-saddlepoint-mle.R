@@ -79,7 +79,7 @@ find.saddlepoint.MLE <- function(observed.data,
   if(length(lb.theta) != length(starting.theta) || length(ub.theta) != length(starting.theta) || !is.numeric(lb.theta) || !is.numeric(ub.theta)) stop("lb.theta or ub.theta has an incorrect length or is not numeric")
   if(length(lb.tvec) != length(starting.tvec) || length(ub.tvec) != length(starting.tvec) || !is.numeric(lb.tvec) || !is.numeric(ub.tvec)) stop("lb.tvec or ub.tvec has an incorrect length or is not numeric")
   if(any(starting.theta < lb.theta) || any(starting.theta > ub.theta)) stop("starting.theta is not within the bounds specified")
-  if(!is.numeric(observed.data)) stop("observed.data not defined for ", class(observed.data))
+  if(!is.numeric(observed.data)) stop("observed.data not defined for type ", class(observed.data))
   if (length(starting.tvec) != length(observed.data)) stop("Size of observed.data and starting.tvec arguments do not match")
   
   # Combine tvec and theta arguments into a single vector for the optimizer

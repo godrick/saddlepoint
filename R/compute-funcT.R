@@ -57,7 +57,7 @@ compute.funcT <- function(theta,
   
   
   # Access the first-order correction method (func_T), if needed
-  funcT_firstorder <- cgf$.get_private_method("func_T") # arguments: (tvec, parameter_vector)
+  funcT_firstorder <- cgf$.get_private_method("func_T") # arguments: (tvec, theta)
   
   # helper for the zeroth-order correction
   zeroth_order_correction <- function(tvec, par_vec) {
@@ -103,7 +103,7 @@ compute.funcT <- function(theta,
     return(get_tape_res(tape_obj, theta, gradient, hessian))
   }
   
-  tvec.hat.analytic_res <- cgf$analytic_tvec_hat(observed.data, parameter_vector)
+  tvec.hat.analytic_res <- cgf$analytic_tvec_hat(observed.data, theta)
   if (!is.null(tvec.hat.analytic_res)) {
     
     if (!taping_required) { return( list(vals = correction_func(tvec.hat.analytic_res, theta) ) ) }
@@ -112,7 +112,7 @@ compute.funcT <- function(theta,
       tvec.hat.for.ad <- cgf$analytic_tvec_hat(observed.data, par_vec)
       correction_func(tvec.hat.for.ad, par_vec)
     }
-    tape_obj <- MakeTape(f = neg_ll_spa_wrapper, x = theta)
+    tape_obj <- MakeTape(f = func_T_wrapper, x = theta)
     return(get_tape_res(tape_obj, theta, gradient, hessian))
   }
   
