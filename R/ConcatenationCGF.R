@@ -1,3 +1,5 @@
+# R/ConcatenationCGF.R
+
 #' @title Concatenation of CGF objects.
 #'
 #' @description
@@ -11,14 +13,11 @@
 #' @param block_sizes An integer vector, same length as \code{cgf_list}, specifying how many
 #'   components of \code{tvec} each CGF expects.
 #' @param iidReps A positive integer. If greater than 1, replicates the resulting CGF \code{iidReps} times. Defaults to 1.
-#' @param param_adaptor A function(\code{theta}) -> numeric vector, transforming model parameter vector
+#' @param adaptor A function(\code{theta}) -> numeric vector, transforming model parameter vector
 #'   \code{theta} into what the resulting CGF object expects. By default, the identity function.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}}, 
 #'   or to \code{\link{iidReplicatesCGF}} if \code{iidReps>1}.
 #'
-#' @details
-#' The dimension of \code{tvec} must be \eqn{\sum_i \text{block_sizes}[i]} 
-#' (multiplied by \code{iidReps} if using replicates). 
 #' 
 #' @seealso \code{\link{iidReplicatesCGF}}, \code{\link{sumOfIndependentCGF}}
 #'
@@ -51,11 +50,11 @@
 #' # Now tvec must be length=10, etc.
 #' }
 #' @export
-concatenatedCGF <- function(cgf_list, 
-                            block_sizes,
-                            iidReps = 1,
-                            param_adaptor = function(x) x,
-                            ...) {
+concatenationCGF <- function(cgf_list, 
+                             block_sizes,
+                             iidReps = 1,
+                             adaptor = function(x) x,
+                             ...) {
   # checks
   if (!is.list(cgf_list) || length(cgf_list) == 0) stop("'cgf_list' must be a non-empty list of CGF objects.")
   if (length(block_sizes) != length(cgf_list)) stop("'block_sizes' must have the same length as 'cgf_list'.")
@@ -92,7 +91,7 @@ concatenatedCGF <- function(cgf_list,
       len_i <- block_sizes[i]
       t_sub <- tvec[current_start:(current_start+len_i-1)]
       out_sub <- cgf_list[[i]]$K1(t_sub, param)
-      out[current_start:(current_start+len_i-1)] <- out[current_start:(current_start+len_i-1)] + out_sub
+      out[current_start:(current_start+len_i-1)] <- out_sub
       current_start <- current_start + len_i
     }
     out
@@ -102,17 +101,15 @@ concatenatedCGF <- function(cgf_list,
   K2fun <- function(tvec, param) {
     if (length(tvec)!= total_dim) stop(sprintf("`tvec` length mismatch: got %d, expected %d", length(tvec), total_dim))
     
-    accum <- Matrix::Matrix(0, nrow=total_dim, ncol=total_dim, sparse=TRUE)
+    accum <- matrix(0, nrow=total_dim, ncol=total_dim) * param[1]  #### Modified to depend on `param` // temporary fix for RTMB error
+    ##### possibly a sparse matrix??; But Matrix::determinant() fails with adsparse matrices.
     current_start <- 1
     for (i in seq_along(cgf_list)) {
       len_i <- block_sizes[i]
       t_sub <- tvec[current_start:(current_start+len_i-1)]
       k2_sub <- cgf_list[[i]]$K2(t_sub, param)
       # place it in accum's block
-      accum[current_start:(current_start+len_i-1),
-            current_start:(current_start+len_i-1)] <-
-        accum[current_start:(current_start+len_i-1),
-              current_start:(current_start+len_i-1)] + k2_sub
+      accum[current_start:(current_start+len_i-1), current_start:(current_start+len_i-1)] <- k2_sub
       current_start <- current_start + len_i
     }
     accum
@@ -153,32 +150,60 @@ concatenatedCGF <- function(cgf_list,
   }
   
   
+  # func_T => sum of child func_T
+  func_T_list <- lapply(cgf_list, function(x) x$.get_private_method("func_T"))
+  funcTfun <- function(tvec, param) {
+    if (length(tvec)!= total_dim) {
+      stop(sprintf("`tvec` length mismatch in func_T: got %d, expected %d", 
+                   length(tvec), total_dim))
+    }
+    total_res <- 0
+    current_start <- 1
+    for (i in seq_along(func_T_list)) {
+      len_i <- block_sizes[i]
+      idx <- current_start:(current_start + len_i - 1)
+      # Typically, child$func_T(t_sub, param) is a scalar
+      total_res <- total_res + func_T_list[[i]](tvec[idx], param)
+      current_start <- current_start + len_i
+    }
+    total_res
+  }
+  
   # ineq_constraint => concatenation
   ineqfun <- function(tvec, param) {
-    out_list <- list()
+    if (length(tvec) != total_dim) stop(sprintf("`tvec` length mismatch in ineq_constraint: got %d, expected %d", length(tvec), total_dim))
+    
+    # We'll build final constraints in a single pass, 
+    # appending for each child (no repeated calls).
+    ##### This is risky, as the length of the output is unknown; please test/check 
+    out_ <- numeric(0)*param[1]  #### Modified to depend on `param` // temporary fix for RTMB error
+    
     current_start <- 1
     for (i in seq_along(cgf_list)) {
       len_i <- block_sizes[i]
-      t_sub <- tvec[current_start:(current_start+len_i-1)]
-      piece <- cgf_list[[i]]$ineq_constraint(t_sub, param)
-      out_list[[i]] <- piece
+      idx   <- current_start:(current_start + len_i - 1)
+      piece <- cgf_list[[i]]$ineq_constraint(tvec[idx], param)
+      
+      # Append child's constraints to out_
+      if (length(piece) > 0) out_ <- c(out_, piece)
       current_start <- current_start + len_i
     }
-    if (all(vapply(out_list, length, numeric(1))==0)) {
-      numeric(0)
-    } else {
-      unlist(out_list)
-    }
+    
+    out_
   }
   
-  # 7) call_history => for debugging
-  combined_history <- paste0("Blockwise{", 
+  
+  # paste(vapply(cgf_list, function(cg) paste(cg$call_history, collapse="->"), ""), collapse=","),
+  
+  # call_history => for debugging
+  combined_history <- paste0("{", 
                              paste(vapply(cgf_list, 
                                           function(x) paste0(x$call_history, collapse=" -> "), 
                                           FUN.VALUE=""), 
                                    collapse=", "), 
                              "}")
-  op_name_vec <- c(combined_history, "concatenateBlockwiseCGF")
+  op_name_vec <- c(combined_history, "concatenationCGF")
+  param_adaptor_ <- validate_function_or_adaptor(adaptor)
   
   # Finally, create the CGF
   final_cgf <- createCGF(
@@ -189,17 +214,15 @@ concatenatedCGF <- function(cgf_list,
     K4operator = K4opfun,
     
     ineq_constraint = ineqfun,
-    param_adaptor   = param_adaptor,
+    param_adaptor   = param_adaptor_,
     
     op_name = op_name_vec,
     ...
   )
   
-  # If no replicates => return
-  if (iidReps == 1) {
-    return(final_cgf)
-  } else {
-    # replicate the entire block structure
-    iidReplicatesCGF(final_cgf, iidReps = iidReps, ...)
-  }
+  if (iidReps == 1) return(final_cgf)
+  
+  
+  iidReplicatesCGF(final_cgf, iidReps = iidReps, ...)
+  
 }

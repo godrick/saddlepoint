@@ -136,7 +136,7 @@ sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, 
   ## K2
   K2fun <- function(tvec, param) {
     dim_ <- length(tvec)
-    accum <- Matrix(0, nrow = dim_, ncol = dim_) # possibly a sparse matrix??
+    accum <- matrix(0, nrow = dim_, ncol = dim_) ##### possibly a sparse matrix??; But Matrix::determinant() fails with adsparse matrices.
     for (cg in cgf_list) {
       accum <- accum + cg$K2(tvec, param)
     }
