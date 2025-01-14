@@ -170,7 +170,6 @@ CGF <- R6::R6Class(
         K4_AABB <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
         K3K3_AABBCC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
         K3K3_ABCABC <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-        
         K4_AABB/8 - K3K3_AABBCC/8 - K3K3_ABCABC/12
       }
     },
@@ -290,17 +289,26 @@ CGF <- R6::R6Class(
     
     
     
-    #' @description Compute tvec using analytic_tvec_hat_func.
+    # #' @description Compute tvec using analytic_tvec_hat_func.
+    # compute_analytic_tvec_hat_private = function(y, parameter_vector) {
+    #   if (!is.null(private$analytic_tvec_hat_func)) {
+    #     stopifnot(is.numeric(y), !any(y <= 0))
+    #     p <- private$param_adaptor(parameter_vector)
+    #     private$analytic_tvec_hat_func(y, p)
+    #   } else {
+    #     # warning("analytic_tvec_hat is not available for this CGF object.")
+    #     NULL
+    #   }
+    # }
+    
     compute_analytic_tvec_hat_private = function(y, parameter_vector) {
-      if (!is.null(private$analytic_tvec_hat_func)) {
-        stopifnot(is.numeric(y), !any(y <= 0))
-        p <- private$param_adaptor(parameter_vector)
-        private$analytic_tvec_hat_func(y, p)
-      } else {
-        # warning("analytic_tvec_hat is not available for this CGF object.")
-        NULL
-      }
+      # no need to check has_analytic_tvec_hat(); this is done in the public method.
+      stopifnot(is.numeric(y), !any(y <= 0))
+      
+      local_param <- private$param_adaptor(parameter_vector)
+      private$analytic_tvec_hat_func(y, local_param)
     }
+    
     
     
     
@@ -524,8 +532,9 @@ CGF <- R6::R6Class(
       }
     },
     
-    
+    has_analytic_tvec_hat = function() !is.null(private$analytic_tvec_hat_func),
     analytic_tvec_hat = function(y, parameter_vector) {
+      if (!self$has_analytic_tvec_hat()) return(NULL)
       private$compute_analytic_tvec_hat_private(y, parameter_vector)
     },
     

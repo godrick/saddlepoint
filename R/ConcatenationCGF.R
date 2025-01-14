@@ -126,7 +126,7 @@ concatenationCGF <- function(cgf_list,
     for (i in seq_along(cgf_list)) {
       len_i <- block_sizes[i]
       idx <- current_start:(current_start+len_i-1)
-      total <- total + cgf_list[[i]]$K3operator(tvec[idx], v1[idx], v2[idx], v3[idx], param)
+      total <- total + cgf_list[[i]]$K3operator(tvec[idx], param, v1[idx], v2[idx], v3[idx])
       current_start <- current_start + len_i
     }
     total
@@ -143,7 +143,7 @@ concatenationCGF <- function(cgf_list,
     for (i in seq_along(cgf_list)) {
       len_i <- block_sizes[i]
       idx <- current_start:(current_start+len_i-1)
-      total <- total + cgf_list[[i]]$K4operator(tvec[idx], v1[idx], v2[idx], v3[idx], v4[idx], param)
+      total <- total + cgf_list[[i]]$K4operator(tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx])
       current_start <- current_start + len_i
     }
     total
@@ -151,7 +151,7 @@ concatenationCGF <- function(cgf_list,
   
   
   # func_T => sum of child func_T
-  func_T_list <- lapply(cgf_list, function(x) x$.get_private_method("func_T"))
+  func_T_list <- lapply(cgf_list, function(cg) cg$.get_private_method("func_T"))
   funcTfun <- function(tvec, param) {
     if (length(tvec)!= total_dim) {
       stop(sprintf("`tvec` length mismatch in func_T: got %d, expected %d", 
@@ -205,13 +205,15 @@ concatenationCGF <- function(cgf_list,
   op_name_vec <- c(combined_history, "concatenationCGF")
   param_adaptor_ <- validate_function_or_adaptor(adaptor)
   
-  # Finally, create the CGF
+  # create the CGF
   final_cgf <- createCGF(
     K = Kfun,
     K1 = K1fun,
     K2 = K2fun,
     K3operator = K3opfun,
     K4operator = K4opfun,
+    
+    func_T = funcTfun,
     
     ineq_constraint = ineqfun,
     param_adaptor   = param_adaptor_,
@@ -223,6 +225,6 @@ concatenationCGF <- function(cgf_list,
   if (iidReps == 1) return(final_cgf)
   
   
-  iidReplicatesCGF(final_cgf, iidReps = iidReps, ...)
+  iidReplicatesCGF(cgf = final_cgf, iidReps = iidReps, ...)
   
 }

@@ -259,7 +259,7 @@ iidReplicatesCGF <- function(cgf, iidReps, ...) {
   # We'll do a chunk approach if cgf$analytic_tvec_hat() is non-NULL:
   # e.g. chunk y => pass each chunk to cgf$analytic_tvec_hat => combine?
   #### Check if this doesn't make sense, (default to NULL if that's the case)
-  if (!is.null( cgf$analytic_tvec_hat() )) {
+  if ( cgf$has_analytic_tvec_hat() ) {
     # define a chunk aggregator
     analytic_tvec_hat_func <- function(y, param) {
       block_size <- length(y) / iidReps
