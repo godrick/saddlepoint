@@ -8,8 +8,12 @@
 #          can be supplied or will default to a basic implementation.
 #          Also includes a factory function 'createCGF()' for convenience.
 #
-# Note: This class is NOT exported. 
-#       End-users will use specialized CGF objects or the createCGF() function.
+# Note: -This class is NOT exported. 
+#        End-users will use specialized CGF objects or the createCGF() function.
+#       -This class is not aware of parameter adaptation (param_adaptor is neutral/identity). If you want it, 
+#        see the AdaptCGF class.
+# 
+#  
 # --------------------------------------------------------------------
 
 
@@ -42,7 +46,6 @@
 #   - compute_analytic_tvec_hat(y, param)
 # 
 # Other objects:
-#  - param_adaptor: function to adapt parameters
 #  - analytic_tvec_hat_func: function to compute tvec from y and parameters
 #  - op_name: name of the operation (for call history)/for debugging: currently used in print method
 #
@@ -85,7 +88,7 @@ CGF <- R6::R6Class(
     
     # Optional method fields:
     ineq_constraint_func = NULL,
-    param_adaptor = NULL,
+    ##### param_adaptor = NULL,    # We keep it here, but now set to identity by default
     analytic_tvec_hat_func = NULL,
     
     tilting_exponent_func = NULL,
@@ -103,47 +106,41 @@ CGF <- R6::R6Class(
     K2operator_func = NULL,
     K2operatorAK2AT_func = NULL,
     
-    # A helper method that adapts parameters once and then calls the provided function
-    call_with_params = function(tvec, parameter_vector, func, ...) {
-      p <- private$param_adaptor(parameter_vector)
-      func(tvec, p, ...)
-    },
+    # # ----------------------------------------------------------
+    # # A helper method that used to adapt parameters,
+    # # but now simply calls the passed-in func with param unmodified.
+    # # We keep it so that the class structure remains unchanged.
+    # # ----------------------------------------------------------
+    # call_with_params = function(tvec, parameter_vector, func, ...) {
+    #   # param_adaptor is now effectively identity
+    #   p <- private$param_adaptor(parameter_vector)
+    #   func(tvec, p, ...)
+    # },
     
+    
+    # ----------------------------------------------------------
+    # For optional methods, store either the user-supplied 
+    # function or a default closure:
+    # ----------------------------------------------------------
     
     # Tilting exponent term :  K(t) - sum(t_i * K1(t)_i)
-    # returns a scalar
-    tilting_exponent = function(tvec, parameter_vector) {
-      if (!is.null(private$tilting_exponent_func)) {
-        private$call_with_params(tvec, parameter_vector, private$tilting_exponent_func)
-      } else {
-        # Default tilting_exponent = K - sum(tvec * K1)
-        self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
+    tilting_exponent = if (!is.null(private$tilting_exponent_func)) {
+      private$tilting_exponent_func
+    } else {
+      function(tvec, parameter_vector)  {  # Default tilting_exponent = K - sum(tvec * K1)
+        self$K(tvec, parameter_vector) - sum(tvec*self$K1(tvec, parameter_vector))
       }
     },
     
     
     
-    # tilting_exponent = 
-    #   if (!is.null(private$tilting_exponent_func)) {
-    #     private$tilting_exponent_func
-    #     # private$call_with_params(tvec, parameter_vector, private$tilting_exponent_func)
-    #   } else {
-    #     # Default tilting_exponent = K - sum(tvec * K1)
-    #     function(tvec, parameter_vector)  {
-    #       self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
-    #     }
-    #   }
-    # ,
     
     
-    
-    
-    
-    neg_ll = function(tvec, parameter_vector) {
-      if(!is.null(private$neg_ll_func)) {
-        private$call_with_params(tvec, parameter_vector, private$neg_ll_func)
-      } else {
-        # Default neg_ll = 0.5*logdet(K2) + 0.5*log((2*pi)^m) - tilting_exponent(
+    neg_ll = if(!is.null(private$neg_ll_func)) {
+      private$neg_ll_func(tvec, parameter_vector)
+    } else {
+      function(tvec, parameter_vector) {
+        # Default neg_ll = 0.5*logdet(K2) + 0.5*log((2*pi)^m) - tilting_exponent
         K_val <- self$K(tvec, parameter_vector)
         K1_val <- self$K1(tvec, parameter_vector)
         te <- private$tilting_exponent(tvec, parameter_vector)
@@ -156,33 +153,33 @@ CGF <- R6::R6Class(
     
     
     #  The correction term of the first-order saddlepoint approximation to the log-likelihood
-    func_T = function(tvec, parameter_vector) {
+    func_T = if (!is.null(private$func_T_func)) {
       # Specify Q = K2^{-1} by computing an LDLT decomposition for K2
       # and using it to compute the A and d arguments to the _factored form of the operator methods
       # To save repeated inversion, this is performed once rather than delegated to the _factored_inverse methods
       # Note that with K2 = P^T L D L^T P, we have Q = K2^{-1} = P^{-1} L^{-1}^T D^{-1} L^{-1} P^{-1}^T
       # and since P is a permutation matrix P^T = P^{-1} and this reduces to
       # Q = (L^{-1} P)^T D^{-1} L^{-1} P, i.e., A=(L^{-1}P)^T = P^T (L^T)^{-1}
-      if (!is.null(private$func_T_func)) {
-        private$call_with_params(tvec, parameter_vector, private$func_T_func)
+        private$func_T_func(tvec, parameter_vector)
       } else {
-        K2_val <- self$K2(tvec, parameter_vector)
-        K2_inv <- solve(K2_val)
-        
-        chol_K2_inv <- chol(K2_inv) # since K2_inv is symmetric positive definite
-        diag_K2_inv <- diag(chol_K2_inv)
-        d = diag_K2_inv^2
-        # Create A with unit diagonals
-        # A = L (from LDL) analog constructed from Cholesky
-        A = t(chol_K2_inv) %*% diag(1/diag_K2_inv)
-        
-        # Evaluate required operators
-        K4_AABB <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
-        K3K3_AABBCC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-        K3K3_ABCABC <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-        K4_AABB/8 - K3K3_AABBCC/8 - K3K3_ABCABC/12
-      }
-    },
+        function(tvec, parameter_vector) {
+          K2_val <- self$K2(tvec, parameter_vector)
+          K2_inv <- solve(K2_val)
+          
+          chol_K2_inv <- chol(K2_inv) # since K2_inv is symmetric positive definite
+          diag_K2_inv <- diag(chol_K2_inv)
+          d = diag_K2_inv^2
+          # Create A with unit diagonals
+          # A = L (from LDL) analog constructed from Cholesky
+          A = t(chol_K2_inv) %*% diag(1/diag_K2_inv)
+          
+          # Evaluate required operators
+          K4_AABB <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
+          K3K3_AABBCC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
+          K3K3_ABCABC <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
+          K4_AABB/8 - K3K3_AABBCC/8 - K3K3_ABCABC/12
+        }
+      },
     
     
     
@@ -203,25 +200,25 @@ CGF <- R6::R6Class(
     #---------------------------------------------------------------------------
     
     # K4operatorAABB factored version
-    K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
+    K4operatorAABB_factored =  if (!is.null(private$K4operatorAABB_factored_func)) {
       # Key identity:
       #   sum_{i1,...i4=1,...,d} K4(i1,i2,i3,i4)*Q1(i1,i2)*Q2(i3,i4)
       # = sum_{m1=1,...,r1} sum_{m2=1,...,r2} d1(m1)*d2(m2)*( sum_{i1,...i4=1,...,d} K4(i1,i2,i3,i4)*A1(i1,m1)*A1(i2,m1)*A2(i3,m2)*A2(i4,m2) )
       # Complexity: r1*r2 calls to K4operator
-      if (!is.null(private$K4operatorAABB_factored_func)) {
-        private$call_with_params(tvec, parameter_vector, private$K4operatorAABB_factored_func, A1, d1, A2, d2)
+        private$K4operatorAABB_factored_func(tvec, parameter_vector, A1, d1, A2, d2)
       } else {
-        r1 <- length(d1)
-        r2 <- length(d2)
-        res <- 0
-        for (m1 in seq_len(r1)) {
-          for (m2 in seq_len(r2)) {
-            res <- res + d1[m1]*d2[m2]*self$K4operator(tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2], A2[,m2])
+          function(tvec, parameter_vector, A1, d1, A2, d2) {
+            r1 <- length(d1)
+            r2 <- length(d2)
+            res <- 0
+            for (m1 in seq_len(r1)) {
+              for (m2 in seq_len(r2)) {
+                res <- res + d1[m1]*d2[m2]*self$K4operator(tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2], A2[,m2])
+              }
+            }
+            res
           }
-        }
-        res
-      }
-    },
+      },
     
 
     K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
@@ -316,6 +313,8 @@ CGF <- R6::R6Class(
   # Public members
   # ----------------------------------------------------------
   public = list(
+    
+    call_history = NULL, # store an operation name or chain of calls
     
     # constructor
     initialize = function(K_func, K1_func, K2_func, K3operator_func, K4operator_func,
@@ -516,7 +515,6 @@ CGF <- R6::R6Class(
       private$compute_analytic_tvec_hat_private(y, parameter_vector)
     },
     
-    call_history = NULL, # Will store the history of calls or transformations.
     
     print = function(...) {
       cat("<CGF Object>\n")
