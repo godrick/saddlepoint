@@ -1,91 +1,89 @@
-# R/A-CGF_base.R
-# Objects: CGF, createCGF
-
-# ------------------------------------------------------------------------------
-# Base CGF Class
+# --------------------------------------------------------------------
+# File: A-CGF_base.R
 #
-# This class represents a cumulant generating function (CGF) and its related
-# operators. Required methods (K, K1, K2, K3operator, K4operator) must be given.
-# Optional methods (such as tilting_exponent, neg_ll, and various operator forms)
-# can be supplied or will default to a basic implementation.
+# Purpose: Provides a base CGF (cumulant generating function) class
+#          supporting essential methods (K, K1, K2, K3operator, K4operator).
+#          and optional ones (tilting_exponent, neg_ll, func_T, etc.).
+#          Optional methods (such as tilting_exponent, neg_ll, and various operator forms)
+#          can be supplied or will default to a basic implementation.
+#          Also includes a factory function 'createCGF()' for convenience.
 #
-# The methods are:
-# 1. K
-# 2. K1
-# 3. K2
-# 4. K3operator
-# 5. K4operator
-# 6. ineq_constraint
-# 7. param_adaptor
-# 8. tilting_exponent
-# 9. neg_ll
-# 10. K4operatorAABB
-# 11. K3K3operatorAABBCC
-# 12. K3K3operatorABCABC
-# 13. func_T
-# 14. K4operatorAABB_factored
-# 15. K3K3operatorAABBCC_factored
-# 16. K3K3operatorABCABC_factored
-# 17. K2operator
-# 18. K2operatorAK2AT
-# ------------------------------------------------------------------------------
+# Note: This class is NOT exported. 
+#       End-users will use specialized CGF objects or the createCGF() function.
+# --------------------------------------------------------------------
 
 
-# Compulsory Methods: 
-# The class enforces the provision of five essential methods (K, K1, K2, K3operator, K4operator) 
+
+# --------------------------------------------------------------------
+# Base CGF Class (R6)
+# This is the base class for implementing CGF objects for various distributions.
+# --------------------------------------------------------------------
+#
+# Required methods in any subclass or in the 'createCGF' construction:
+#   1) K(tvec, param)
+#   2) K1(tvec, param)
+#   3) K2(tvec, param)
+#   4) K3operator(tvec, param, v1, v2, v3)
+#   5) K4operator(tvec, param, v1, v2, v3, v4)
+#
+# Optional methods may be overridden:
+#   - tilting_exponent(tvec, param)
+#   - neg_ll(tvec, param)
+#   - func_T(tvec, param)
+#   - K2operator(tvec, param, x, y)
+#   - K2operatorAK2AT(tvec, param, A)
+#   - K4operatorAABB(tvec, param, Q1, Q2)
+#   - K3K3operatorAABBCC(tvec, param, Q1, Q2, Q3)
+#   - K3K3operatorABCABC(tvec, param, Q1, Q2, Q3)
+#   - K4operatorAABB_factored(tvec, param, A1, d1, A2, d2)
+#   - K3K3operatorAABBCC_factored(tvec, param, A1, d1, A2, d2, A3, d3)
+#   - K3K3operatorABCABC_factored(tvec, param, A1, d1, A2, d2, A3, d3)
+#   - ineq_constraint(tvec, param)
+#   - compute_analytic_tvec_hat(y, param)
+# 
+# Other objects:
+#  - param_adaptor: function to adapt parameters
+#  - analytic_tvec_hat_func: function to compute tvec from y and parameters
+#  - op_name: name of the operation (for call history)/for debugging: currently used in print method
+#
+# The 'initialize' method accepts these functions/objects or uses defaults.
+# 
+# Compulsory Methods:
+# The class enforces the provision of five essential methods (K, K1, K2, K3operator, K4operator)
 # by requiring their corresponding functions (K_func, K1_func, etc.) in the initialize method.
-#
-# Optional Methods: Methods like tilting_exponent, neg_ll, and func_T have default implementations within the class. 
-# These defaults are used unless the user provides their own implementations by overriding the 
-# corresponding function.
-#
-# Additional Operator Methods: 
-# Methods such as K4operatorAABB, K3K3operatorAABBCC, and K3K3operatorABCABC 
-# also have default implementations, which can be overridden.
-#
-# Extensibility: 
-# The initialize method accepts ..., 
-# allowing users to pass additional named optional methods in the future 
-# without modifying the class definition.
+# 
+# Optional Methods: 
+# These methods like tilting_exponent, neg_ll, and func_T have default implementations.
+# These defaults are used unless the user provides their own implementations by overriding the corresponding function.
+# 
+# EXTENSIBILITY:
+#   'initialize' accepts '...' which allows adding new named methods
+#   or overrides in future, without changing this class definition.
+#   For instance, createCGF(...) can pass additional user-defined
+#   methods that are stored or used in advanced ways.
+# --------------------------------------------------------------------
 
 
 
 
-
-#' Base CGF Class
-#'
-#' @description
-#' `CGF` provides a base class for implementing cumulant generating functions (CGFs) of various distributions.
-#' 
-#' Distributions of interest should define these methods:
-#' - `K(tvec, parameter_vector)`: The CGF at point `tvec`.
-#' - `K1(tvec, parameter_vector)`: The first tvec-derivative of the CGF.
-#' - `K2(tvec, parameter_vector)`: The second-order tvec-gradient of the CGF.
-#' - `K3operator(tvec, v1, v2, v3, parameter_vector)`: The third-order operator.
-#' - `K4operator(tvec, v1, v2, v3, v4, parameter_vector)`: The fourth-order operator.
-#'
-#' This class also provides default implementations for methods like `tilting_exponent()`, `neg_ll()`, and `func_T()`.
-#'
-#' @section Methods:
-#' - `initialize(K_func, K1_func, K2_func, K3operator_func, K4operator_func, parameters=list())`: Initialize a CGF object.
-#' - `K()`, `K1()`, `K2()`, `K3operator()`, `K4operator()`: Must be provided.
-#' - `tilting_exponent(tvec, parameter_vector)`: Computes the log numerator term in the saddlepoint approximation: K(t) - sum(t_i * K1(t)_i)
-#' - `neg_ll(tvec, parameter_vector)`: Computes the saddlepoint negative log-likelihood.
-#' - `func_T(tvec, parameter_vector)`: Computes the correction term of the first-order saddlepoint approximation to the log-likelihood
-#' - `K2operator()`, `K2operatorAK2AT()`, `K4operatorAABB()`, `K3K3operatorAABBCC()`, `K3K3operatorABCABC()`: Provide various operator forms.
-#' - `K4operatorAABB_factored()`, `K3K3operatorAABBCC_factored()`, `K3K3operatorABCABC_factored()`: Factored forms of operator methods.
-#' - `ineq_constraint(tvec, parameter_vector)`: Returns inequality constraints (default empty).
 #' @noRd
 CGF <- R6::R6Class(
   classname = "CGF",
   
+  # ----------------------------------------------------------
+  # Private fields / methods
+  # ----------------------------------------------------------
   private = list(
+    
+    # Core user-supplied method fields:
     K_func = NULL,
     K1_func = NULL,
     K2_func = NULL,
     K3operator_func = NULL,
     K4operator_func = NULL,
     
+    
+    # Optional method fields:
     ineq_constraint_func = NULL,
     param_adaptor = NULL,
     analytic_tvec_hat_func = NULL,
@@ -112,9 +110,8 @@ CGF <- R6::R6Class(
     },
     
     
-    #' @description Tilting exponent term : log numerator term in the saddlepoint approximation: K(t) - sum(t_i * K1(t)_i)
-    #' @param tvec,parameter_vector As above.
-    # #' @return Numeric scalar.
+    # Tilting exponent term :  K(t) - sum(t_i * K1(t)_i)
+    # returns a scalar
     tilting_exponent = function(tvec, parameter_vector) {
       if (!is.null(private$tilting_exponent_func)) {
         private$call_with_params(tvec, parameter_vector, private$tilting_exponent_func)
@@ -124,9 +121,24 @@ CGF <- R6::R6Class(
       }
     },
     
-    #' @description The negative log-likelihood based on the saddlepoint approximation.
-    #' @param tvec,parameter_vector As above.
-    # #' @return Numeric scalar.
+    
+    
+    # tilting_exponent = 
+    #   if (!is.null(private$tilting_exponent_func)) {
+    #     private$tilting_exponent_func
+    #     # private$call_with_params(tvec, parameter_vector, private$tilting_exponent_func)
+    #   } else {
+    #     # Default tilting_exponent = K - sum(tvec * K1)
+    #     function(tvec, parameter_vector)  {
+    #       self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
+    #     }
+    #   }
+    # ,
+    
+    
+    
+    
+    
     neg_ll = function(tvec, parameter_vector) {
       if(!is.null(private$neg_ll_func)) {
         private$call_with_params(tvec, parameter_vector, private$neg_ll_func)
@@ -143,9 +155,7 @@ CGF <- R6::R6Class(
     },
     
     
-    #' @description The correction term of the first-order saddlepoint approximation to the log-likelihood
-    #' @param tvec,parameter_vector As above.
-    # #' @return Numeric scalar.
+    #  The correction term of the first-order saddlepoint approximation to the log-likelihood
     func_T = function(tvec, parameter_vector) {
       # Specify Q = K2^{-1} by computing an LDLT decomposition for K2
       # and using it to compute the A and d arguments to the _factored form of the operator methods
@@ -192,9 +202,7 @@ CGF <- R6::R6Class(
     # Note that this factorisation implies Qk(i,j) = sum_{m=1,...,r} dk(m)*Ak(i,m)*Ak(j,m)
     #---------------------------------------------------------------------------
     
-    #' @description K4operatorAABB factored version
-    #' @param tvec,A1,d1,A2,d2,parameter_vector As described.
-    # #' @return Numeric scalar.
+    # K4operatorAABB factored version
     K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
       # Key identity:
       #   sum_{i1,...i4=1,...,d} K4(i1,i2,i3,i4)*Q1(i1,i2)*Q2(i3,i4)
@@ -215,9 +223,7 @@ CGF <- R6::R6Class(
       }
     },
     
-    #' @description K3K3operatorAABBCC factored version
-    #' @param tvec,A1,d1,A2,d2,A3,d3,parameter_vector As described.
-    # #' @return Numeric scalar.
+
     K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
       # Key identity:
       #   sum_{i1,...i6=1,...,d} K3(i1,i2,i3)*K3(i4,i5,i6)*Q1(i1,i2)*Q2(i3,i4)*Q3(i5,i6)
@@ -246,9 +252,8 @@ CGF <- R6::R6Class(
       }
     },
     
-    #' @description K3K3operatorABCABC factored version
-    #' @param tvec,A1,d1,A2,d2,A3,d3,parameter_vector As described.
-    #' @return Numeric scalar.
+    
+    
     K3K3operatorABCABC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
       # Key identity:
       #   sum_{i1,...i6=1,...,d} K3(i1,i2,i3)*K3(i4,i5,i6)*Q1(i1,i4)*Q2(i2,i5)*Q3(i3,i6)
@@ -289,17 +294,8 @@ CGF <- R6::R6Class(
     
     
     
-    # #' @description Compute tvec using analytic_tvec_hat_func.
-    # compute_analytic_tvec_hat_private = function(y, parameter_vector) {
-    #   if (!is.null(private$analytic_tvec_hat_func)) {
-    #     stopifnot(is.numeric(y), !any(y <= 0))
-    #     p <- private$param_adaptor(parameter_vector)
-    #     private$analytic_tvec_hat_func(y, p)
-    #   } else {
-    #     # warning("analytic_tvec_hat is not available for this CGF object.")
-    #     NULL
-    #   }
-    # }
+    
+
     
     compute_analytic_tvec_hat_private = function(y, parameter_vector) {
       # no need to check has_analytic_tvec_hat(); this is done in the public method.
@@ -315,19 +311,13 @@ CGF <- R6::R6Class(
     
   ),
   
+  
+  # ----------------------------------------------------------
+  # Public members
+  # ----------------------------------------------------------
   public = list(
     
-    # Initialize a CGF object
-    # 
-    # @param K_func,K1_func,K2_func,K3operator_func,K4operator_func Functions for required methods.
-    # @param ineq_constraint_func Optional function for inequality constraints.
-    # @param param_adaptor Optional function to adapt parameters (default identity).
-    # @param tilting_exponent_func Optional tilting exponent function.
-    # @param neg_ll_func Optional negative log-likelihood function.
-    # @param func_T_func Optional correction term function.
-    # @param K4operatorAABB_func,K3K3operatorAABBCC_func,K3K3operatorABCABC_func Optional operator functions.
-    # @param K4operatorAABB_factored_func,K3K3operatorAABBCC_factored_func,K3K3operatorABCABC_factored_func Optional factored operator functions.
-    # @param K2operator_func,K2operatorAK2AT_func Optional operator functions.
+    # constructor
     initialize = function(K_func, K1_func, K2_func, K3operator_func, K4operator_func,
                           ineq_constraint_func = NULL,
                           param_adaptor = function(x) x,
@@ -346,7 +336,7 @@ CGF <- R6::R6Class(
                           op_name = "UnnamedOperation",
                           ...
     ) {
-      # Assign functions
+      # Store user or default methods
       private$K_func <- K_func
       private$K1_func <- K1_func
       private$K2_func <- K2_func
@@ -372,31 +362,19 @@ CGF <- R6::R6Class(
       private$K2operator_func <- K2operator_func
       private$K2operatorAK2AT_func <- K2operatorAK2AT_func
       
-      
+      # Label or track the "operation" in call_history
       if (!is.character(op_name) ) stop("'operation' must of type character")
-      # Will store the history of calls or transformations.
-      # # self$call_history <- op_name # 
+      
       if (!is.null(self$call_history)) {
         self$call_history <- c(self$call_history, op_name)
       } else {
         self$call_history <- op_name
       }
       
-      # # additional methods passed via ...
-      # additional_methods <- list(...)
-      # if (length(additional_methods) > 0) {
-      #   for (name in names(additional_methods)) {
-      #     self[[name]] <- additional_methods[[name]]
-      #   }
-      # }
+      
     },
     
-    # -----------------------------------------------------------------------
-    # Pure virtual-like methods that must be implemented by subclasses
-    # The user implements specific distributions of interest (or parametric families of distributions)
-    # as derived classes inheriting from the CGF class. 
-    # -----------------------------------------------------------------------
-    
+    # Core mandatory CGF methods
     #' @description The CGF at point tvec.
     #' @param tvec Numeric vector at which to evaluate the CGF.
     #' @param parameter_vector Numeric vector of distribution parameters.
@@ -551,9 +529,8 @@ CGF <- R6::R6Class(
     },
     
 
-    # A public method to control access to specific private methods
-    # Primarily for internal use, but can be used by the user if needed.
-    # Hopefully, this discourages users from accessing these private methods.
+    # Allows controlled access to certain private methods
+    # Primarily for internal use
     .get_private_method = function(method_name) {
       if (!is.character(method_name) || length(method_name) != 1) stop("'method_name' must be a single character string.")
       if (!method_name %in% names(private)) stop(paste0("'", method_name, "' is not a private method in the CGF class."))
@@ -599,36 +576,40 @@ CGF <- R6::R6Class(
 
 
 
-#' A factory function to create a CGF object from user-defined functions
+#' Create a CGF object from user-defined functions
 #'
+#' 
 #' @description
-#' `createCGF()` creates an object that represents a CGF using user-supplied functions,
+#' This creates an object of type CGF using user-supplied functions. You supply essential methods (`K`, `K1`, `K2`, etc.) plus any
+#' optional overrides (e.g., `tilting_exponent` or `neg_ll`), and it returns
+#' a `CGF` instance. This approach allows the user to define a CGF object using a set of functions
 #' instead of requiring the user to define a subclass. This approach is more flexible
 #' and avoids the need for inheritance in many cases.
 #'
-#' @param K A function implementing K(tvec, parameter_vector) returning a scalar.
-#' @param K1 A function implementing K1(tvec, parameter_vector) returning a numeric vector.
-#' @param K2 A function implementing K2(tvec, parameter_vector) returning a numeric matrix.
-#' @param K3operator A function implementing ...
-#' @param K4operator A function implementing ...
-#' @param ineq_constraint (optional) If supplied, overrides the default `ineq_constraint`.
-#' @param param_adaptor (optional) A function: param_adaptor(parameter_vector) returning adapted parameters.
-#'                      Default is the identity function.
-#' @param analytic_tvec_hat_func (Optional) function to compute tvec using analytical formula.
-#' @param op_name A character string indicating the operation or transformation being performed.
-#'                  Default is "UnnamedOperation".
-#' @param tilting_exponent (optional) If supplied, overrides the default `tilting_exponent`.
-#' @param neg_ll (optional) If supplied, overrides the default `neg_ll`.
-#' @param func_T (optional) If supplied, overrides the default `func_T`.
-#' @param K2operator (optional) If supplied, overrides the default `K2operator`.
-#' @param K2operatorAK2AT (optional) If supplied, overrides the default `K2operatorAK2AT`.
-#' @param K4operatorAABB (optional) If supplied, overrides the default `K4operatorAABB`.
-#' @param K3K3operatorAABBCC (optional) If supplied, overrides the default `K3K3operator`.
-#' @param K3K3operatorABCABC (optional) If supplied, overrides the default `K3K3operatorABCABC`.
-#' @param K4operatorAABB_factored (optional) If supplied, overrides the default `K4operatorAABB_factored`.
-#' @param K3K3operatorAABBCC_factored (optional) If supplied, overrides the default `K3K3operatorAABBCC_factored`.
-#' @param K3K3operatorABCABC_factored (optional) If supplied, overrides the default `K3K3operatorABCABC_factored`.
-#' @param ... Additional named optional methods that can be passed to the CGF object.
+#'
+#' @param K A function `K(tvec, parameter_vector) -> numeric scalar`.
+#' @param K1 A function `K1(tvec, parameter_vector) -> numeric vector`.
+#' @param K2 A function `K2(tvec, parameter_vector) -> numeric matrix`.
+#' 
+#' @param K3operator A function implementing the third-order operator.
+#' @param K4operator A function implementing the fourth-order operator.
+#' @param ineq_constraint Optional function for inequality constraints.
+#' @param param_adaptor Optional function to adapt the parameter vector before
+#'   calling the user methods. Defaults to the identity function.
+#' 
+#' @param analytic_tvec_hat_func Optional function for an analytic solution
+#'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(y, param)`.
+#' @param op_name A descriptive label for this CGF object. Used for the print method.
+#'               Default is "UnnamedOperation".
+#' 
+#' @param tilting_exponent (optional) Overriding function for the tilting exponent.
+#' @param neg_ll (optional) Overriding function for the negative log-likelihood.
+#' @param func_T (optional) Overriding function for the first-order correction term.
+#' @param K2operator,K2operatorAK2AT,K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC (optional) Overriding operator methods.
+#' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored (optional) Overriding factored-operator methods.
+#' @param ... Additional named methods or overrides. This demonstrates the extensibility
+#'   mechanism, letting you add new CGF-related methods without altering the base class.              
+#'               
 #'
 #' @return An object of class `CGF`.
 #' @export

@@ -80,7 +80,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
     # matrix_A is already a function
     A_fun <- function(param) {
       A_ <- matrix_A(param)
-                               if (!inherits(A_, "sparseMatrix")) A_ <- Matrix::Matrix(A_, sparse = TRUE)
+      if (!inherits(A_, "sparseMatrix")) A_ <- Matrix::Matrix(A_, sparse = TRUE)
       A_
     }
   }

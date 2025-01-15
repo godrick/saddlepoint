@@ -2,7 +2,7 @@
 % Please edit documentation in R/A-CGF_base.R
 \name{createCGF}
 \alias{createCGF}
-\title{A factory function to create a CGF object from user-defined functions}
+\title{Create a CGF object from user-defined functions}
 \usage{
 createCGF(
   K,
@@ -29,55 +29,47 @@ createCGF(
 )
 }
 \arguments{
-\item{K}{A function implementing K(tvec, parameter_vector) returning a scalar.}
+\item{K}{A function \verb{K(tvec, parameter_vector) -> numeric scalar}.}
 
-\item{K1}{A function implementing K1(tvec, parameter_vector) returning a numeric vector.}
+\item{K1}{A function \verb{K1(tvec, parameter_vector) -> numeric vector}.}
 
-\item{K2}{A function implementing K2(tvec, parameter_vector) returning a numeric matrix.}
+\item{K2}{A function \verb{K2(tvec, parameter_vector) -> numeric matrix}.}
 
-\item{K3operator}{A function implementing ...}
+\item{K3operator}{A function implementing the third-order operator.}
 
-\item{K4operator}{A function implementing ...}
+\item{K4operator}{A function implementing the fourth-order operator.}
 
-\item{ineq_constraint}{(optional) If supplied, overrides the default \code{ineq_constraint}.}
+\item{ineq_constraint}{Optional function for inequality constraints.}
 
-\item{param_adaptor}{(optional) A function: param_adaptor(parameter_vector) returning adapted parameters.
-Default is the identity function.}
+\item{param_adaptor}{Optional function to adapt the parameter vector before
+calling the user methods. Defaults to the identity function.}
 
-\item{analytic_tvec_hat_func}{(Optional) function to compute tvec using analytical formula.}
+\item{analytic_tvec_hat_func}{Optional function for an analytic solution
+of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(y, param)}.}
 
-\item{op_name}{A character string indicating the operation or transformation being performed.
+\item{op_name}{A descriptive label for this CGF object. Used for the print method.
 Default is "UnnamedOperation".}
 
-\item{tilting_exponent}{(optional) If supplied, overrides the default \code{tilting_exponent}.}
+\item{tilting_exponent}{(optional) Overriding function for the tilting exponent.}
 
-\item{neg_ll}{(optional) If supplied, overrides the default \code{neg_ll}.}
+\item{neg_ll}{(optional) Overriding function for the negative log-likelihood.}
 
-\item{func_T}{(optional) If supplied, overrides the default \code{func_T}.}
+\item{func_T}{(optional) Overriding function for the first-order correction term.}
 
-\item{K4operatorAABB}{(optional) If supplied, overrides the default \code{K4operatorAABB}.}
+\item{K4operatorAABB_factored, K3K3operatorAABBCC_factored, K3K3operatorABCABC_factored}{(optional) Overriding factored-operator methods.}
 
-\item{K3K3operatorAABBCC}{(optional) If supplied, overrides the default \code{K3K3operator}.}
+\item{K2operator, K2operatorAK2AT, K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC}{(optional) Overriding operator methods.}
 
-\item{K3K3operatorABCABC}{(optional) If supplied, overrides the default \code{K3K3operatorABCABC}.}
-
-\item{K4operatorAABB_factored}{(optional) If supplied, overrides the default \code{K4operatorAABB_factored}.}
-
-\item{K3K3operatorAABBCC_factored}{(optional) If supplied, overrides the default \code{K3K3operatorAABBCC_factored}.}
-
-\item{K3K3operatorABCABC_factored}{(optional) If supplied, overrides the default \code{K3K3operatorABCABC_factored}.}
-
-\item{K2operator}{(optional) If supplied, overrides the default \code{K2operator}.}
-
-\item{K2operatorAK2AT}{(optional) If supplied, overrides the default \code{K2operatorAK2AT}.}
-
-\item{...}{Additional named optional methods that can be passed to the CGF object.}
+\item{...}{Additional named methods or overrides. This demonstrates the extensibility
+mechanism, letting you add new CGF-related methods without altering the base class.}
 }
 \value{
 An object of class \code{CGF}.
 }
 \description{
-\code{createCGF()} creates an object that represents a CGF using user-supplied functions,
+This creates an object of type CGF using user-supplied functions. You supply essential methods (\code{K}, \code{K1}, \code{K2}, etc.) plus any
+optional overrides (e.g., \code{tilting_exponent} or \code{neg_ll}), and it returns
+a \code{CGF} instance. This approach allows the user to define a CGF object using a set of functions
 instead of requiring the user to define a subclass. This approach is more flexible
 and avoids the need for inheritance in many cases.
 }
