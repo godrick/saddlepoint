@@ -11,7 +11,6 @@ createCGF(
   K3operator,
   K4operator,
   ineq_constraint = NULL,
-  param_adaptor = function(x) x,
   analytic_tvec_hat_func = NULL,
   op_name = "UnnamedOperation",
   tilting_exponent = NULL,
@@ -41,9 +40,6 @@ createCGF(
 
 \item{ineq_constraint}{Optional function for inequality constraints.}
 
-\item{param_adaptor}{Optional function to adapt the parameter vector before
-calling the user methods. Defaults to the identity function.}
-
 \item{analytic_tvec_hat_func}{Optional function for an analytic solution
 of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(y, param)}.}
 
@@ -67,9 +63,8 @@ mechanism, letting you add new CGF-related methods without altering the base cla
 An object of class \code{CGF}.
 }
 \description{
-This creates an object of type CGF using user-supplied functions. You supply essential methods (\code{K}, \code{K1}, \code{K2}, etc.) plus any
-optional overrides (e.g., \code{tilting_exponent} or \code{neg_ll}), and it returns
-a \code{CGF} instance. This approach allows the user to define a CGF object using a set of functions
-instead of requiring the user to define a subclass. This approach is more flexible
-and avoids the need for inheritance in many cases.
+This creates an object of type CGF using user-supplied functions. You supply
+the five essential methods (\code{K}, \code{K1}, \code{K2}, \code{K3operator}, \code{K4operator}) plus
+any optional overrides (e.g., \code{tilting_exponent} or \code{neg_ll}), and it returns
+a \code{CGF} instance.
 }

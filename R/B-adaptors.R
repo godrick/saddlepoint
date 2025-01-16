@@ -1,8 +1,11 @@
 # R/adaptors.R
-# Objects: 
+# Objects: adaptor class and its constructor, validate_function_or_adaptor
 
-#### Check if we should retain this adaptor class
-#### If we do then for each "adaptor" object, the call evaluateAdaptor(adaptor_obj, theta) should be enough! 
+
+
+
+
+
 
 
 #' @title adaptor

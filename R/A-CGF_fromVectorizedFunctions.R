@@ -128,7 +128,6 @@ VectorizedFunctionsCGF <- R6::R6Class(
                 
                 # Optional overrides
                 ineq_constraint_func = NULL,
-                param_adaptor        = function(x) x,
                 analytic_tvec_hat_func        = NULL,
                 op_name = "UnnamedOperation",
                 
@@ -171,7 +170,6 @@ VectorizedFunctionsCGF <- R6::R6Class(
         K4operator_func       = function(tvec, p, v1, v2, v3, v4) { sum(private$K4_vectorized_func(tvec, p) * v1 * v2 * v3 * v4) },
         
         ineq_constraint_func  = ineq_constraint_func,
-        param_adaptor         = param_adaptor,
         analytic_tvec_hat_func= analytic_tvec_hat_func,
         op_name        = op_name,
         
@@ -222,7 +220,6 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' @param K2_vectorized_func Function: returns a vector of second derivatives (often diagonal for IID).
 #' @param K3_vectorized_func,K4_vectorized_func Similar vectorized functions for K3 and K4.
 #' @param ineq_constraint_func Optional inequality constraint function.
-#' @param param_adaptor Optional parameter adaptor function (default identity).
 #' @param analytic_tvec_hat_func Optional tvec_hat function override.
 #' @param op_name Optional character string indicating the name of the operation or transformation being performed.
 #' @param tilting_exponent Optional tilting exponent function override.
@@ -242,7 +239,6 @@ createCGF_fromVectorisedFunctions <- function(
     K3_vectorized_func,
     K4_vectorized_func,
     ineq_constraint_func = NULL,
-    param_adaptor = function(x) x,
     analytic_tvec_hat_func = NULL,
     op_name = "UnnamedOperation",
     tilting_exponent = NULL,
@@ -291,9 +287,8 @@ createCGF_fromVectorisedFunctions <- function(
       K3_vectorized_func = K3_vectorized_func,
       K4_vectorized_func = K4_vectorized_func,
       ineq_constraint_func          = ineq_constraint_func,
-      param_adaptor                 = param_adaptor,
       analytic_tvec_hat_func        = analytic_tvec_hat_func,
-      op_name                = op_name
+      op_name  = op_name
     ),
     all_optional_methods
   ))

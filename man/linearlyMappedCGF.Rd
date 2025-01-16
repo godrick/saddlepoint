@@ -2,9 +2,16 @@
 % Please edit documentation in R/D-LinearlyMappedCGF.R
 \name{linearlyMappedCGF}
 \alias{linearlyMappedCGF}
-\title{CGF Object of a linearly mapped random variable (Y = A X)}
+\title{CGF Object of a linearly mapped random variable \eqn{Y = A \, X}}
 \usage{
-linearlyMappedCGF(cgf, matrix_A, iidReps = 1, ...)
+linearlyMappedCGF(
+  cgf,
+  matrix_A,
+  block_size = NULL,
+  iidReps = NULL,
+  adaptor = NULL,
+  ...
+)
 }
 \arguments{
 \item{cgf}{An object of class \code{CGF} for the base distribution \eqn{X}.}
@@ -12,15 +19,21 @@ linearlyMappedCGF(cgf, matrix_A, iidReps = 1, ...)
 \item{matrix_A}{Either a numeric matrix (dense or sparse), or a function:
 \code{function(param) -> numeric matrix}.}
 
-\item{iidReps}{Integer. The number of IID replicate blocks to create.
-Must be a positive integer. If \code{iidReps = 1}, it behaves as a single
-linearly mapped CGF with no repetition.}
+\item{block_size}{Either \code{NULL} or a positive integer specifying the block size for replication.
+Default is \code{NULL}.}
 
-\item{...}{Additional arguments passed to \code{\link{createCGF}} or possibly
-to \code{\link{iidReplicatesCGF}} if \code{iidReps > 1}.}
+\item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
+to expect. Default is \code{NULL}.}
+
+\item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the resulting CGF.
+It should accept a numeric vector \code{theta} and return a transformed numeric vector.
+The default behavior is an identity function.}
+
+\item{...}{Additional named arguments passed to \code{\link{createCGF}} or possibly
+to \code{\link{iidReplicatesCGF}}.}
 }
 \value{
-A \code{CGF} object for \eqn{Y = A X}.
+A \code{CGF} object for \eqn{Y = A \, X}.
 }
 \description{
 Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
@@ -32,12 +45,14 @@ Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
 
 If \code{matrix_A} is a function, it is called for each invocation of the CGF
 methods to retrieve the current matrix (allowing parameter-dependent transformations).
-
-Internally, if \code{iidReps == 1} (the default), you get a single-block
-linear mapping. If \code{iidReps > 1}, we build the single-block version
-and then call \code{\link{iidReplicatesCGF}} to replicate that block logic.
-
-When \code{iidReps > 1}, we treat the input dimension
-as \code{iidReps} repeated blocks. Each block is multiplied by the same matrix \eqn{A}
-and forwarded to the underlying \code{cgf}.
+}
+\details{
+If \code{block_size == NULL} (the default) and \code{iidReps == NULL} (the default), you get a single-block
+linear mapping. Otherwise:
+\itemize{
+\item If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
+\item If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
+\item Each block uses the same matrix \eqn{A} and is forwarded to the underlying \code{cgf}.
+\item Exactly one of \code{iidReps} or \code{block_size} can be non-\code{NULL}.
+}
 }

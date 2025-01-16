@@ -1,7 +1,7 @@
 # R/linearlyMappedCGF.R
 # Object: linearlyMappedCGF
-#### decide on lines - 77, 83
-#
+
+
 # A linearly mapped CGF for Y = A X, where X is the random vector of the CGF 'cgf'.
 # 'matrix_A' can be either:
 # (1) A fixed numeric matrix (dense or sparse).
@@ -16,20 +16,30 @@
 #   block_t -> A^T block_t -> base_cgf's K, K1, etc.
 # Then we sum (K, K3operator, K4operator) or create block-diagonal (K2) or
 # piecewise concatenations (K1) as needed.
-#
 
 
-# # A helper to ensure we get a sparse matrix each time from A_fun
-# get_sparse_A <- function(A_fun, param) {
-#   A_current <- A_fun(param)
-#   if (!inherits(A_current, "sparseMatrix")) {
-#     A_current <- Matrix::Matrix(A_current, sparse = TRUE)
-#   }
-#   A_current
-# }
+# nBlocks = length(tvec) / block_size
+# If block_size == 1, each block contains a single element of tvec. The number of blocks
+# equals the length of tvec, => a single linearly mapped CGF with no chunking.
+# If block_size > 1, each block contains 'block_size' elements, and the total number of
+# blocks (nBlocks) is reduced accordingly. This creates nBlocks copies, each of dimension 'block_size'.
 
 
-#' @title CGF Object of a linearly mapped random variable (Y = A X)
+##### Check this??
+# Note: While `block_size = 1` and `iidReps = 1` result in the same functional outcome (a single linearly mapped CGF),
+# they represent different configurations:
+# - `iidReps = 1` treats the entire input vector `tvec` as a single block, explicitly disabling replication.
+# - `block_size = 1` treats each element of `tvec` as an individual block, effectively reconstructing the original result
+#   through summation or aggregation.
+# In practice, both configurations result in no chunking or block-specific logic being applied.
+##### For now, `block_size = 1` will yield an error: we enforce at least 2 blocks for replication in iidReplicatesCGF()
+
+
+
+
+
+
+#' @title CGF Object of a linearly mapped random variable \eqn{Y = A \, X}
 #' 
 #' @description
 #' Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
@@ -42,58 +52,107 @@
 #' methods to retrieve the current matrix (allowing parameter-dependent transformations).
 #' 
 #' 
-#' Internally, if \code{iidReps == 1} (the default), you get a single-block
-#' linear mapping. If \code{iidReps > 1}, we build the single-block version
-#' and then call \code{\link{iidReplicatesCGF}} to replicate that block logic.
-#' 
-#' When \code{iidReps > 1}, we treat the input dimension 
-#' as \code{iidReps} repeated blocks. Each block is multiplied by the same matrix \eqn{A} 
-#' and forwarded to the underlying `cgf`. 
 #'
 #'
 #' @param cgf An object of class `CGF` for the base distribution \eqn{X}.
 #' @param matrix_A Either a numeric matrix (dense or sparse), or a function:
 #'   \code{function(param) -> numeric matrix}.
-#' @param iidReps Integer. The number of IID replicate blocks to create. 
-#'   Must be a positive integer. If \code{iidReps = 1}, it behaves as a single
-#'   linearly mapped CGF with no repetition.
-#' @param ... Additional arguments passed to \code{\link{createCGF}} or possibly
-#'   to \code{\link{iidReplicatesCGF}} if \code{iidReps > 1}.
+#' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
+#'   Default is \code{NULL}.
+#' @param iidReps Either \code{NULL} or a positive integer specifying how many i.i.d. blocks 
+#'   to expect. Default is \code{NULL}.
+#' @param adaptor A function to transform the global parameter vector \code{theta} into the parameter vector expected by the resulting CGF.
+#'   It should accept a numeric vector \code{theta} and return a transformed numeric vector.
+#'   The default behavior is an identity function.
+#' @param ... Additional named arguments passed to \code{\link{createCGF}} or possibly
+#'   to \code{\link{iidReplicatesCGF}}.
+#'   
+#' @details
+#' If \code{block_size == NULL} (the default) and \code{iidReps == NULL} (the default), you get a single-block
+#' linear mapping. Otherwise:
+#' 
+#' - If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
+#' - If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
+#' - Each block uses the same matrix \eqn{A} and is forwarded to the underlying `cgf`. 
+#' - Exactly one of \code{iidReps} or \code{block_size} can be non-\code{NULL}.
 #'
-#' @return A `CGF` object for \eqn{Y = A X}. 
+#' @return A `CGF` object for \eqn{Y = A \, X}. 
 #' @export
-linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
+linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, adaptor = NULL, ...) {
   if (!inherits(cgf, "CGF")) stop("'cgf' must be an object inheriting from class 'CGF'.")
-  if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1) stop("'iidReps' must be a positive integer.")
+  
+  # Only one of (iidReps, block_size) can be set:
+  if (!is.null(iidReps) && !is.null(block_size)) stop("Please specify only one of 'iidReps' or 'block_size', not both.")
+  
+  # if iidReps is set:
+  if (!is.null(iidReps)) {
+    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
+        iidReps < 1 || iidReps != as.integer(iidReps)) {
+      stop("'iidReps' must be NULL or a positive integer.")
+    }
+  }
+  
+  # if block_size is set:
+  if (!is.null(block_size)) {
+    if (!is.numeric(block_size) || length(block_size) != 1 ||
+        block_size < 1 || block_size != as.integer(block_size)) {
+      stop("'block_size' must be NULL or a positive integer.")
+    }
+  }
+  
+  # validate adaptor if provided
+  if (!is.null(adaptor)) adaptor = validate_function_or_adaptor(obj = adaptor)
+  
+  
   
   #---------------------------------------------
   # # Convert matrix_A to a function param->sparse
   #---------------------------------------------
   is_matrix_A_function <- is.function(matrix_A)
   A_fun <- NULL
+  is_already_sparse <- FALSE
+  
   if (!is_matrix_A_function) {
-    # matrix_A is presumably a numeric matrix
-    if (!is.matrix(matrix_A)) stop("'matrix_A' must be a numeric matrix or a function returning a matrix.")
-                               if (!inherits(matrix_A, "sparseMatrix")) matrix_A <- Matrix::Matrix(matrix_A, sparse = TRUE)
-    A_fun <- function(param) matrix_A 
+    # Check for both dense and sparse matrices
+    if (!is.matrix(matrix_A) && !inherits(matrix_A, "sparseMatrix")) {
+      stop("'matrix_A' must be a numeric matrix, a sparse matrix, or a function returning a matrix.")
+    }
+    
+    # Ensure sparse representation if not already sparse
+    if (!inherits(matrix_A, "sparseMatrix")) matrix_A <- Matrix::Matrix(matrix_A, sparse = TRUE)
+    
+    is_already_sparse <- TRUE
+    A_fun <- function(param) matrix_A
   } else {
-    # matrix_A is already a function
+    # Handle function case
     A_fun <- function(param) {
       A_ <- matrix_A(param)
+      # Ensure sparse representation
       if (!inherits(A_, "sparseMatrix")) A_ <- Matrix::Matrix(A_, sparse = TRUE)
       A_
     }
   }
   
+  
+  # Helper to retrieve a sparse matrix
+  #### this is not needed, but I'll keep it for now; might be useful for exta checks (central spot for extra logic)
+  get_sparse_A <- function(param) {
+    if (is_already_sparse) {
+      return(matrix_A)
+    } else {
+      A_fun(param)
+    }
+  }
+  
+  
+  
+  
+  
+  
   #---------------------------------------------
-  # # Single-block linearlyMapped CGF
+  # # Single-block linearlyMapped CGF (iidReps = 1 OR {iidReps = NULL AND block_size = NULL})
   # # Overrides for K, K1, K2, etc., where 'A_current' = get_sparse_A(parameter_vector)
   #---------------------------------------------
-  
-  # A helper to get a sparse matrix once
-  ### this is not needed, but I'll keep it for now; might be useful for exta checks (central spot for extra logic)
-  get_sparse_A <- function(param) A_fun(param)
-  
   
   # Key identity: K_Y(t) = K_X(A^T t) (with t assumed to be a column vector)
   Kfun <- function(tvec, parameter_vector) {
@@ -253,7 +312,6 @@ linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
     K3operator = K3operatorfun, 
     K4operator = K4operatorfun, 
     ineq_constraint = ineq_constraintfun,
-    param_adaptor = function(x) x,
     analytic_tvec_hat_func = NULL,
     tilting_exponent = tiltingfun,
     # neg_ll = negllfun,
@@ -270,15 +328,20 @@ linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
     ...
   )
   
+  if (!is.null(adaptor)) mapped_cgf <- adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor) # adapt the CGF if needed
+  
   #---------------------------------------------
   # # If iidReps == 1 => done. Otherwise wrap
   # # with iidReplicatesCGF().
+  # # This case also applies if iidReps is NULL and block_size is NULL.
   #---------------------------------------------
-  if (iidReps == 1) return(mapped_cgf)
+  if (is.null(block_size) && is.null(iidReps)) return(mapped_cgf)
+  if (!is.null(iidReps) && iidReps == 1) return(mapped_cgf)
   
-  # For iidReps > 1, we call an external aggregator that replicates blocks.
+  # For iidReps > 1 or valid block_size, we call an external aggregator that replicates blocks.
   # Note: pass the single-block cgf to 'iidReplicatesCGF', which will 
   # handle the chunking logic for all methods.
-  
-  iidReplicatesCGF(mapped_cgf, iidReps = iidReps, ...)
+  iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size, ...)
 }
+
+

@@ -4,17 +4,26 @@
 \alias{sumOfIndependentCGF}
 \title{CGF Object for the sum of independent random variables}
 \usage{
-sumOfIndependentCGF(cgf_list, iidReps = 1, adaptor = function(x) x, ...)
+sumOfIndependentCGF(
+  cgf_list,
+  block_size = NULL,
+  iidReps = NULL,
+  adaptor = NULL,
+  ...
+)
 }
 \arguments{
 \item{cgf_list}{A non-empty list of CGF objects. Each of class \code{"CGF"}.}
 
-\item{iidReps}{Integer. If greater than 1, replicates the resulting CGF \code{iidReps} times.
-Must be a positive integer. Defaults to 1.}
+\item{block_size}{Either \code{NULL} or a positive integer specifying the block size for replication.
+Default is \code{NULL}.}
+
+\item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
+to expect. Default is \code{NULL}.}
 
 \item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
 It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-Defaults to the identity function.}
+The default behavior is an identity function.}
 
 \item{...}{Additional named arguments passed to \code{\link{createCGF}} or \code{\link{iidReplicatesCGF}}.}
 }
@@ -32,8 +41,12 @@ This is essential when the summed CGF expects parameters in a different order or
 For example, if summing two r.vs where one depends on \code{lambda1 = alpha + beta} and the other on \code{lambda2 = beta + gamma},
 the adaptor function can will help in mapping a three-dimensional model parameter \code{theta = c(alpha, beta, gamma)} to \code{c(lambda1, lambda2)}.
 See the example below.
-\item \strong{Replication for i.i.d. Observations}: If \code{iidReps > 1}, the function uses
-\code{\link{iidReplicatesCGF}} to create a CGF compatible with multiple i.i.d. observations.
+\item \strong{Replication for i.i.d. Observations}: This is handles in one of two ways
+\enumerate{
+\item By \code{iidReps}: if \code{iidReps} is a positive integer.
+\item By \code{block_size}: if \code{block_size} is a positive integer.
+}
+If both \code{iidReps} and \code{block_size} are \code{NULL}, no replication is performed;
 }
 }
 \examples{

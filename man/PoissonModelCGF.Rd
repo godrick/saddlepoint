@@ -4,12 +4,14 @@
 \alias{PoissonModelCGF}
 \title{Create a Parametric Poisson CGF Object}
 \usage{
-PoissonModelCGF(lambda, iidReps = 1, ...)
+PoissonModelCGF(lambda, iidReps = NULL, ...)
 }
 \arguments{
-\item{lambda}{A function that accepts a single parameter vector and returns the Poisson rate parameter (\eqn{\lambda}). This function defines how model parameters influence \eqn{\lambda}.}
+\item{lambda}{An \code{adaptor} or a function mapping a parameter vector to a numeric vector rate(s).
+The function must accept a single parameter vector and return the Poisson rate parameter (\eqn{\lambda}) or vector of rates.}
 
-\item{iidReps}{Integer. Specifies the number of i.i.d. replicates expected by the resulting CGF object. Must be a positive integer. Defaults to \code{1}.}
+\item{iidReps}{Either \code{NULL} (no length restriction on \code{tvec}) or a positive integer
+specifying the required length of \code{tvec}. Defaults to \code{NULL}.}
 
 \item{...}{Additional arguments passed to the base CGF creation function, such as optional method overrides.}
 }
@@ -17,6 +19,19 @@ PoissonModelCGF(lambda, iidReps = 1, ...)
 A CGF object.
 }
 \description{
-Creates a CGF object for the Poisson distribution with a rate parameter (\eqn{\lambda}) defined by user-provided parameters.
-Users supply an adaptor function that maps their parameter vector to \eqn{\lambda}, allowing for flexible parametric modeling.
+Creates a CGF for the Poisson distribution with a rate parameter (\eqn{\lambda}) determined
+by a user-supplied \code{lambda} function or adaptor. Supports i.i.d. and non-identical contexts
+with optional length enforcement via \code{iidReps}.
+}
+\examples{
+# ex 1: i.i.d. scenario for univariate Poisson(rate = 2)
+ex_iid <- PoissonModelCGF(lambda = function(x) x[1])
+# OR ex_iid <- PoissonModelCGF(lambda = function(x) x[1], iidReps = 3)
+ex_iid$K1(rep(0,3), 2)
+
+# ex 3: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
+ex_repeat <- PoissonModelCGF(lambda = adaptor(indices = 1:2), iidReps = 3)
+# OR ex_repeat <- PoissonModelCGF(lambda = function(x) c(2,5) )
+ex_repeat$K1(rep(0,6), c(2,5))
+
 }

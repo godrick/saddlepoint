@@ -11,7 +11,6 @@ createCGF_fromVectorisedFunctions(
   K3_vectorized_func,
   K4_vectorized_func,
   ineq_constraint_func = NULL,
-  param_adaptor = function(x) x,
   analytic_tvec_hat_func = NULL,
   op_name = "UnnamedOperation",
   tilting_exponent = NULL,
@@ -38,8 +37,6 @@ createCGF_fromVectorisedFunctions(
 \item{K3_vectorized_func, K4_vectorized_func}{Similar vectorized functions for K3 and K4.}
 
 \item{ineq_constraint_func}{Optional inequality constraint function.}
-
-\item{param_adaptor}{Optional parameter adaptor function (default identity).}
 
 \item{analytic_tvec_hat_func}{Optional tvec_hat function override.}
 

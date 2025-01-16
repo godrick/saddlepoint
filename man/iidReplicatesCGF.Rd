@@ -2,15 +2,16 @@
 % Please edit documentation in R/D-IIDReplicatesCGF.R
 \name{iidReplicatesCGF}
 \alias{iidReplicatesCGF}
-\title{Replicate a CGF over Multiple IID Blocks}
+\title{Replicate a CGF over multiple i.i.d blocks or with a fixed block size}
 \usage{
-iidReplicatesCGF(cgf, iidReps, ...)
+iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL, ...)
 }
 \arguments{
-\item{cgf}{A CGF object. Must be dimension \eqn{d}.}
+\item{cgf}{A CGF object.}
 
-\item{iidReps}{A positive integer \eqn{m} specifying how many IID blocks to create.
-Must be at least 2 (since \code{iidReps=1} would just be the original CGF).}
+\item{iidReps}{Either NULL or a positive integer specifying the number of IID blocks.}
+
+\item{block_size}{Either NULL or a positive integer specifying the size of each block.}
 
 \item{...}{Additional arguments passed to \code{\link{createCGF}} in case
 you want to override any methods.}
@@ -20,26 +21,15 @@ A new CGF object that operates on length-\eqn{m d} input vectors, chunked
 into \eqn{m} blocks, each block of length \eqn{d}.
 }
 \description{
-This function takes any valid CGF object and extends it to handle
-multiple IID blocks. Given \code{iidReps}, the input \code{tvec} is treated
-as \code{iidReps} separate blocks, each of size \eqn{block_size = length(tvec)/\mathrm{iidReps}}.
-
-For each operator (\eqn{K, K1, K2}, etc.), \code{iidReplicatesCGF()}:
-\itemize{
-\item Splits \code{tvec} (and any corresponding vectors \code{x,y,v1,...}) into sub-blocks.
-\item Calls the original CGF operator on each sub-block.
-\item Combines results by summation (for \eqn{K}, \eqn{K3}, \eqn{K4}), or by
-forming block-diagonal (for \eqn{K2} and similar).
-}
-
-Effectively, if the original CGF is compatible with dimension \eqn{d}, and \code{iidReps=m},
-the resulting CGF will be compatible with dimension \eqn{m d}, chunked into \eqn{m} blocks each
-of size \eqn{d}.
+Extends a given CGF to handle multiple IID blocks based on either \code{iidReps}
+or a fixed \code{block_size}. Exactly one of these parameters must be provided.
 }
 \details{
-Typically, you do not call \code{iidReplicatesCGF()} directly; instead, you set
-\code{iidReps > 1} in a user-facing function like
-\code{\link{linearlyMappedCGF}}, which internally calls \code{iidReplicatesCGF()}.
+\itemize{
+\item If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
+\item If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
+\item Exactly one of \code{iidReps} or \code{block_size} should be non-NULL.
+}
 }
 \examples{
 # Suppose cgf is dimension=3, and we want 5 blocks => dimension=15

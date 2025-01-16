@@ -15,11 +15,13 @@
 #'
 #'
 #' @param cgf_list A non-empty list of CGF objects. Each of class \code{"CGF"}.
-#' @param iidReps Integer. If greater than 1, replicates the resulting CGF \code{iidReps} times.
-#'   Must be a positive integer. Defaults to 1.
+#' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
+#'   Default is \code{NULL}.
+#' @param iidReps Either \code{NULL} or a positive integer specifying how many i.i.d. blocks 
+#'   to expect. Default is \code{NULL}.
 #' @param adaptor A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
 #'   It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-#'   Defaults to the identity function.
+#'   The default behavior is an identity function.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}} or \code{\link{iidReplicatesCGF}}.
 #'
 #'
@@ -30,8 +32,12 @@
 #'   the adaptor function can will help in mapping a three-dimensional model parameter \code{theta = c(alpha, beta, gamma)} to \code{c(lambda1, lambda2)}.
 #'   See the example below.
 #'   
-#' - **Replication for i.i.d. Observations**: If \code{iidReps > 1}, the function uses
-#'   \code{\link{iidReplicatesCGF}} to create a CGF compatible with multiple i.i.d. observations.
+#' - **Replication for i.i.d. Observations**: This is handles in one of two ways
+#' \enumerate{
+#'   \item By `iidReps`: if \code{iidReps} is a positive integer.
+#'   \item By `block_size`: if \code{block_size} is a positive integer.
+#' }
+#' If both \code{iidReps} and \code{block_size} are \code{NULL}, no replication is performed;
 #'
 #'
 #' @examples
@@ -96,17 +102,37 @@
 #'
 #' @return A CGF object
 #' @export
-sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, ...) {
+sumOfIndependentCGF <- function(cgf_list, block_size = NULL, iidReps = NULL, adaptor = NULL, ...) {
   # Basic validations
   if (!is.list(cgf_list) || length(cgf_list) == 0) stop("'cgf_list' must be a non-empty list of CGF objects.")
   if ( any(vapply(cgf_list, function(x) !inherits(x, "CGF"), FALSE)) ) stop("Every element of 'cgf_list' must be of class 'CGF'." )
-  # for (cg in cgf_list) {
-  #   if (!inherits(cg, "CGF")) {
-  #     stop("Every element of 'cgf_list' must be a CGF object.")
-  #   }
-  # }
-  if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1) stop("'iidReps' must be a positive integer.")
   
+  # Only one of (iidReps, block_size) can be set:
+  if (!is.null(iidReps) && !is.null(block_size)) stop("Please specify only one of 'iidReps' or 'block_size', not both.")
+  
+  # if iidReps is set:
+  if (!is.null(iidReps)) {
+    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
+        iidReps < 1 || iidReps != as.integer(iidReps)) {
+      stop("'iidReps' must be NULL or a positive integer.")
+    }
+  }
+  
+  # if block_size is set:
+  if (!is.null(block_size)) {
+    if (!is.numeric(block_size) || length(block_size) != 1 ||
+        block_size < 1 || block_size != as.integer(block_size)) {
+      stop("'block_size' must be NULL or a positive integer.")
+    }
+  }
+  
+  if (!is.null(adaptor)) adaptor = validate_function_or_adaptor(obj = adaptor)
+  
+  
+  
+  #-------------------------------------
+  # First, if both are NULL => no replication
+  #-------------------------------------
   
   #  Combine each method: K, K1, K2, etc.
   #  We do a simple for loop accumulation.
@@ -238,7 +264,7 @@ sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, 
   
   # Build a combined 'call_history' vector:
   # We'll concatenate the call_history from each CGF in the final list
-  combined_history <- paste0("{", paste(sapply(cgf_list, function(cg) cg$call_history), collapse = ", "), "}" )
+  combined_history <- paste0("[", paste(sapply(cgf_list, function(cg) cg$call_history), collapse = ", "), "]" )
   op_name_vec <- c(combined_history, "sumOfIndependentCGF")
   
   res <- createCGF(
@@ -248,7 +274,6 @@ sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, 
       K3operator = K3opfun,
       K4operator = K4opfun,
       
-      param_adaptor = adaptor,
       
       tilting_exponent = tiltingfun,
       ineq_constraint = ineqfun,
@@ -266,7 +291,9 @@ sumOfIndependentCGF <- function(cgf_list, iidReps = 1, adaptor = function(x) x, 
       ... # pass in any further overrides
   )
   
-  if (iidReps == 1) return(res)
+  if (!is.null(adaptor)) res <- adaptCGF(cgf = res, param_adaptor = adaptor)
+  if (is.null(block_size) && is.null(iidReps)) return(res)
+  if (!is.null(iidReps) && iidReps == 1) return(res)
   
-  iidReplicatesCGF(res, iidReps = iidReps, ...)
+  iidReplicatesCGF(cgf = res, iidReps = iidReps, block_size = block_size, ...)
 }
