@@ -27,8 +27,8 @@ PoissonCGF <- createCGF_fromVectorisedFunctions(
   K1_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
   K2_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
   K3_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
-  K4_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
-  ,analytic_tvec_hat_func = function(y, lambda)  log(y / lambda[1]) # solution of the saddlepoint equation
+  K4_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) }
+  , analytic_tvec_hat_func = function(y, lambda)  log(y / lambda[1]) # solution of the saddlepoint equation
   , op_name = "PoissonCGF"
 )
 
