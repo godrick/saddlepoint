@@ -103,3 +103,13 @@ MultinomialModelCGF <- function(n,
   
 
 }
+
+
+
+
+
+
+
+
+
+

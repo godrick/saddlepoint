@@ -582,3 +582,68 @@ createMultinomialFamilyCGF <- function(
 
 
 
+
+
+
+
+
+# K_func_default = function(tvec, param) {
+#   d <- length(param) - 1  # dimension for one block
+#   if (length(tvec) %% d != 0) stop("Length of tvec is not a multiple of the block size inferred from parameters.")
+#   
+#   
+#   nblocks <- length(tvec) / d
+#   total_value <- 0
+#   for (i in seq_len(nblocks)) {
+#     idx_start <- (i - 1) * d + 1
+#     idx_end   <- i * d
+#     tblock    <- tvec[idx_start:idx_end]
+#     
+#     N_val    <- param[1]
+#     odds_val <- param[-1]
+#     odds_sum <- sum(odds_val)
+#     zm1      <- private$zm1_from_t(tblock)
+#     total_value <- total_value + private$K_z1p(zm1, N_val, odds_val, odds_sum)
+#   }
+#   total_value
+# }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
