@@ -342,6 +342,23 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
   # Note: pass the single-block cgf to 'iidReplicatesCGF', which will 
   # handle the chunking logic for all methods.
   iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size, ...)
+  
+  
+  # # If no replication is requested:
+  # if (is.null(block_size) && is.null(iidReps)) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor))
+  #   return(mapped_cgf)
+  # }
+  # # If iidReps is 1, no change is needed:
+  # if (!is.null(iidReps) && iidReps == 1) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor))
+  #   return(mapped_cgf)
+  # }
+  # # If replication is required (iidReps not NULL and not 1, or block_size is set):
+  # mapped_cgf <- iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size, ...)
+  # # Now apply adaptation after replication, if an adaptor is provided.
+  # if (!is.null(adaptor)) mapped_cgf <- adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor)
+  # return(mapped_cgf)
 }
 
 

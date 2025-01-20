@@ -65,8 +65,8 @@ iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
   }
   
   if (!is.null(block_size)) {
-    if (!is.numeric(block_size) || length(block_size) != 1 || block_size < 2) {
-      stop("'block_size' must be an integer >= 2.")
+    if (!is.numeric(block_size) || length(block_size) != 1 || block_size < 1) {
+      stop("'block_size' must be an integer >= 1. Consider iidReps instead.")
     }
   }
   

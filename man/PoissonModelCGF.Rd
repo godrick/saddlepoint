@@ -4,14 +4,14 @@
 \alias{PoissonModelCGF}
 \title{Create a Parametric Poisson CGF Object}
 \usage{
-PoissonModelCGF(lambda, iidReps = NULL, ...)
+PoissonModelCGF(lambda, iidReps = "any", ...)
 }
 \arguments{
 \item{lambda}{An \code{adaptor} or a function mapping a parameter vector to a numeric vector rate(s).
 The function must accept a single parameter vector and return the Poisson rate parameter (\eqn{\lambda}) or vector of rates.}
 
-\item{iidReps}{Either \code{NULL} (no length restriction on \code{tvec}) or a positive integer
-specifying the required length of \code{tvec}. Defaults to \code{NULL}.}
+\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
+i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
 
 \item{...}{Additional arguments passed to the base CGF creation function, such as optional method overrides.}
 }
@@ -20,7 +20,7 @@ A CGF object.
 }
 \description{
 Creates a CGF for the Poisson distribution with a rate parameter (\eqn{\lambda}) determined
-by a user-supplied \code{lambda} function or adaptor. Supports i.i.d. and non-identical contexts
+by a user-supplied function or adaptor. Supports i.i.d. and non-identical contexts
 with optional length enforcement via \code{iidReps}.
 }
 \examples{

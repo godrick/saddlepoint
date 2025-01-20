@@ -294,6 +294,28 @@ sumOfIndependentCGF <- function(cgf_list, block_size = NULL, iidReps = NULL, ada
   if (!is.null(adaptor)) res <- adaptCGF(cgf = res, param_adaptor = adaptor)
   if (is.null(block_size) && is.null(iidReps)) return(res)
   if (!is.null(iidReps) && iidReps == 1) return(res)
-  
+
   iidReplicatesCGF(cgf = res, iidReps = iidReps, block_size = block_size, ...)
+  
+  
+  
+  
+  # # If no replication is requested:
+  # if (is.null(block_size) && is.null(iidReps)) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = res, param_adaptor = adaptor))
+  #   return(res)
+  # }
+  # 
+  # # If iidReps is 1, no change is needed:
+  # if (!is.null(iidReps) && iidReps == 1) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = res, param_adaptor = adaptor))
+  #   return(res)
+  # }
+  # 
+  # # If replication is required (iidReps not NULL and not 1, or block_size is set):
+  # res <- iidReplicatesCGF(cgf = res, iidReps = iidReps, block_size = block_size, ...)
+  # 
+  # # Now apply adaptation after replication, if an adaptor is provided.
+  # if (!is.null(adaptor)) res <- adaptCGF(cgf = res, param_adaptor = adaptor)
+  # return(res)
 }

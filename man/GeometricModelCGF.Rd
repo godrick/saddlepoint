@@ -4,15 +4,14 @@
 \alias{GeometricModelCGF}
 \title{Create a Parametric Geometric CGF Object}
 \usage{
-GeometricModelCGF(prob, iidReps = NULL, ...)
+GeometricModelCGF(prob, iidReps = "any", ...)
 }
 \arguments{
 \item{prob}{A function (or adaptor) that accepts a single parameter vector \code{theta}
 and returns the success probability \eqn{prob} (a scalar) or a vector of probabilities.}
 
-\item{iidReps}{Either \code{NULL} (no forced dimension) or a positive integer specifying
-that \code{tvec} is partitioned into \code{iidReps} blocks. Each block is one copy
-of the geometric variables (or multiple if \code{prob} is vector).}
+\item{iidReps}{Either \code{"any"} (no forced dimension) or a positive integer specifying how many
+i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if \code{prob} is vector).}
 
 \item{...}{Additional arguments passed to the underlying CGF creation function
 (e.g., optional operator overrides).}

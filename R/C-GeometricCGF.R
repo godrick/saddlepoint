@@ -40,6 +40,8 @@ GeometricCGF <- createCGF_fromVectorisedFunctions(
   K_vectorized_func = function(tvec, p) log(p[1])-log( 1 - exp(tvec) + p[1]*exp(tvec) ),
   K1_vectorized_func = function(tvec, p) (exp(tvec) - p[1]*exp(tvec)) / (1 - exp(tvec) + p[1]*exp(tvec)),
   
+  
+  
   K2_vectorized_func = function(tvec, p) {
     tmp_ <- 1 - exp(tvec) + p[1]*exp(tvec)
     (exp(tvec) - p[1]*exp(tvec)) / tmp_^2 
@@ -134,21 +136,19 @@ expandP <- function(vec, pval, iidReps) {
 #'
 #' @param prob A function (or adaptor) that accepts a single parameter vector \code{theta}
 #'   and returns the success probability \eqn{prob} (a scalar) or a vector of probabilities.
-#' @param iidReps Either `NULL` (no forced dimension) or a positive integer specifying
-#'   that \code{tvec} is partitioned into `iidReps` blocks. Each block is one copy
-#'   of the geometric variables (or multiple if `prob` is vector).
+#' @param iidReps Either \code{"any"} (no forced dimension) or a positive integer specifying how many
+#'   i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if `prob` is vector).
 #' @param ... Additional arguments passed to the underlying CGF creation function
 #'   (e.g., optional operator overrides).
 #'
 #' @return A CGF object
 #' @export
-GeometricModelCGF <- function(prob, iidReps = NULL, ...) {
-  
-  # Validate
+GeometricModelCGF <- function(prob, iidReps = "any", ...) {
+  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
   if (!is.null(iidReps)) {
-    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
-        iidReps < 1 || iidReps != as.integer(iidReps)) {
-      stop("'iidReps' must be NULL or a positive integer.")
+    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
+        iidReps < 1 || iidReps != as.integer(iidReps) )  {
+      stop("'iidReps' must be 'any' or a positive integer.")
     }
   }
   
@@ -167,8 +167,7 @@ GeometricModelCGF <- function(prob, iidReps = NULL, ...) {
     
     K1_vectorized_func = function(tvec, pval) {
       p_expanded <- expandP(tvec, pval, iidReps)
-      tmp_ <- 1 - exp(tvec) + p_expanded*exp(tvec)
-      (exp(tvec) - p_expanded*exp(tvec)) / tmp_^2 
+      (exp(tvec) - p_expanded*exp(tvec)) / (1 - exp(tvec) + p_expanded*exp(tvec))
     },
     
     K2_vectorized_func = function(tvec, pval) {
@@ -184,7 +183,7 @@ GeometricModelCGF <- function(prob, iidReps = NULL, ...) {
     },
     
     K4_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval)
+      p_expanded <- expandP(tvec, pval, iidReps)
       tmp_ <- 1 - exp(tvec) + p_expanded*exp(tvec)
       (exp(tvec) - p_expanded*exp(tvec)) * (1 + exp(2*tvec) + 4*exp(tvec) - 2*p_expanded*exp(2*tvec) - 4*p_expanded*exp(tvec) + p_expanded^2*exp(2*tvec)) / tmp_^4
     },
@@ -193,12 +192,12 @@ GeometricModelCGF <- function(prob, iidReps = NULL, ...) {
     ineq_constraint_func = function(tvec, pval) {
       # We'll return block of length(tvec), requiring each entry t_i < -log(1 - pval_i)
       # That is: t_i + log(1 - pval_i) < 0
-      p_expanded <- expandP(tvec, pval)
+      p_expanded <- expandP(tvec, pval, iidReps)
       (1-p_expanded)*exp(tvec) - 1  # must be <0
     },
     
     analytic_tvec_hat_func = function(y, pval) {
-      p_expanded <- expandP(y, pval)
+      p_expanded <- expandP(y, pval, iidReps)
       log(y) - log(1 + y - p_expanded - p_expanded*y)
     },
     

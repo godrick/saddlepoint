@@ -13,8 +13,8 @@
 #' \eqn{\tilde{X}_i} are i.i.d. random variables independent of \eqn{N}, which is a non-negative integer-valued random variable.
 #' 
 #'
-#' @param count_cgf A `CGF` object for the random variable \eqn{N}.
-#' @param summand_cgf A `CGF` object for the random variable of each \eqn{X_i}.
+#' @param count_cgf A `CGF` object corresponding to the random variable \eqn{N} in the sum \deqn{{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}}
+#' @param summand_cgf A `CGF` object corresponding to the summand random variables \eqn{X_i} in the sum \deqn{{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}}
 #' @param block_size Either `NULL` or a positive integer specifying the size of each block
 #'   for i.i.d. replication. Defaults to `NULL`.
 #' @param iidReps Either `NULL` or a positive integer specifying how many i.i.d. blocks 
@@ -65,9 +65,26 @@ randomlyStoppedSumCGF <- function(count_cgf,
                                   ...) 
 {
   if (!inherits(count_cgf, "CGF")) stop("'count_cgf' must be a CGF object.")
-  
   if (!inherits(summand_cgf, "CGF")) stop("'summand_cgf' must be a CGF object.")
   
+  # Only one of (iidReps, block_size) can be set:
+  if (!is.null(iidReps) && !is.null(block_size)) stop("Please specify only one of 'iidReps' or 'block_size', not both.")
+  
+  # if iidReps is set:
+  if (!is.null(iidReps)) {
+    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
+        iidReps < 1 || iidReps != as.integer(iidReps)) {
+      stop("'iidReps' must be NULL or a positive integer.")
+    }
+  }
+  
+  # if block_size is set:
+  if (!is.null(block_size)) {
+    if (!is.numeric(block_size) || length(block_size) != 1 ||
+        block_size < 1 || block_size != as.integer(block_size)) {
+      stop("'block_size' must be NULL or a positive integer.")
+    }
+  }
   
   # Validate or transform the param adaptor
   if (!is.null(adaptor)) adaptor <- validate_function_or_adaptor(adaptor)
@@ -194,11 +211,24 @@ randomlyStoppedSumCGF <- function(count_cgf,
   
   # If we need an adaptor:
   if (!is.null(adaptor)) base_res <- adaptCGF(cgf = base_res, param_adaptor = adaptor)
-  
-
   if (is.null(block_size) && is.null(iidReps)) return(base_res)
   if (!is.null(iidReps) && iidReps == 1) return(base_res)
-  
-  
   iidReplicatesCGF(cgf = base_res, iidReps = iidReps, block_size = block_size, ...)
+  
+  
+  # # If no replication is requested:
+  # if (is.null(block_size) && is.null(iidReps)) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = base_res, param_adaptor = adaptor))
+  #   return(base_res)
+  # }
+  # # If iidReps is 1, no change is needed:
+  # if (!is.null(iidReps) && iidReps == 1) {
+  #   if (!is.null(adaptor)) return(adaptCGF(cgf = base_res, param_adaptor = adaptor))
+  #   return(base_res)
+  # }
+  # # If replication is required (iidReps not NULL and not 1, or block_size is set):
+  # base_res <- iidReplicatesCGF(cgf = base_res, iidReps = iidReps, block_size = block_size, ...)
+  # # Now apply adaptation after replication, if an adaptor is provided.
+  # if (!is.null(adaptor)) base_res <- adaptCGF(cgf = base_res, param_adaptor = adaptor)
+  # return(base_res)
 }

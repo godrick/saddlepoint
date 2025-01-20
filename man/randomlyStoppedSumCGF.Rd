@@ -14,9 +14,9 @@ randomlyStoppedSumCGF(
 )
 }
 \arguments{
-\item{count_cgf}{A \code{CGF} object for the random variable \eqn{N}.}
+\item{count_cgf}{A \code{CGF} object corresponding to the random variable \eqn{N} in the sum \deqn{{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}}}
 
-\item{summand_cgf}{A \code{CGF} object for the random variable of each \eqn{X_i}.}
+\item{summand_cgf}{A \code{CGF} object corresponding to the summand random variables \eqn{X_i} in the sum \deqn{{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}}}
 
 \item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block
 for i.i.d. replication. Defaults to \code{NULL}.}

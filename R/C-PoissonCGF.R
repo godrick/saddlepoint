@@ -122,13 +122,13 @@ expandLam <- function(vec, lam, iidReps) {
 #'
 #' @description
 #' Creates a CGF for the Poisson distribution with a rate parameter (\eqn{\lambda}) determined 
-#' by a user-supplied `lambda` function or adaptor. Supports i.i.d. and non-identical contexts 
+#' by a user-supplied function or adaptor. Supports i.i.d. and non-identical contexts 
 #' with optional length enforcement via `iidReps`.
 #' 
 #' @param lambda An `adaptor` or a function mapping a parameter vector to a numeric vector rate(s).
 #'    The function must accept a single parameter vector and return the Poisson rate parameter (\eqn{\lambda}) or vector of rates.
-#' @param iidReps Either \code{NULL} (no length restriction on \code{tvec}) or a positive integer
-#'   specifying the required length of \code{tvec}. Defaults to \code{NULL}.
+#' @param iidReps Either \code{"any"} or a positive integer specifying how many
+#'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
 #' @param ... Additional arguments passed to the base CGF creation function, such as optional method overrides.
 #'
 #' @return A CGF object.
@@ -146,12 +146,15 @@ expandLam <- function(vec, lam, iidReps) {
 #' ex_repeat$K1(rep(0,6), c(2,5))
 #' 
 #' @export
-PoissonModelCGF <- function(lambda, iidReps = NULL, ...) {
-  # validate iidReps if not NULL
-  if (!is.null(iidReps) && (!is.numeric(iidReps) || length(iidReps) != 1 ||
-                            iidReps < 1 || iidReps != as.integer(iidReps))) {
-    stop("`iidReps` must be NULL or a positive integer.")
+PoissonModelCGF <- function(lambda, iidReps = "any", ...) {
+  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
+  if (!is.null(iidReps)) {
+    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
+        iidReps < 1 || iidReps != as.integer(iidReps) )  {
+      stop("'iidReps' must be 'any' or a positive integer.")
+    }
   }
+  
   
   # Validate lambda function/adaptor
   lambda_adaptor <- validate_function_or_adaptor(obj = lambda)
