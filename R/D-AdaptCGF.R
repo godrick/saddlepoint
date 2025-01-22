@@ -102,8 +102,8 @@ adaptCGF <- function(cgf, param_adaptor, ...) {
   }
   
   if(cgf$has_analytic_tvec_hat()) {
-    wrapped_analytic_tvec_hat_func <- function(y, param) {
-      cgf$analytic_tvec_hat(y, param_adaptor(param))
+    wrapped_analytic_tvec_hat_func <- function(x, param) {
+      cgf$analytic_tvec_hat(x, param_adaptor(param))
     }
   } else {
     wrapped_analytic_tvec_hat_func <- NULL

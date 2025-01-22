@@ -57,7 +57,7 @@
 #   - K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
 #   - K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
 #   - ineq_constraint(tvec, parameter_vector)
-#   - compute_analytic_tvec_hat(y, parameter_vector)
+#   - compute_analytic_tvec_hat(x, parameter_vector)
 #
 # Other objects:
 #   - analytic_tvec_hat_func: a function that computes tvec from y and parameters
@@ -410,9 +410,9 @@ CGF <- R6::R6Class(
         !is.null(private$analytic_tvec_hat_func)
       }
       if(self$has_analytic_tvec_hat()) {
-        self$analytic_tvec_hat <- function(y, parameter_vector) {
-          stopifnot(is.numeric(y), !any(y <= 0))
-          private$analytic_tvec_hat_func(y, parameter_vector)
+        self$analytic_tvec_hat <- function(x, parameter_vector) {
+          stopifnot(is.numeric(x), !any(x <= 0))
+          private$analytic_tvec_hat_func(x, parameter_vector)
         }
       } else {
         self$analytic_tvec_hat <- NULL
@@ -540,7 +540,7 @@ CGF <- R6::R6Class(
 #' @param ineq_constraint Optional function for inequality constraints.
 #' 
 #' @param analytic_tvec_hat_func Optional function for an analytic solution
-#'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(y, param)`.
+#'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(x, param)`.
 #' @param op_name A descriptive label for this CGF object. Used for the print method.
 #'               Default is "UnnamedOperation".
 #' 

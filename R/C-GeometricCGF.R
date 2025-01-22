@@ -65,7 +65,7 @@ GeometricCGF <- createCGF_fromVectorisedFunctions(
     # return tvec + log(1 - p)
     (1-p[1])*exp(tvec) - 1
   },
-  analytic_tvec_hat_func = function(y, p) log(y) - log(1 + y - p[1] - p[1]*y),
+  analytic_tvec_hat_func = function(x, p) log(x) - log(1 + x - p[1] - p[1]*x),
   op_name = "GeometricCGF"
 )
 
@@ -80,39 +80,85 @@ GeometricCGF <- createCGF_fromVectorisedFunctions(
 
 
 # ----------------------------------------------------------------------------
-# Next, A parametric "Model", for i.i.d. and non-identical usage.
+# Next, A parametric model, for i.i.d. and non-identical usage.
 # ----------------------------------------------------------------------------
 
-# Helper to expand prob if needed
+
 #' @noRd
-expandP <- function(vec, pval, iidReps) {
+validateProbLengths <- function(vec, prob, iidReps) {
   len_vec <- length(vec)
-  len_p <- length(pval)
+  len_prob <- length(prob)
   
   if (!is.null(iidReps)) {
-    # forced dimension => expected = len_p * iidReps
-    expected_ <- len_p * iidReps
+    expected_ <- len_prob * iidReps
     if (len_vec != expected_) {
       stop(sprintf(
-        "`tvec/observations` has length %d; expected %d (p length=%d, iidReps=%d).",
-        len_vec, expected_, len_p, iidReps
+        "`(tvec/x)` has length %d; expected %d (prob length=%d, iidReps=%d).",
+        len_vec, expected_, len_prob, iidReps
       ))
     }
-    return(rep(pval, times = iidReps))
+  } else if (len_vec %% len_prob != 0) {
+    stop(sprintf(
+      "Length mismatch: prob length=%d, (tvec/x) length=%d. Length of (tvec/x) must be a multiple of prob length.",
+      len_prob, len_vec
+    ))
   }
-  
-  if (is.null(iidReps) && (len_vec %% len_p == 0)) {
-    times_ <- len_vec / len_p
-    return( rep(pval, times = times_) )
-  }
-  
-  stop(sprintf(
-    "Length mismatch: prob length=%d, tvec/observations length=%d. Either lambda=1, tvec/observatiosn length is a multiple of prob length, or they match exactly.",
-    len_p, len_vec
-  ))
-  
-  
 }
+
+
+.GeometricModelCGF_internal <- function(iidReps, ...){
+  # Build the base CGF for vectorized usage
+  createCGF_fromVectorisedFunctions(
+    
+    # K(t)= log p - log(1 - e^t + p e^t), but we must expand prob if it's multi
+    K_vectorized_func = function(tvec, pval) {
+      validateProbLengths(tvec, pval, iidReps)
+      log(pval) - log(1 - exp(tvec) + pval * exp(tvec))
+    },
+    
+    K1_vectorized_func = function(tvec, pval) {
+      validateProbLengths(tvec, pval, iidReps)
+      (exp(tvec) - pval*exp(tvec)) / (1 - exp(tvec) + pval*exp(tvec))
+    },
+    
+    K2_vectorized_func = function(tvec, pval) {
+      validateProbLengths(tvec, pval, iidReps)
+      tmp_ <- 1 - exp(tvec) + pval*exp(tvec)
+      (exp(tvec) - pval*exp(tvec)) / tmp_^2 
+    },
+    
+    K3_vectorized_func = function(tvec, pval) {
+      validateProbLengths(tvec, pval, iidReps)
+      tmp_ <- 1 - exp(tvec) + pval*exp(tvec)
+      (exp(tvec) - pval*exp(tvec)) * (1 + exp(tvec) - pval*exp(tvec) ) / tmp_^3
+    },
+    
+    K4_vectorized_func = function(tvec, pval) {
+      validateProbLengths(tvec, pval, iidReps)
+      tmp_ <- 1 - exp(tvec) + pval*exp(tvec)
+      (exp(tvec) - pval*exp(tvec)) * (1 + exp(2*tvec) + 4*exp(tvec) - 2*pval*exp(2*tvec) - 4*pval*exp(tvec) + pval^2*exp(2*tvec)) / tmp_^4
+    },
+    
+    
+    ineq_constraint_func = function(tvec, pval) {
+      # We'll return block of length(tvec), requiring each entry t_i < -log(1 - pval_i)
+      # That is: t_i + log(1 - pval_i) < 0
+      validateProbLengths(tvec, pval, iidReps)
+      (1-pval)*exp(tvec) - 1  # must be <0
+    },
+    
+    analytic_tvec_hat_func = function(x, pval) {
+      validateProbLengths(x, pval, iidReps)
+      log(x) - log(1 + x - pval - pval*x)
+    },
+    
+    op_name = "GeometricModelCGF",
+    ...
+  )
+}
+
+
+
 
 
 
@@ -153,57 +199,7 @@ GeometricModelCGF <- function(prob, iidReps = "any", ...) {
   }
   
   p_adaptor <- validate_function_or_adaptor(prob)
-  
-  
-  
-  # Build the base CGF for vectorized usage
-  base_cgf <- createCGF_fromVectorisedFunctions(
-    
-    # K(t)= log p - log(1 - e^t + p e^t), but we must expand prob if it's multi
-    K_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval, iidReps)
-      log(p_expanded) - log(1 - exp(tvec) + p_expanded * exp(tvec))
-    },
-    
-    K1_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval, iidReps)
-      (exp(tvec) - p_expanded*exp(tvec)) / (1 - exp(tvec) + p_expanded*exp(tvec))
-    },
-    
-    K2_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval, iidReps)
-      tmp_ <- 1 - exp(tvec) + p_expanded*exp(tvec)
-      (exp(tvec) - p_expanded*exp(tvec)) / tmp_^2 
-    },
-    
-    K3_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval, iidReps)
-      tmp_ <- 1 - exp(tvec) + p_expanded*exp(tvec)
-      (exp(tvec) - p_expanded*exp(tvec)) * (1 + exp(tvec) - p_expanded*exp(tvec) ) / tmp_^3
-    },
-    
-    K4_vectorized_func = function(tvec, pval) {
-      p_expanded <- expandP(tvec, pval, iidReps)
-      tmp_ <- 1 - exp(tvec) + p_expanded*exp(tvec)
-      (exp(tvec) - p_expanded*exp(tvec)) * (1 + exp(2*tvec) + 4*exp(tvec) - 2*p_expanded*exp(2*tvec) - 4*p_expanded*exp(tvec) + p_expanded^2*exp(2*tvec)) / tmp_^4
-    },
-    
-
-    ineq_constraint_func = function(tvec, pval) {
-      # We'll return block of length(tvec), requiring each entry t_i < -log(1 - pval_i)
-      # That is: t_i + log(1 - pval_i) < 0
-      p_expanded <- expandP(tvec, pval, iidReps)
-      (1-p_expanded)*exp(tvec) - 1  # must be <0
-    },
-    
-    analytic_tvec_hat_func = function(y, pval) {
-      p_expanded <- expandP(y, pval, iidReps)
-      log(y) - log(1 + y - p_expanded - p_expanded*y)
-    },
-    
-    op_name = "GeometricModelCGF",
-    ...
-  )
+  base_cgf <- .GeometricModelCGF_internal(iidReps, ...)
   adaptCGF(cgf = base_cgf, param_adaptor = p_adaptor)
 }
 

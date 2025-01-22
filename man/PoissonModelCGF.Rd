@@ -29,7 +29,7 @@ ex_iid <- PoissonModelCGF(lambda = function(x) x[1])
 # OR ex_iid <- PoissonModelCGF(lambda = function(x) x[1], iidReps = 3)
 ex_iid$K1(rep(0,3), 2)
 
-# ex 3: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
+# ex 2: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
 ex_repeat <- PoissonModelCGF(lambda = adaptor(indices = 1:2), iidReps = 3)
 # OR ex_repeat <- PoissonModelCGF(lambda = function(x) c(2,5) )
 ex_repeat$K1(rep(0,6), c(2,5))

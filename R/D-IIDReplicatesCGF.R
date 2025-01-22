@@ -277,17 +277,17 @@ iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
     
     # for the analytic_tvec_hat_func:
     # We'll do a chunk approach if cgf$analytic_tvec_hat() is non-NULL:
-    # e.g. chunk y => pass each chunk to cgf$analytic_tvec_hat => combine?
+    # e.g. chunk x => pass each chunk to cgf$analytic_tvec_hat => combine?
     #### Check if this doesn't make sense, (default to NULL if that's the case)
     if (cgf$has_analytic_tvec_hat() ) {
       # define a chunk aggregator
-      analytic_tvec_hat_func <- function(y, param) {
-        block_size <- length(y) / iidReps
-        # we chunk y and call base_analytic_hat
-        out_ <- numeric(length(y))*param[1]  #### Modified to depend on `param`
+      analytic_tvec_hat_func <- function(x, param) {
+        block_size <- length(x) / iidReps
+        # we chunk x and call base_analytic_hat
+        out_ <- numeric(length(x))*param[1]  #### Modified to depend on `param`
         for (i in 1:iidReps) {
           idx <- chunkIndices(i, block_size)
-          out_[idx] <- cgf$analytic_tvec_hat(y[idx], param)
+          out_[idx] <- cgf$analytic_tvec_hat(x[idx], param)
         }
         out_
       }
@@ -489,15 +489,15 @@ iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
     
     if ( cgf$has_analytic_tvec_hat()  ) {
       # define a chunk aggregator
-      analytic_tvec_hat_func <- function(y, param) {
-        if (length(y) %% block_size != 0) stop("Length of y must be divisible by block_size.")
-        nBlocks <- length(y) / block_size
+      analytic_tvec_hat_func <- function(x, param) {
+        if (length(x) %% block_size != 0) stop("Length of x must be divisible by block_size.")
+        nBlocks <- length(x) / block_size
 
-        # we chunk y and call base_analytic_hat
-        out_ <- numeric(length(y))*param[1]  #### Modified to depend on `param`
+        # we chunk x and call base_analytic_hat
+        out_ <- numeric(length(x))*param[1]  #### Modified to depend on `param`
         for (i in 1:nBlocks) {
           idx <- chunkIndices(i, block_size)
-          out_[idx] <- cgf$analytic_tvec_hat(y[idx], param)
+          out_[idx] <- cgf$analytic_tvec_hat(x[idx], param)
         }
         out_
       }
@@ -517,7 +517,6 @@ iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
           K3operator = K3operatorfun, 
           K4operator = K4operatorfun, 
           ineq_constraint = ineq_constraintfun,
-          param_adaptor = function(x) x,
           analytic_tvec_hat_func = analytic_tvec_hat_func,
           tilting_exponent = tiltingfun,
           neg_ll = negllfun,

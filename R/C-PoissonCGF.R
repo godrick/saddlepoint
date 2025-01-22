@@ -1,5 +1,5 @@
 # R/PoissonCGF.R
-# Objects: PoissonCGF, PoissonModelCGF, expandLam
+# Objects: PoissonCGF, validateLamLengths, .PoissonModelCGF_internal, PoissonModelCGF
 
 
 
@@ -28,7 +28,7 @@ PoissonCGF <- createCGF_fromVectorisedFunctions(
   K2_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
   K3_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) },
   K4_vectorized_func = function(tvec, lambda) { lambda[1] * exp(tvec) }
-  , analytic_tvec_hat_func = function(y, lambda)  log(y / lambda[1]) # solution of the saddlepoint equation
+  , analytic_tvec_hat_func = function(x, lambda)  log(x / lambda[1]) # solution of the saddlepoint equation
   , op_name = "PoissonCGF"
 )
 
@@ -45,27 +45,37 @@ PoissonCGF <- createCGF_fromVectorisedFunctions(
 
 
 
+
+
+
+
+
+
+
 # ------------------------------------------------------------------
-# Helper: expand lam to match tvec length, 
+# Helper: validate lam to match tvec length, 
 # depending on the presence/value of iidReps
 # ------------------------------------------------------------------
 
-#' Expand a Poisson rate vector to match vector length
+#' Validate Compatibility of Lambda and Vector Lengths
 #'
 #' @description
-#' Expands a numeric vector `lam` (Poisson rates) to match the length of another
-#' numeric vector (`tvec` or `y`), based on the value of `iidReps`. It handles:
-#' - i.i.d. scenario when `iidReps` is specified.
-#' - Non-identical/flexible scenario when `iidReps` is NULL.
+#' Validates that a numeric vector `lam` (Poisson rates) is 
+#' compatible with the length of another numeric vector (`vec`, such as `tvec` or `x`)
+#' based on the value of `iidReps`. It ensures:
+#' - For an i.i.d. scenario (`iidReps` specified): 
+#'   `length(vec)` equals `length(lam) * iidReps`.
+#' - For a non-i.i.d. scenario (`iidReps` is NULL): 
+#'   `length(vec)` is a multiple of `length(lam)`.
 #'
-#' @param vec Numeric vector (e.g., `tvec` or `y`) whose length determines the expansion.
+#' @param vec Numeric vector (e.g., `tvec` or `x`) whose length is checked.
 #' @param lam Numeric vector of Poisson rates.
 #' @param iidReps Either `NULL` or a positive integer specifying replication.
 #'
-#' @return A numeric vector of Poisson rates expanded to match the length of `vec`.
+#' @return No return value; stops execution if validation fails.
 #'
 #' @noRd
-expandLam <- function(vec, lam, iidReps) {
+validateLamLengths <- function(vec, lam, iidReps) {
   len_vec <- length(vec)
   len_lam <- length(lam)
   
@@ -73,23 +83,17 @@ expandLam <- function(vec, lam, iidReps) {
     expected_ <- len_lam * iidReps
     if (len_vec != expected_) {
       stop(sprintf(
-        "`tvec/observations` has length %d; expected %d (lam length=%d, iidReps=%d).",
+        "`(tvec/x)` has length %d; expected %d (lam length=%d, iidReps=%d).",
         len_vec, expected_, len_lam, iidReps
       ))
     }
-    return( rep(lam, times = iidReps) ) # This covers both univariate and multivariate i.i.d. cases when we want to replicate the lam vector as blocks.
+  } else if (len_vec %% len_lam != 0) {
+    stop(sprintf(
+      "Length mismatch: lambda length=%d, (tvec/x) length=%d. Length of (tvec/x) must be a multiple of lambda length.",
+      len_lam, len_vec
+    ))
   }
-  
-  if (is.null(iidReps) && len_vec %% len_lam == 0){
-    times_ <- len_vec / len_lam
-    return( rep(lam, times = times_) )
-  }
-      
-  stop(sprintf(
-    "Length mismatch: lambda length=%d, tvec/observation length=%d. Either lambda=1, tvec/observation length is a multiple of lambda length, or they match exactly.",
-    len_lam, len_vec
-  ))
-  
+  # No return value needed; function ends if validation passes.
 }
 
 
@@ -103,8 +107,39 @@ expandLam <- function(vec, lam, iidReps) {
 
 
 
-
-
+.PoissonModelCGF_internal <- function(iidReps, ...) {
+  
+  # Create the base Poisson CGF using pre-validated iidReps
+  createCGF_fromVectorisedFunctions(
+    K_vectorized_func  = function(tvec, lam) { 
+      validateLamLengths(tvec, lam, iidReps)
+      lam*(exp(tvec) - 1)
+    },
+    K1_vectorized_func = function(tvec, lam) { 
+      validateLamLengths(tvec, lam, iidReps)
+      lam*exp(tvec) 
+    },
+    K2_vectorized_func = function(tvec, lam) { 
+      validateLamLengths(tvec, lam, iidReps)
+      lam*exp(tvec) 
+    },
+    K3_vectorized_func = function(tvec, lam) { 
+      validateLamLengths(tvec, lam, iidReps)
+      lam*exp(tvec) 
+    },
+    K4_vectorized_func = function(tvec, lam) { 
+      validateLamLengths(tvec, lam, iidReps)
+      lam*exp(tvec) 
+    },
+    analytic_tvec_hat_func = function(x, lam)  {
+      validateLamLengths(x, lam, iidReps)
+      log(x / lam)
+    }, 
+    op_name = "PoissonModelCGF",
+    ...  # Pass any additional optional arguments
+  )
+  
+}
 
 
 
@@ -140,7 +175,7 @@ expandLam <- function(vec, lam, iidReps) {
 #' # OR ex_iid <- PoissonModelCGF(lambda = function(x) x[1], iidReps = 3)
 #' ex_iid$K1(rep(0,3), 2)
 #'
-#' # ex 3: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
+#' # ex 2: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
 #' ex_repeat <- PoissonModelCGF(lambda = adaptor(indices = 1:2), iidReps = 3)
 #' # OR ex_repeat <- PoissonModelCGF(lambda = function(x) c(2,5) )
 #' ex_repeat$K1(rep(0,6), c(2,5))
@@ -155,40 +190,11 @@ PoissonModelCGF <- function(lambda, iidReps = "any", ...) {
     }
   }
   
-  
   # Validate lambda function/adaptor
   lambda_adaptor <- validate_function_or_adaptor(obj = lambda)
   
+  base_cgf <- .PoissonModelCGF_internal(iidReps, ...)
   
-  # Create the base Poisson CGF
-  base_cgf <- createCGF_fromVectorisedFunctions(
-    K_vectorized_func  = function(tvec, lam) { 
-      lam_expanded <- expandLam(tvec, lam, iidReps)
-      lam_expanded*(exp(tvec) - 1)
-    },
-    K1_vectorized_func = function(tvec, lam) { 
-      lam_expanded <- expandLam(tvec, lam, iidReps)
-      lam_expanded*exp(tvec) 
-    },
-    K2_vectorized_func = function(tvec, lam) { 
-      lam_expanded <- expandLam(tvec, lam, iidReps)
-      lam_expanded*exp(tvec) 
-    },
-    K3_vectorized_func = function(tvec, lam) { 
-      lam_expanded <- expandLam(tvec, lam, iidReps)
-      lam_expanded*exp(tvec) 
-    },
-    K4_vectorized_func = function(tvec, lam) { 
-      lam_expanded <- expandLam(tvec, lam, iidReps)
-      lam_expanded*exp(tvec) 
-    },
-    analytic_tvec_hat_func = function(y, lam)  {
-      lam_expanded <- expandLam(y, lam, iidReps)
-      log(y / lam_expanded)
-    }, 
-    op_name = "PoissonModelCGF",
-    ...  # Pass any additional optional arguments
-  )
   adaptCGF(cgf = base_cgf, param_adaptor = lambda_adaptor)
 }
 

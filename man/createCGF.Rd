@@ -41,7 +41,7 @@ createCGF(
 \item{ineq_constraint}{Optional function for inequality constraints.}
 
 \item{analytic_tvec_hat_func}{Optional function for an analytic solution
-of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(y, param)}.}
+of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(x, param)}.}
 
 \item{op_name}{A descriptive label for this CGF object. Used for the print method.
 Default is "UnnamedOperation".}
