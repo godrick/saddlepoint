@@ -2,42 +2,55 @@
 % Please edit documentation in R/C-SubunitaryMultinomialCGF.R
 \name{SubunitaryMultinomialModelCGF}
 \alias{SubunitaryMultinomialModelCGF}
-\title{SubunitaryMultinomialModelCGF}
+\title{Subunitary Multinomial CGF}
 \usage{
-SubunitaryMultinomialModelCGF(
-  n,
-  prob_vec,
-  block_size = NULL,
-  iidReps = NULL,
-  ...
-)
+SubunitaryMultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
 }
 \arguments{
 \item{n}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric}, returning the number of trials in the multinomial distribution.}
 
-\item{prob_vec}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric vector}, returning
-the multinomial probabilities. The sum of these probabilities should be strictly less than one to validate the occurrence of the known zero outcome.}
+\item{prob_vec}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric},
+returning the multinomial probabilities for the \eqn{d} active categories.
+The sum of these probabilities should be strictly less than one to account for
+the excluded category.}
 
-\item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block
-for i.i.d. replication. Defaults to \code{NULL}.}
+\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
+i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
 
-\item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
-to expect. Defaults to \code{NULL}.}
-
-\item{...}{Additional named arguments passed to \code{\link{createCGF}}.}
+\item{...}{Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.}
 }
 \value{
-A \eqn{CGF} object.
+A \code{CGF} object.
 }
 \description{
-Generates a CGF object derived from a modified Multinomial distribution. This modification accommodates instances where certain outcomes are explicitly zero, and consequently, the probabilities associated with the remaining non-zero outcomes sum to a value less than one.
+Constructs the CGF object for a multinomial distribution
+in which one of the categories is \emph{known} to have zero counts, leaving
+the remaining \eqn{d} categories with a total probability less than one.
 }
 \details{
-Given \eqn{x_1,...,x_k} as the non-zero outcomes of a Multinomial distribution that sum to \eqn{N},
-with each outcome having an associated probability \eqn{p_i} where \eqn{ \sum_{i=1}^{k} p_i < 1},
-this CGF is designed to integrate the occurrence of a known zero outcome, \eqn{x_{k+1}}, thereby ensuring \eqn{ \sum_{i=1}^{k+1} p_i = 1}.
+Let \eqn{Y \sim \mathrm{Multinomial}(N,\pi_1,\dots,\pi_d,\pi_{d+1})} with
+\eqn{\sum_{i=1}^{d+1} \pi_i = 1}. Conditioning on \eqn{\{Y_{d+1}=0\}}, we have
+\eqn{W = (Y \mid Y_{d+1}=0) \sim \mathrm{Multinomial}(N,p_1,\dots,p_d) }, where
+\deqn{
+  p_i = \frac{\pi_i}{\sum_{j=1}^d \pi_j}, \quad i=1,\dots,d.
+}
 
-This approach allows for the modeling and analysis of Multinomial distributions in situations where some categories are known not to be observed and the probabilities of observing the other categories are adjusted accordingly.
+\strong{The CGF:}
+From the perspective of restricting to \eqn{\{Y_{d+1}=0\}}, one effectively sets
+\eqn{t_{d+1}=-\infty} in the multinomial CGF. This yields the \emph{subunitary} CGF:
+\deqn{
+  K_{\mathrm{subunitary}}(t_1,\dots,t_d) 
+  = \log\bigl\{\Pr(Y_{d+1}=0)\bigr\}
+  \;+\; 
+  K_{W}(t_1,\dots,t_d)\,,
+}
+where \eqn{\Pr(Y_{d+1}=0) = N \log\left(\!\sum_{i=1}^d \pi_i\right)} and
+\eqn{K_{W}} is the usual multinomial CGF for \eqn{\mathrm{Multinomial}(N,p_1,\dots,p_d)}.
+
+In many applications (such as certain capture-recapture models), some categories
+are effectively impossible based on observed data, so they can be merged into
+a single "impossible" category with zero count. The probabilities of the
+\eqn{d} active categories then sum to less than one.
 }
 \seealso{
 \code{\link{MultinomialModelCGF}}

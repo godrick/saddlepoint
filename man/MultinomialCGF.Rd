@@ -12,14 +12,27 @@ An object of class \code{CGF} (an R6 class), with standard methods
 MultinomialCGF
 }
 \description{
-A ready-to-use CGF object for a single multinomial random vector. For a more general object that handles i.i.d. cases, use \code{\link{MultinomialModelCGF}}.
+A ready-to-use CGF object for handling multiple i.i.d. multinomial random vectors.
+The number of multinomial random vectors is determined by the length of \code{tvec} and the length of the multinomial probability vector.
+For user-specified parameter mappings, refer to \code{\link{MultinomialModelCGF}}.
 }
 \details{
 \strong{Parameter Vector Interpretation}:
 The \code{parameter_vector} used when calling methods like \code{K1(tvec, parameter_vector)}
-should be of the form \eqn{(N, x_1, \dots, x_d)}, where \eqn{N} is the total count,
-and \eqn{x = x_i \dots x_d} can be any vector of non-negative entries, not all zero.
-Therefore, \eqn{x} can be the multinomial probability vector, and can also be interpreted as a vector of odds.
+should be of the form \eqn{(n, x_1, \dots, x_d)}, where:
+\itemize{
+\item \eqn{n} is the total count (a positive integer),
+\item \eqn{x = (x_1, \dots, x_d)} is a vector of non-negative entries, not all zero.
+}
+
+The vector \eqn{x} can be interpreted in two ways:
+\itemize{
+\item \strong{Odds}: \eqn{x_i} are odds values. Probabilities are derived as \eqn{p_i = x_i / \sum_{j=1}^{d} x_j}.
+\item \strong{Probabilities}: If \eqn{x} sums to 1, it is treated directly as the probability vector \eqn{p}.
+}
+
+\strong{IID Assumption}:
+All multinomial random vectors processed by \code{MultinomialCGF} are assumed to be i.i.d.
 }
 \examples{
 tvec <- rep(0,3)

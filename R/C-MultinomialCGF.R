@@ -2,17 +2,29 @@
 
 
 #' MultinomialCGF
-#'
-#' A ready-to-use CGF object for a single multinomial random vector. For a more general object that handles i.i.d. cases, use \code{\link{MultinomialModelCGF}}.
-#'  
+#' 
+#' A ready-to-use CGF object for handling multiple i.i.d. multinomial random vectors. 
+#' The number of multinomial random vectors is determined by the length of `tvec` and the length of the multinomial probability vector.
+#' For user-specified parameter mappings, refer to \code{\link{MultinomialModelCGF}}.
 #' 
 #' 
 #' @details
 #' **Parameter Vector Interpretation**:
-#' The `parameter_vector` used when calling methods like `K1(tvec, parameter_vector)`
-#' should be of the form \eqn{(N, x_1, \dots, x_d)}, where \eqn{N} is the total count,
-#' and \eqn{x = x_i \dots x_d} can be any vector of non-negative entries, not all zero.
-#' Therefore, \eqn{x} can be the multinomial probability vector, and can also be interpreted as a vector of odds.
+#' The `parameter_vector` used when calling methods like \code{K1(tvec, parameter_vector)}
+#' should be of the form \eqn{(n, x_1, \dots, x_d)}, where:
+#' \itemize{
+#'   \item \eqn{n} is the total count (a positive integer),
+#'   \item \eqn{x = (x_1, \dots, x_d)} is a vector of non-negative entries, not all zero.
+#' }
+#' 
+#' The vector \eqn{x} can be interpreted in two ways:
+#' \itemize{
+#'   \item **Odds**: \eqn{x_i} are odds values. Probabilities are derived as \eqn{p_i = x_i / \sum_{j=1}^{d} x_j}.
+#'   \item **Probabilities**: If \eqn{x} sums to 1, it is treated directly as the probability vector \eqn{p}.
+#' }
+#' 
+#' **IID Assumption**:
+#' All multinomial random vectors processed by `MultinomialCGF` are assumed to be i.i.d. 
 #' 
 #' @format An object of class \code{CGF} (an R6 class), with standard methods 
 #' \code{K}, \code{K1}, \code{K2}, \code{K3operator}, \code{K4operator}, etc.
@@ -36,72 +48,80 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #' Create a Parametric MultinomialCGF Object 
 #'
 #' @description
-#' Constructs a CGF object for the multinomial distribution with a user-specified
-#' parameter mapping. Optionally, you can replicate this CGF for \code{iidReps} 
-#' independent and identically distributed (i.i.d.) observations.
-#' 
-#'
-#' @param n A function of the form \code{function(theta) -> numeric}, returning the total count \eqn{n}.
-#' @param prob_vec A function of the form \code{function(theta) -> numeric vector}, returning
-#'   the probabilities/odds for the multinomial distribution.
-#' @param block_size Either `NULL` or a positive integer specifying the size of each block
-#'   for i.i.d. replication. Defaults to `NULL`.
-#' @param iidReps Either `NULL` or a positive integer specifying how many i.i.d. blocks 
-#'   to expect. Defaults to `NULL`.
-#' @param ... Additional named arguments passed to \code{\link{createCGF}}.
+#' Constructs a CGF object for the multinomial distribution based on user-specified
+#' functions or adaptors that map a parameter vector \code{theta} to the multinomial's total count \eqn{n}
+#' and probability vector \eqn{p}. Optionally, you can replicate this CGF for \code{iidReps} 
+#' i.i.d. multinomial observations, thus imposing a length restriction on \code{tvec}.
 #' 
 #' 
-#' @return A CGF object.
+#' @details
+#' **User-Specified Parameter Mapping**:
+#' \itemize{
+#'   \item \code{n}: An adaptor or a function of the form \code{function(theta) -> numeric}. 
+#'         Must return a single numeric value, interpreted as the total count \eqn{n} for the multinomial distribution.
+#'         The returned value should be non-negative.
+#'   \item \code{prob_vec}: An adaptor or a function of the form \code{function(theta) -> numeric vector}. 
+#'         Must return a vector of non-negative entries, interpreted as probabilities or odds for the multinomial distribution.
+#'         If \eqn{prob_vec} sums to 1, it is treated as a probability vector; otherwise, it is normalized into probabilities.
+#' }
+#' 
+#' **I.I.D. Replicates**:
+#' By setting \code{iidReps} to a positive integer \eqn{m}, you declare that the input vector \eqn{tvec} will be split
+#' into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multinomial sample. 
+#' If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage where the dimension 
+#' of \eqn{tvec} can vary without implying i.i.d. blocks.
+#' 
+#' @param n An adaptor or function defining the total count \eqn{n(\theta)}. 
+#'   It must accept a parameter vector \eqn{\theta} and return a single numeric value.
+#' @param prob_vec An adaptor or function defining the probability (or odds) vector \eqn{p(\theta)}. 
+#'   It must accept a parameter vector \eqn{\theta} and return a numeric vector.
+#' @param iidReps Either \code{"any"} or a positive integer specifying how many
+#'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
+#' @param ... Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.
+#' 
+#' @return A `CGF` object (an R6 class) specialized for the multinomial distribution with user-defined mappings.
+#'   The returned object supports the usual CGF methods (\code{K}, \code{K1}, \code{K2}, \code{K3operator}, etc.).
+#'   
+#' @examples
+#' # Suppose we want n = 10, and probabilities = c(0.2, 0.3, 0.5).
+#' n_adaptor <- adaptor(fixed_param = 10)
+#' p_adaptor <- adaptor(fixed_param = c(0.2, 0.3, 0.5))
+#' 
+#' my_cgf <- MultinomialModelCGF(n = n_adaptor, prob_vec = p_adaptor, iidReps = 2)
+#' 
+#' # The resulting CGF object expects 2 i.i.d. multinomial blocks,
+#' # each of dimension 3. So tvec must be of length 6.
+#' tvec <- rep(0, 6)
+#' param <- c(0.2, 0.3, 0.5)  # or any unused parameter vector
+#' 
+#' # We can now compute, e.g., the gradient:
+#' my_cgf$K1(tvec, param)
 #'
 #'
 #' @export
 MultinomialModelCGF <- function(n,
                                 prob_vec,
-                                block_size = NULL,
-                                iidReps    = NULL,
+                                iidReps = "any",
                                 ...) {
-  
-  
-  # Only one of (iidReps, block_size) can be set:
-  if (!is.null(iidReps) && !is.null(block_size)) stop("Please specify only one of 'iidReps' or 'block_size', not both.")
-  
-  # if iidReps is set:
+  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
   if (!is.null(iidReps)) {
-    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
-        iidReps < 1 || iidReps != as.integer(iidReps)) {
-      stop("'iidReps' must be NULL or a positive integer.")
+    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
+        iidReps < 1 || iidReps != as.integer(iidReps) )  {
+      stop("'iidReps' must be 'any' or a positive integer.")
     }
   }
-  
-  # if block_size is set:
-  if (!is.null(block_size)) {
-    if (!is.numeric(block_size) || length(block_size) != 1 ||
-        block_size < 1 || block_size != as.integer(block_size)) {
-      stop("'block_size' must be NULL or a positive integer.")
-    }
-  }
-  
-  
-  n_fn <- validate_function_or_adaptor(n)
-  prob_vec_fn <- validate_function_or_adaptor(prob_vec)
-  
-  # adapt the user param into c(n, p1, p2, ..., p_d) 
-  param_adaptor <- function(theta) c(n_fn(theta), prob_vec_fn(theta))
-  
   
   multinom_cgf <- createMultinomialFamilyCGF(
     op_name = "MultinomialModelCGF",
     ...
   )
   
-  multinom_cgf <- adaptCGF(cgf = multinom_cgf, param_adaptor = param_adaptor)
+  n_fn <- validate_function_or_adaptor(n)
+  prob_vec_fn <- validate_function_or_adaptor(prob_vec)
+  # adapt the user param into c(n, p1, p2, ..., p_d) 
+  param_adaptor <- function(theta) c(n_fn(theta), prob_vec_fn(theta))
   
-  
-  if (is.null(block_size) && is.null(iidReps)) return(multinom_cgf)
-  if (!is.null(iidReps) && iidReps == 1) return(multinom_cgf)
-  iidReplicatesCGF(cgf = multinom_cgf, iidReps = iidReps, block_size = block_size, ...)
-  
-
+  adaptCGF(cgf = multinom_cgf, param_adaptor = param_adaptor)
 }
 
 

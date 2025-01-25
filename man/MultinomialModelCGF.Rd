@@ -4,27 +4,61 @@
 \alias{MultinomialModelCGF}
 \title{Create a Parametric MultinomialCGF Object}
 \usage{
-MultinomialModelCGF(n, prob_vec, block_size = NULL, iidReps = NULL, ...)
+MultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
 }
 \arguments{
-\item{n}{A function of the form \code{function(theta) -> numeric}, returning the total count \eqn{n}.}
+\item{n}{An adaptor or function defining the total count \eqn{n(\theta)}.
+It must accept a parameter vector \eqn{\theta} and return a single numeric value.}
 
-\item{prob_vec}{A function of the form \code{function(theta) -> numeric vector}, returning
-the probabilities/odds for the multinomial distribution.}
+\item{prob_vec}{An adaptor or function defining the probability (or odds) vector \eqn{p(\theta)}.
+It must accept a parameter vector \eqn{\theta} and return a numeric vector.}
 
-\item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block
-for i.i.d. replication. Defaults to \code{NULL}.}
+\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
+i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
 
-\item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
-to expect. Defaults to \code{NULL}.}
-
-\item{...}{Additional named arguments passed to \code{\link{createCGF}}.}
+\item{...}{Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.}
 }
 \value{
-A CGF object.
+A \code{CGF} object (an R6 class) specialized for the multinomial distribution with user-defined mappings.
+The returned object supports the usual CGF methods (\code{K}, \code{K1}, \code{K2}, \code{K3operator}, etc.).
 }
 \description{
-Constructs a CGF object for the multinomial distribution with a user-specified
-parameter mapping. Optionally, you can replicate this CGF for \code{iidReps}
-independent and identically distributed (i.i.d.) observations.
+Constructs a CGF object for the multinomial distribution based on user-specified
+functions or adaptors that map a parameter vector \code{theta} to the multinomial's total count \eqn{n}
+and probability vector \eqn{p}. Optionally, you can replicate this CGF for \code{iidReps}
+i.i.d. multinomial observations, thus imposing a length restriction on \code{tvec}.
+}
+\details{
+\strong{User-Specified Parameter Mapping}:
+\itemize{
+\item \code{n}: An adaptor or a function of the form \code{function(theta) -> numeric}.
+Must return a single numeric value, interpreted as the total count \eqn{n} for the multinomial distribution.
+The returned value should be non-negative.
+\item \code{prob_vec}: An adaptor or a function of the form \code{function(theta) -> numeric vector}.
+Must return a vector of non-negative entries, interpreted as probabilities or odds for the multinomial distribution.
+If \eqn{prob_vec} sums to 1, it is treated as a probability vector; otherwise, it is normalized into probabilities.
+}
+
+\strong{I.I.D. Replicates}:
+By setting \code{iidReps} to a positive integer \eqn{m}, you declare that the input vector \eqn{tvec} will be split
+into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multinomial sample.
+If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage where the dimension
+of \eqn{tvec} can vary without implying i.i.d. blocks.
+}
+\examples{
+# Suppose we want n = 10, and probabilities = c(0.2, 0.3, 0.5).
+n_adaptor <- adaptor(fixed_param = 10)
+p_adaptor <- adaptor(fixed_param = c(0.2, 0.3, 0.5))
+
+my_cgf <- MultinomialModelCGF(n = n_adaptor, prob_vec = p_adaptor, iidReps = 2)
+
+# The resulting CGF object expects 2 i.i.d. multinomial blocks,
+# each of dimension 3. So tvec must be of length 6.
+tvec <- rep(0, 6)
+param <- c(0.2, 0.3, 0.5)  # or any unused parameter vector
+
+# We can now compute, e.g., the gradient:
+my_cgf$K1(tvec, param)
+
+
 }
