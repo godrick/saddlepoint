@@ -2,33 +2,37 @@
 % Please edit documentation in R/D-IIDReplicatesCGF.R
 \name{iidReplicatesCGF}
 \alias{iidReplicatesCGF}
-\title{Replicate a CGF over multiple i.i.d blocks or with a fixed block size}
+\title{Replicate a CGF object over multiple i.i.d. blocks and/or with a fixed block size}
 \usage{
 iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL, ...)
 }
 \arguments{
-\item{cgf}{A CGF object.}
+\item{cgf}{A \code{CGF} object.}
 
-\item{iidReps}{Either NULL or a positive integer specifying the number of IID blocks.}
+\item{iidReps}{Either \code{NULL} or a positive integer specifying the number of i.i.d. blocks.}
 
-\item{block_size}{Either NULL or a positive integer specifying the size of each block.}
+\item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block.}
 
-\item{...}{Additional arguments passed to \code{\link{createCGF}} in case
-you want to override any methods.}
+\item{...}{Additional arguments passed on to \code{\link{createCGF}} in case
+you want to override or extend any methods.}
 }
 \value{
 A new CGF object that operates on length-\eqn{m d} input vectors, chunked
 into \eqn{m} blocks, each block of length \eqn{d}.
 }
 \description{
-Extends a given CGF to handle multiple IID blocks based on either \code{iidReps}
-or a fixed \code{block_size}. Exactly one of these parameters must be provided.
+Extends a given \code{CGF} object to handle multiple i.i.d. blocks. You can specify:
+\itemize{
+\item \code{iidReps} only,
+\item \code{block_size} only,
+\item or both \code{iidReps} and \code{block_size}.
+}
 }
 \details{
 \itemize{
-\item If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
-\item If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
-\item Exactly one of \code{iidReps} or \code{block_size} should be non-NULL.
+\item If \code{iidReps} is provided (without \code{block_size}), the length of the input vector is split evenly into \code{iidReps} blocks.
+\item If \code{block_size} is provided (without \code{iidReps}), the input vector length determines how many blocks there are.
+\item If both are provided, the input vector length must be \code{block_size * iidReps}, creating exactly \code{iidReps} blocks, each of length \code{block_size}.
 }
 }
 \examples{

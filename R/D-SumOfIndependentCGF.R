@@ -227,7 +227,6 @@ sumOfIndependentCGF <- function(cgf_list, block_size = NULL, iidReps = NULL, ada
   K4AABBfun <- function(tvec, param, Q1, Q2) {
     total <- 0
     for (cg in cgf_list) {
-      print(cg$K4operatorAABB(tvec, param, Q1, Q2))
       total <- total + cg$K4operatorAABB(tvec, param, Q1, Q2)
     }
     total
