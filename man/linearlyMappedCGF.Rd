@@ -4,14 +4,7 @@
 \alias{linearlyMappedCGF}
 \title{CGF Object of a linearly mapped random variable \eqn{Y = A \, X}}
 \usage{
-linearlyMappedCGF(
-  cgf,
-  matrix_A,
-  block_size = NULL,
-  iidReps = NULL,
-  adaptor = NULL,
-  ...
-)
+linearlyMappedCGF(cgf, matrix_A, block_size = NULL, iidReps = NULL, ...)
 }
 \arguments{
 \item{cgf}{An object of class \code{CGF} for the base distribution \eqn{X}.}
@@ -25,12 +18,7 @@ Default is \code{NULL}.}
 \item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
 to expect. Default is \code{NULL}.}
 
-\item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the resulting CGF.
-It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-The default behavior is an identity function.}
-
-\item{...}{Additional named arguments passed to \code{\link{createCGF}} or possibly
-to \code{\link{iidReplicatesCGF}}.}
+\item{...}{Additional named arguments passed to \code{CGF} creation functions.}
 }
 \value{
 A \code{CGF} object for \eqn{Y = A \, X}.
@@ -45,14 +33,4 @@ Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
 
 If \code{matrix_A} is a function, it is called for each invocation of the CGF
 methods to retrieve the current matrix (allowing parameter-dependent transformations).
-}
-\details{
-If \code{block_size == NULL} (the default) and \code{iidReps == NULL} (the default), you get a single-block
-linear mapping. Otherwise:
-\itemize{
-\item If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
-\item If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
-\item Each block uses the same matrix \eqn{A} and is forwarded to the underlying \code{cgf}.
-\item Exactly one of \code{iidReps} or \code{block_size} can be non-\code{NULL}.
-}
 }

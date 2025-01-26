@@ -39,70 +39,16 @@
 
 
 
-#' @title CGF Object of a linearly mapped random variable \eqn{Y = A \, X}
-#' 
-#' @description
-#' Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
-#' \eqn{X} is described by the input CGF `cgf`. The argument `matrix_A` can be:
-#' 
-#' - **A numeric matrix** (dense or sparse).
-#' - **A function**: \eqn{\theta \mapsto A(\theta)} returning a numeric matrix.
-#'
-#' If `matrix_A` is a function, it is called for each invocation of the CGF
-#' methods to retrieve the current matrix (allowing parameter-dependent transformations).
-#' 
-#' 
-#'
-#'
-#' @param cgf An object of class `CGF` for the base distribution \eqn{X}.
-#' @param matrix_A Either a numeric matrix (dense or sparse), or a function:
-#'   \code{function(param) -> numeric matrix}.
-#' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
-#'   Default is \code{NULL}.
-#' @param iidReps Either \code{NULL} or a positive integer specifying how many i.i.d. blocks 
-#'   to expect. Default is \code{NULL}.
-#' @param adaptor A function to transform the global parameter vector \code{theta} into the parameter vector expected by the resulting CGF.
-#'   It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-#'   The default behavior is an identity function.
-#' @param ... Additional named arguments passed to \code{\link{createCGF}} or possibly
-#'   to \code{\link{iidReplicatesCGF}}.
-#'   
-#' @details
-#' If \code{block_size == NULL} (the default) and \code{iidReps == NULL} (the default), you get a single-block
-#' linear mapping. Otherwise:
-#' 
-#' - If \code{iidReps} is provided, the input vector is split into \code{iidReps} equal-sized blocks.
-#' - If \code{block_size} is provided, the number of blocks is determined by the length of the input vector.
-#' - Each block uses the same matrix \eqn{A} and is forwarded to the underlying `cgf`. 
-#' - Exactly one of \code{iidReps} or \code{block_size} can be non-\code{NULL}.
-#'
-#' @return A `CGF` object for \eqn{Y = A \, X}. 
-#' @export
-linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, adaptor = NULL, ...) {
-  if (!inherits(cgf, "CGF")) stop("'cgf' must be an object inheriting from class 'CGF'.")
-  
-  # Only one of (iidReps, block_size) can be set:
-  if (!is.null(iidReps) && !is.null(block_size)) stop("Please specify only one of 'iidReps' or 'block_size', not both.")
-  
-  # if iidReps is set:
-  if (!is.null(iidReps)) {
-    if (!is.numeric(iidReps) || length(iidReps) != 1 ||
-        iidReps < 1 || iidReps != as.integer(iidReps)) {
-      stop("'iidReps' must be NULL or a positive integer.")
-    }
-  }
-  
-  # if block_size is set:
-  if (!is.null(block_size)) {
-    if (!is.numeric(block_size) || length(block_size) != 1 ||
-        block_size < 1 || block_size != as.integer(block_size)) {
-      stop("'block_size' must be NULL or a positive integer.")
-    }
-  }
-  
-  # validate adaptor if provided
-  if (!is.null(adaptor)) adaptor = validate_function_or_adaptor(obj = adaptor)
-  
+
+
+
+
+
+
+
+
+
+.linearlyMappedCGF_internal <- function(cgf, matrix_A, ...){
   
   
   #---------------------------------------------
@@ -193,7 +139,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
                    parameter_vector,
                    as.vector(t(A_current) %*% x), 
                    as.vector(t(A_current) %*% y), 
-                   )
+    )
   }
   
   # Returns B K_Y'' B^T as a function of the supplied (non-parameter) argument B
@@ -211,7 +157,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
                    as.vector(t(A_current) %*% v1), 
                    as.vector(t(A_current) %*% v2), 
                    as.vector(t(A_current) %*% v3)
-                   )
+    )
   }
   
   K4operatorfun <- function(tvec, parameter_vector, v1, v2, v3, v4) {
@@ -222,7 +168,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
                    as.vector(t(A_current) %*% v2),
                    as.vector(t(A_current) %*% v3),
                    as.vector(t(A_current) %*% v4)
-                   )
+    )
   }
   
   
@@ -255,10 +201,10 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
   
   #### We avoid the factored forms for now (avoiding the potentially expensive loops)
   func_Tfun <- function(tvec, parameter_vector) {
-                         Q <- solve(K2fun(tvec, parameter_vector))
+    Q <- solve(K2fun(tvec, parameter_vector))
     K3K3operatorABCABC_val <- K3K3operatorABCABCfun(tvec, parameter_vector, Q, Q, Q)
     K3K3operatorAABBCC_val <- K3K3operatorAABBCCfun(tvec, parameter_vector, Q, Q, Q)
-        K4operatorAABB_val <- K4operatorAABBfun(tvec, parameter_vector, Q, Q)
+    K4operatorAABB_val <- K4operatorAABBfun(tvec, parameter_vector, Q, Q)
     K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12
   }
   
@@ -305,7 +251,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
   # ------------------------------------------------------------------
   # # Build the new mapped CGF using createCGF
   # ------------------------------------------------------------------
-  mapped_cgf <- createCGF(
+  createCGF(
     K = Kfun, 
     K1 = K1fun, 
     K2 = K2fun, 
@@ -327,9 +273,49 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
     op_name = c(cgf$call_history, "linearlyMappedCGF"),
     ...
   )
-  
-  if (!is.null(adaptor)) mapped_cgf <- adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor) # adapt the CGF if needed
-  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+#' @title CGF Object of a linearly mapped random variable \eqn{Y = A \, X}
+#' 
+#' @description
+#' Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
+#' \eqn{X} is described by the input CGF `cgf`. The argument `matrix_A` can be:
+#' 
+#' - **A numeric matrix** (dense or sparse).
+#' - **A function**: \eqn{\theta \mapsto A(\theta)} returning a numeric matrix.
+#'
+#' If `matrix_A` is a function, it is called for each invocation of the CGF
+#' methods to retrieve the current matrix (allowing parameter-dependent transformations).
+#' 
+#'
+#' @param cgf An object of class `CGF` for the base distribution \eqn{X}.
+#' @param matrix_A Either a numeric matrix (dense or sparse), or a function:
+#'   \code{function(param) -> numeric matrix}.
+#' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
+#'   Default is \code{NULL}.
+#' @param iidReps Either \code{NULL} or a positive integer specifying how many i.i.d. blocks 
+#'   to expect. Default is \code{NULL}.
+#' @param ... Additional named arguments passed to `CGF` creation functions.
+#'   
+#'
+#' @return A `CGF` object for \eqn{Y = A \, X}. 
+#' @export
+linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, ...) {
+  if (!inherits(cgf, "CGF")) stop("'cgf' must be an object inheriting from class 'CGF'.")
+  mapped_cgf <- .linearlyMappedCGF_internal(cgf, matrix_A, ...)
+ 
   #---------------------------------------------
   # # If iidReps == 1 => done. Otherwise wrap
   # # with iidReplicatesCGF().
@@ -337,28 +323,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, 
   #---------------------------------------------
   if (is.null(block_size) && is.null(iidReps)) return(mapped_cgf)
   if (!is.null(iidReps) && iidReps == 1) return(mapped_cgf)
-  
-  # For iidReps > 1 or valid block_size, we call an external aggregator that replicates blocks.
-  # Note: pass the single-block cgf to 'iidReplicatesCGF', which will 
-  # handle the chunking logic for all methods.
-  iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size, ...)
-  
-  
-  # # If no replication is requested:
-  # if (is.null(block_size) && is.null(iidReps)) {
-  #   if (!is.null(adaptor)) return(adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor))
-  #   return(mapped_cgf)
-  # }
-  # # If iidReps is 1, no change is needed:
-  # if (!is.null(iidReps) && iidReps == 1) {
-  #   if (!is.null(adaptor)) return(adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor))
-  #   return(mapped_cgf)
-  # }
-  # # If replication is required (iidReps not NULL and not 1, or block_size is set):
-  # mapped_cgf <- iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size, ...)
-  # # Now apply adaptation after replication, if an adaptor is provided.
-  # if (!is.null(adaptor)) mapped_cgf <- adaptCGF(cgf = mapped_cgf, param_adaptor = adaptor)
-  # return(mapped_cgf)
+  iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size)
 }
 
 
