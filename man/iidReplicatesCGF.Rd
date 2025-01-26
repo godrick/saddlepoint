@@ -4,7 +4,7 @@
 \alias{iidReplicatesCGF}
 \title{Replicate a CGF object over multiple i.i.d. blocks and/or with a fixed block size}
 \usage{
-iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL, ...)
+iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL)
 }
 \arguments{
 \item{cgf}{A \code{CGF} object.}
@@ -12,9 +12,6 @@ iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL, ...)
 \item{iidReps}{Either \code{NULL} or a positive integer specifying the number of i.i.d. blocks.}
 
 \item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block.}
-
-\item{...}{Additional arguments passed on to \code{\link{createCGF}} in case
-you want to override or extend any methods.}
 }
 \value{
 A new CGF object that operates on length-\eqn{m d} input vectors, chunked

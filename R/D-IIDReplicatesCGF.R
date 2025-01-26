@@ -58,7 +58,7 @@ chunkIndices <- function(i, block_size) {
 # Internal function; the actual implementation
 #   iidReps and block_size will have been by the calling function.
 # ------------------------------------------------------------------
-.iidReplicatesCGF_internal <- function(cgf, iidReps, block_size, ...) {
+.iidReplicatesCGF_internal <- function(cgf, iidReps, block_size) {
   useBoth   <- (!is.null(iidReps) && !is.null(block_size))
   onlyIID   <- (!is.null(iidReps) &&  is.null(block_size))
   onlyBlock <- ( is.null(iidReps) && !is.null(block_size))
@@ -400,8 +400,7 @@ chunkIndices <- function(i, block_size) {
     # K3K3operatorABCABC_factored = K3K3operatorABCABC_factoredfun,
     K2operator = K2operatorfun,
     K2operatorAK2AT = K2operatorAK2ATfun,
-    op_name = c(cgf$call_history, op_label),
-    ...
+    op_name = c(cgf$call_history, op_label)
   )
 
 }
@@ -436,8 +435,6 @@ chunkIndices <- function(i, block_size) {
 #' @param cgf A `CGF` object. 
 #' @param iidReps Either \code{NULL} or a positive integer specifying the number of i.i.d. blocks.
 #' @param block_size Either \code{NULL} or a positive integer specifying the size of each block.
-#' @param ... Additional arguments passed on to \code{\link{createCGF}} in case
-#'   you want to override or extend any methods.
 #'
 #' @return A new CGF object that operates on length-\eqn{m d} input vectors, chunked
 #'   into \eqn{m} blocks, each block of length \eqn{d}.
@@ -454,7 +451,7 @@ chunkIndices <- function(i, block_size) {
 #' #   aggregator <- iidReplicatesCGF(cgf, iidReps=5)
 #'
 #' @export
-iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
+iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL) {
   if (!inherits(cgf, "CGF")) stop("'cgf' must be a CGF object.")
   if (is.null(iidReps) && is.null(block_size)) stop("At least one of 'iidReps' or 'block_size' must be non-NULL.")
   if (!is.null(iidReps)) {
@@ -472,8 +469,7 @@ iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL, ...) {
   .iidReplicatesCGF_internal(
     cgf        = cgf, 
     iidReps    = iidReps,
-    block_size = block_size,
-    ...
+    block_size = block_size
   )
 
 }
