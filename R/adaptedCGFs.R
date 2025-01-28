@@ -83,7 +83,7 @@ BinomialModelCGF <- function(n, prob){
 #' @title Create a Parametric NegBin CGF object
 #' 
 #' @description
-#' Creates a CGF for the Negative Binomial distribution with the parameters `r` and `p` specified as adaptors or by user-supplied function. 
+#' Creates a CGF for the Negative Binomial distribution with the parameters `r` and `p` specified as adaptors or by user-supplied functions. 
 #' 
 #' @param r Adaptor or function representing the number of successes parameter of the Negative Binomial distribution.
 #' @param p Adaptor or function representing the success probability parameter of the Negative Binomial distribution.
@@ -91,6 +91,54 @@ BinomialModelCGF <- function(n, prob){
 #' @return 'CGF' object.
 #' 
 #' @export
+#' 
+#' @examples
+#' \dontrun{
+#' ## This example is a bit more involved than necessary, but it demonstrates the use of adaptors.
+#' ## r and p are transformed 
+#' r_adaptor <- function(theta) exp(theta[1])  # theta[1] = log(r)
+#' p_adaptor <- function(theta) 1 / (1 + exp(-theta[2]))  # theta[2] = logit(p)
+#' 
+#' ## Creating the CGF Object
+#' cgf <- NegBinModelCGF(r = r_adaptor, p = p_adaptor)
+#' 
+#' ## Some data for testing
+#' set.seed(123)
+#' x_data <- rnbinom(n = 50, size = 3, prob = 0.03)
+#' x_data <- x_data[x_data > 0] 
+#' 
+#' saddlepoint_fit <- find.saddlepoint.MLE(
+#'   observed.data = x_data,
+#'   cgf = cgf,
+#'   starting.theta = c(log(1), qlogis(0.5)),
+#'   discrepancy = TRUE  # Optional: include discrepancy measure
+#' )
+#' saddlepoint_fit$MLEs.theta
+#' saddlepoint_fit$std.error
+#' 
+#' ## the true likelihood 
+#' negloglik_nb <- function(par, x) {
+#'   r_val <- exp(par[1])
+#'   p_val <- plogis(par[2])   # logistic transform -> (0, 1)
+#'   -sum(dnbinom(x, size = r_val, prob = p_val, log = TRUE))
+#' }
+#' 
+#' fit_optim <- optim(
+#'   par = c(log(1), qlogis(0.5)),      
+#'   fn = negloglik_nb,           
+#'   x = x_data,                  
+#'   method = "BFGS",
+#'   hessian = TRUE
+#' )
+#' fit_optim$par
+#' sqrt(diag(solve(fit_optim$hessian)))
+#' 
+#' 
+#' ## discrepancy formula accuracy
+#' fit_optim$par - saddlepoint_fit$MLEs.theta
+#' saddlepoint_fit$discrepancy
+#' }
+#' 
 #' @seealso \code{\link{NegBinCGF}}
 NegBinModelCGF <- function(r, p){
   r = validate_and_transform_adaptor(r)

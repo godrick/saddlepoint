@@ -159,10 +159,9 @@ private:
     double n;
 public:
     explicit Provide_n_1CFOwAD(const double& n_) : n(n_) {}
-    
     Provide_n_1CFOwAD() = delete;
 
-    
+
     template <class CallbackObject>
     auto operator()(const CallbackObject& co, const vec& parameter_vector) const {
         return co(n, parameter_vector);
@@ -174,9 +173,46 @@ public:
     }
 
 };
-
-
 using SumOfIID_CGF = CGF_with_AD_from_template<saddlepoint::CGFs_via_templates::AdaptedParametersCallbackCGF<saddlepoint::CGFs_via_templates::SumOfIID_CGF<CGF_with_AD*>, Provide_n_1CFOwAD>>;
+
+
+
+class Provide_n_fromAdaptor {
+private:
+  const Adaptor* n_adaptor_;
+  
+public:
+  explicit Provide_n_fromAdaptor(const Adaptor* n_ptr)
+    : n_adaptor_(n_ptr){}
+  Provide_n_fromAdaptor() = delete;
+  
+  template <class CallbackObject>
+  auto operator()(const CallbackObject& co, const vec& parameter_vector) const {
+    const auto vector_size = (*n_adaptor_)(parameter_vector).size();
+    if (vector_size != 1) throw std::invalid_argument("Scalar expected, but received a vector of size " + std::to_string(vector_size));
+    double n_val = (*n_adaptor_)(parameter_vector)[0];
+    return co(n_val, parameter_vector);
+  }
+  
+  template <class CallbackObject>
+  auto operator()(const CallbackObject& co, const a_vector& parameter_vector) const {
+    const auto vector_size = (*n_adaptor_)(parameter_vector).size();
+    if (vector_size != 1) 
+      throw std::invalid_argument("Scalar expected, but received a vector of size " + std::to_string(vector_size));
+    a_scalar n_val = (*n_adaptor_)(parameter_vector)[0];
+    return co(n_val, parameter_vector);
+  }
+  
+};
+
+using SumOfIID_CGF_with_adaptor = CGF_with_AD_from_template<
+  saddlepoint::CGFs_via_templates::AdaptedParametersCallbackCGF<
+    saddlepoint::CGFs_via_templates::SumOfIID_CGF<CGF_with_AD*>, 
+    Provide_n_fromAdaptor
+  >
+>;
+
+
 
 } // namespace CGFs_with_AD
 

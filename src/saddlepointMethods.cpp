@@ -700,11 +700,26 @@ Rcpp::XPtr<CGF_with_AD> make_NegBinModelCGF(Rcpp::XPtr<Adaptor> r_adaptor, Rcpp:
 
 
 
+// // [[Rcpp::export]]
+// Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n){
+//   CGF_with_AD* cgf_ptr = new SumOfIID_CGF(cgf, n);
+//   Rcpp::XPtr<CGF_with_AD> ptr(cgf_ptr);
+//   attach_attributes(ptr, cgf, n);
+//   return ptr;
+// }
+
 // [[Rcpp::export]]
-Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n){
-  CGF_with_AD* cgf_ptr = new SumOfIID_CGF(cgf, n);
+Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, SEXP n_input){
+  CGF_with_AD* cgf_ptr;
+  if (Rf_isReal(n_input)) {
+    double n = Rcpp::as<double>(n_input);
+    cgf_ptr = new SumOfIID_CGF(cgf, n);
+  } else {
+    Rcpp::XPtr<Adaptor> n_adaptor(n_input);
+    cgf_ptr = new SumOfIID_CGF_with_adaptor(cgf, n_adaptor);
+  } 
   Rcpp::XPtr<CGF_with_AD> ptr(cgf_ptr);
-  attach_attributes(ptr, cgf, n);
+  attach_attributes(ptr, cgf, n_input);
   return ptr;
 }
 // [[Rcpp::export]]

@@ -15,8 +15,3 @@ A CGF object.
 \description{
 Computes the CGF object for a concatenated vector of independent random variables, with each represented by its respective CGF object and a corresponding dimension. It facilitates the modeling of a concatenated random vector, where each segment of the vector is specified by its CGF object and a corresponding dimension.
 }
-\examples{
-\dontrun{
-}
-
-}

@@ -9,10 +9,15 @@ sumOfiidCGF(cgf, n)
 \arguments{
 \item{cgf}{A CGF object for the random variable to be summed.}
 
-\item{n}{An integer representing the number of i.i.d random variables to be summed.}
+\item{n}{Specifies the number of i.i.d random variables to be summed. It can be:
+\itemize{
+\item A numeric value greater than 0
+\item An \code{adaptor} object
+\item A function of the form \code{function(param) -> scalar}.
+}}
 }
 \value{
-A CGF object.
+A \code{CGF} object.
 }
 \description{
 Computes the CGF object for the sum of 'n' i.i.d random variables.

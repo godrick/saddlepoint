@@ -1,20 +1,47 @@
+# #' @title Sum of 'n' i.i.d random variables.
+# #'
+# #' @description
+# #' Computes the CGF object for the sum of 'n' i.i.d random variables.
+# #'
+# #'
+# #' @usage sumOfiidCGF(cgf, n)
+# #'
+# #' @param cgf A CGF object for the random variable to be summed.
+# #' @param n An integer representing the number of i.i.d random variables to be summed.
+# #' @return A CGF object.
+# #' @export
+# sumOfiidCGF <- function(cgf, n){
+#   if (!is(cgf, "CGF")) stop("'cgf' is not defined for ", class(cgf))
+#   if(!is.numeric(n) || n != as.integer(n) || n <= 0 || length(n) != 1) stop("n must be a single positive integer")
+#   createCGF(make_SumOfIIDCGF(cgf$get_ptr(), n))
+# }
+
+
 #' @title Sum of 'n' i.i.d random variables.
 #'
 #' @description
 #' Computes the CGF object for the sum of 'n' i.i.d random variables.
 #'
-#'
 #' @usage sumOfiidCGF(cgf, n)
 #'
 #' @param cgf A CGF object for the random variable to be summed.
-#' @param n An integer representing the number of i.i.d random variables to be summed.
-#' @return A CGF object.
+#' @param n Specifies the number of i.i.d random variables to be summed. It can be:
+#' \itemize{
+#'     \item A numeric value greater than 0
+#'     \item An \code{adaptor} object
+#'     \item A function of the form \code{function(param) -> scalar}.
+#' }
+#' 
+#' @return A `CGF` object.
 #' @export
-sumOfiidCGF <- function(cgf, n){
+sumOfiidCGF <- function(cgf, n) {
   if (!is(cgf, "CGF")) stop("'cgf' is not defined for ", class(cgf))
-  if(!is.numeric(n) || n != as.integer(n) || n <= 0 || length(n) != 1) stop("n must be a single positive integer")
-  createCGF(make_SumOfIIDCGF(cgf$get_ptr(), n))
+  if (is.numeric(n) && n > 0 && length(n) == 1) return(createCGF(make_SumOfIIDCGF(cgf$get_ptr(), n)))
+  n_adaptor <- validate_and_transform_adaptor(n)
+  createCGF(make_SumOfIIDCGF(cgf$get_ptr(), n_adaptor))
 }
+
+
 
 #' @title Sum of Independent CGFs
 #' 
@@ -96,9 +123,6 @@ iidReplicatesCGF <- function(cgf, block_size) {
 #'
 #' @return A CGF object.
 #'
-#' @examples
-#' \dontrun{
-#' }
 #'
 #' @export
 concatenationCGF <- function(...) {

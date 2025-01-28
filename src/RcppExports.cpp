@@ -356,14 +356,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // make_SumOfIIDCGF
-Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n);
-RcppExport SEXP _saddlepoint_make_SumOfIIDCGF(SEXP cgfSEXP, SEXP nSEXP) {
+Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, SEXP n_input);
+RcppExport SEXP _saddlepoint_make_SumOfIIDCGF(SEXP cgfSEXP, SEXP n_inputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::XPtr<CGF_with_AD> >::type cgf(cgfSEXP);
-    Rcpp::traits::input_parameter< double >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_SumOfIIDCGF(cgf, n));
+    Rcpp::traits::input_parameter< SEXP >::type n_input(n_inputSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_SumOfIIDCGF(cgf, n_input));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -599,9 +599,7 @@ static const R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
-void rtmb_set_shared_pointers();
 RcppExport void R_init_saddlepoint(DllInfo *dll) {
-  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-  R_useDynamicSymbols(dll, FALSE);
-  rtmb_set_shared_pointers();
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

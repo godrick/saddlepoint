@@ -88,7 +88,7 @@ public:
     
     if (TMBad::get_glob() != NULL && !is_advector(r_function_result)) { 
       // the check for TMBad::get_glob() != NULL is redundant???
-      Rcpp::stop("The result of the adaptor function is not of 'advector' type (lost class attribute?)");
+      Rcpp::stop("The result of the adaptor function is not of 'advector' type. If it a constant 'k' please return function(x) {k + 0*x} ");
     }
     
     RADvector advector_result = SEXP2RADvector(r_function_result);

@@ -117,8 +117,8 @@ make_NegBinModelCGF <- function(r_adaptor, p_adaptor) {
     .Call(`_saddlepoint_make_NegBinModelCGF`, r_adaptor, p_adaptor)
 }
 
-make_SumOfIIDCGF <- function(cgf, n) {
-    .Call(`_saddlepoint_make_SumOfIIDCGF`, cgf, n)
+make_SumOfIIDCGF <- function(cgf, n_input) {
+    .Call(`_saddlepoint_make_SumOfIIDCGF`, cgf, n_input)
 }
 
 make_SumOfIndependentCGF <- function(cgf_list) {
