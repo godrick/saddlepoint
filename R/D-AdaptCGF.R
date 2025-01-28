@@ -21,36 +21,7 @@
 
 
 
-
-#' Create an adapted CGF object using an adaptor function
-#'
-#' @description
-#' Takes an existing CGF and a parameter adaptor function, then returns
-#' a new CGF object whose methods first adapt the parameter vector before
-#' calling the original CGF's methods.
-#'
-#' @param cgf A `CGF` object
-#' @param param_adaptor A function with signature \code{function(theta) -> adapted_param}.
-#' @param ... Additional arguments passed to `createCGF()` (rarely needed).
-#'
-#' @return A new CGF object (class `"CGF"`).
-#'
-#' @examples
-#' # Suppose we have a PoissonCGF object with parameter = lambda.
-#' # We want to treat the first element of a bigger vector as lambda:
-#' ## adaptor <- function(param) param[1]
-#' ## new_cgf <- adaptCGF(PoissonCGF, adaptor)
-#' ## new_cgf$K(0.1, c(2, 99))  # Internally calls PoissonCGF$K(0.1, 2).
-#'
-#' @export
-adaptCGF <- function(cgf, param_adaptor, ...) {
-  # Validate inputs
-  if (!inherits(cgf, "CGF")) {
-    stop("'cgf' must be a CGF object (inherits from 'CGF').")
-  }
-  if (!is.function(param_adaptor)) {
-    stop("'param_adaptor' must be a function taking 'param' -> 'adapted_param'.")
-  }
+.adaptCGF_internal <- function(cgf, param_adaptor, ...){
   
   # ----------------------------------------------------------------
   #   Wrap the five required CGF methods
@@ -79,7 +50,7 @@ adaptCGF <- function(cgf, param_adaptor, ...) {
   wrapped_K2operator <- function(tvec, param, x, y) {
     cgf$K2operator(tvec, param_adaptor(param), x, y)
   }
-   
+  
   
   wrapped_K2operatorAK2AT <- function(tvec, param, A) {
     cgf$K2operatorAK2AT(tvec, param_adaptor(param), A)
@@ -137,7 +108,7 @@ adaptCGF <- function(cgf, param_adaptor, ...) {
     K4operator = wrapped_K4operator,
     ineq_constraint = wrapped_ineq_constraint,
     analytic_tvec_hat_func = wrapped_analytic_tvec_hat_func,
-    op_name = op_name,   # We label it "AdaptedOperation" or user-specified
+    op_name = op_name,   
     
     tilting_exponent = wrapped_tilting_exponent,
     neg_ll = wrapped_neg_ll,
@@ -153,5 +124,69 @@ adaptCGF <- function(cgf, param_adaptor, ...) {
     
     ...
   )
-  
+}
+
+
+
+
+
+
+#' Create an adapted CGF object using an adaptor function
+#'
+#' @description
+#' Constructs a new \code{CGF} object by adapting the parameter vector using a user-supplied
+#' \code{param_adaptor} before invoking the original \code{CGF}'s methods.
+#'
+#'
+#' @param cgf A `CGF` object to be adapted.
+#' @param param_adaptor An \code{adaptor} or a function with signature \code{function(theta) -> adapted_param}.
+#' @param ... Additional named arguments passed to \code{\link{createCGF}}, the `CGF` object creation function (rarely needed).
+#' 
+#' 
+#' @details
+#' This function is useful when you have a \code{CGF} that expects its parameter vector
+#' to be in a certain format, but your high-level model provides a different parameter
+#' structure. By specifying a \code{param_adaptor}, you can dynamically
+#' translate your model parameters to those that \code{cgf} requires.
+#'
+#' @return A new `CGF` object.
+#'
+#' @examples
+#' \dontrun{
+#' ## Example: Suppose you have a sum of two Poisson r.v.s, each with
+#' ##   a different lambda, but your model uses a single parameter 'theta'
+#' ##   from which the two lambdas are derived (lambda1 = theta, lambda2 = 2*theta).
+#'
+#' ## Scenario:
+#' ## Y1 ~ Poisson(theta)
+#' ## Y2 ~ Poisson(2*theta)
+#' ## Y = Y1 + Y2 ~ Poisson(3*theta)
+#' ## Model Parameters: theta
+#' ## CGF for Y expects: distribution_params = c(lambda1, lambda2) = c(theta, 2*theta)
+#' 
+#'
+#' # First, the individual Poisson CGFs with separate lambda parameters
+#' # These will expect a vector of length 2 for the two lambdas
+#' K_Y1 <- PoissonModelCGF(lambda = adaptor(indices = 1))   # For Y1: lambda1 => the first parameter
+#' K_Y2 <- PoissonModelCGF(lambda = adaptor(indices = 2))   # For Y2: lambda2 => the second parameter
+#' 
+#' # sum_cgf is a CGF that expects 2 parameters for the two Poisson variables
+#' sum_cgf <- sumOfIndependentCGF(cgf_list = list(K_Y1, K_Y2))
+#' 
+#' # param_adaptor that converts 'theta' to c(lambda1, lambda2)
+#' mapThetaToDistParams <- function(theta) c(theta, 2*theta) 
+#' 
+#' # Now adapt sum_cgf so it only needs a single 'theta':
+#' adapted_cgf <- adaptCGF(cgf = sum_cgf, param_adaptor = mapThetaToDistParams)
+#' theta0 <- 5
+#' adapted_cgf$K1(0, theta0)  
+#' # OR sum_cgf$K1(0, c(theta0, 2*theta0))
+#' # OR PoissonCGF$K1(0, 3*theta0)
+#' }
+#'
+#' @export
+adaptCGF <- function(cgf, param_adaptor, ...) {
+  if (!inherits(cgf, "CGF")) stop("'cgf' must be a CGF object (inherits from 'CGF').")
+  param_adaptor <- validate_function_or_adaptor(param_adaptor)
+  .adaptCGF_internal(cgf, param_adaptor, ...)
 }
