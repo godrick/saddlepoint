@@ -11,7 +11,7 @@ An object of class \code{CGF} (inherits from \code{R6}) of length 9.
 PoissonCGF
 }
 \description{
-An CGF object containing the CGF and its related derivatives for a binomial distribution
+An CGF object containing the CGF and its related derivatives for a Poisson distribution
 }
 \examples{
 \dontrun{
