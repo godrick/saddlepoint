@@ -333,6 +333,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// make_NegBinCGF
+Rcpp::XPtr<CGF_with_AD> make_NegBinCGF();
+RcppExport SEXP _saddlepoint_make_NegBinCGF() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(make_NegBinCGF());
+    return rcpp_result_gen;
+END_RCPP
+}
+// make_NegBinModelCGF
+Rcpp::XPtr<CGF_with_AD> make_NegBinModelCGF(Rcpp::XPtr<Adaptor> r_adaptor, Rcpp::XPtr<Adaptor> p_adaptor);
+RcppExport SEXP _saddlepoint_make_NegBinModelCGF(SEXP r_adaptorSEXP, SEXP p_adaptorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type r_adaptor(r_adaptorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::XPtr<Adaptor> >::type p_adaptor(p_adaptorSEXP);
+    rcpp_result_gen = Rcpp::wrap(make_NegBinModelCGF(r_adaptor, p_adaptor));
+    return rcpp_result_gen;
+END_RCPP
+}
 // make_SumOfIIDCGF
 Rcpp::XPtr<CGF_with_AD> make_SumOfIIDCGF(Rcpp::XPtr<CGF_with_AD> cgf, double n);
 RcppExport SEXP _saddlepoint_make_SumOfIIDCGF(SEXP cgfSEXP, SEXP nSEXP) {
@@ -557,6 +579,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_make_MultinomialCGF", (DL_FUNC) &_saddlepoint_make_MultinomialCGF, 0},
     {"_saddlepoint_make_MultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_MultinomialModelCGF, 2},
     {"_saddlepoint_make_SubunitaryMultinomialModelCGF", (DL_FUNC) &_saddlepoint_make_SubunitaryMultinomialModelCGF, 2},
+    {"_saddlepoint_make_NegBinCGF", (DL_FUNC) &_saddlepoint_make_NegBinCGF, 0},
+    {"_saddlepoint_make_NegBinModelCGF", (DL_FUNC) &_saddlepoint_make_NegBinModelCGF, 2},
     {"_saddlepoint_make_SumOfIIDCGF", (DL_FUNC) &_saddlepoint_make_SumOfIIDCGF, 2},
     {"_saddlepoint_make_SumOfIndependentCGF", (DL_FUNC) &_saddlepoint_make_SumOfIndependentCGF, 1},
     {"_saddlepoint_make_ConcatenationCGF", (DL_FUNC) &_saddlepoint_make_ConcatenationCGF, 1},

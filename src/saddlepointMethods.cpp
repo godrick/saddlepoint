@@ -11,6 +11,7 @@
 # include "gammaCGF.h"
 # include "multinomialCGF.h"
 # include "subunitaryMultinomialCGF.h"
+# include "negbinCGF.h"
  
  
 # include "sumOfIID_CGF.h"
@@ -660,6 +661,20 @@ Rcpp::XPtr<CGF_with_AD> make_SubunitaryMultinomialModelCGF(Rcpp::XPtr<Adaptor> n
 }
 
 
+
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_NegBinCGF(){
+  CGF_with_AD* CGF_base_ptr = new NegBinCGF();
+  Rcpp::XPtr<CGF_with_AD> ptr(CGF_base_ptr);
+  return ptr;
+}
+// [[Rcpp::export]]
+Rcpp::XPtr<CGF_with_AD> make_NegBinModelCGF(Rcpp::XPtr<Adaptor> r_adaptor, Rcpp::XPtr<Adaptor> p_adaptor){
+  CGF_with_AD* cgf_ = new NegBinModelCGF( new ScalarAdaptorFromVectorAdaptor(r_adaptor), new ScalarAdaptorFromVectorAdaptor(p_adaptor));
+  Rcpp::XPtr<CGF_with_AD> ptr(cgf_);
+  attach_attributes(ptr, r_adaptor, p_adaptor);
+  return ptr;
+}
 
 
 

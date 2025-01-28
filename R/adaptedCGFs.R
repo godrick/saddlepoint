@@ -80,6 +80,27 @@ BinomialModelCGF <- function(n, prob){
 
 
 
+#' @title Create a Parametric NegBin CGF object
+#' 
+#' @description
+#' Creates a CGF for the Negative Binomial distribution with the parameters `r` and `p` specified as adaptors or by user-supplied function. 
+#' 
+#' @param r Adaptor or function representing the number of successes parameter of the Negative Binomial distribution.
+#' @param p Adaptor or function representing the success probability parameter of the Negative Binomial distribution.
+#' 
+#' @return 'CGF' object.
+#' 
+#' @export
+#' @seealso \code{\link{NegBinCGF}}
+NegBinModelCGF <- function(r, p){
+  r = validate_and_transform_adaptor(r)
+  p = validate_and_transform_adaptor(p)
+  createCGF(make_NegBinModelCGF(r_adaptor = r, p_adaptor = p))
+}
+
+
+
+
 
 
 
@@ -139,7 +160,7 @@ PoissonModelCGF <- function(lambda) {
 #' f <- function(x) { 0.1 * x }
 #' cgf <- ExponentialModelCGF(rate = f)
 #' cgf$K1(tvec = 0, parameter_vector = 5) == ExponentialCGF$K1(tvec = 0, parameter_vector = 0.1 * 5)
-#'}makeAdaptorUsingRfunctions
+#'}
 ExponentialModelCGF <- function(rate) {
   rate_ = validate_and_transform_adaptor(rate)
   createCGF(make_ExponentialModelCGF(lambda_adaptor = rate_))

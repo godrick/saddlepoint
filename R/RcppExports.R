@@ -109,6 +109,14 @@ make_SubunitaryMultinomialModelCGF <- function(n_adaptor, prob_vector_adaptor) {
     .Call(`_saddlepoint_make_SubunitaryMultinomialModelCGF`, n_adaptor, prob_vector_adaptor)
 }
 
+make_NegBinCGF <- function() {
+    .Call(`_saddlepoint_make_NegBinCGF`)
+}
+
+make_NegBinModelCGF <- function(r_adaptor, p_adaptor) {
+    .Call(`_saddlepoint_make_NegBinModelCGF`, r_adaptor, p_adaptor)
+}
+
 make_SumOfIIDCGF <- function(cgf, n) {
     .Call(`_saddlepoint_make_SumOfIIDCGF`, cgf, n)
 }

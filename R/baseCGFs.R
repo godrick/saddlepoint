@@ -13,9 +13,19 @@
 ##' @export 
 BinomialCGF <- NULL
 
+
+##' @title NegBinCGF
+##' @description
+##' A CGF object for the negative binomial distribution. 
+##' When using this object, specify the `parameter_vector` as a vector with the number of successes `r` and the probability of success `p` in that order.
+##' 
+##' @export 
+NegBinCGF <- NULL
+
+
 ##' @title PoissonCGF
 ##' @description
-##' An CGF object containing the CGF and its related derivatives for a binomial distribution
+##' An CGF object containing the CGF and its related derivatives for a Poisson distribution
 ##' @examples
 ##' \dontrun{
 ##'   # Access the CGF for a Poisson distribution with lambda = 15
@@ -79,5 +89,6 @@ MultinomialCGF <- NULL
   utils::assignInMyNamespace('GeometricCGF', createCGF(make_GeometricCGF()))
   utils::assignInMyNamespace('GammaCGF', createCGF(make_GammaCGF()))
   utils::assignInMyNamespace('MultinomialCGF', createCGF(make_MultinomialCGF()))
+  utils::assignInMyNamespace('NegBinCGF', createCGF(make_NegBinCGF()))
   
 }
