@@ -4,13 +4,7 @@
 \alias{sumOfIndependentCGF}
 \title{CGF Object for the sum of independent random variables}
 \usage{
-sumOfIndependentCGF(
-  cgf_list,
-  block_size = NULL,
-  iidReps = NULL,
-  adaptor = NULL,
-  ...
-)
+sumOfIndependentCGF(cgf_list, block_size = NULL, iidReps = NULL, ...)
 }
 \arguments{
 \item{cgf_list}{A non-empty list of CGF objects. Each of class \code{"CGF"}.}
@@ -21,92 +15,14 @@ Default is \code{NULL}.}
 \item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
 to expect. Default is \code{NULL}.}
 
-\item{adaptor}{A function to transform the global parameter vector \code{theta} into the parameter vector expected by the summed CGF.
-It should accept a numeric vector \code{theta} and return a transformed numeric vector.
-The default behavior is an identity function.}
-
-\item{...}{Additional named arguments passed to \code{\link{createCGF}} or \code{\link{iidReplicatesCGF}}.}
+\item{...}{Additional named arguments passed to \code{\link{createCGF}}, the \code{CGF} object creation function.}
 }
 \value{
-A CGF object
+A new \code{CGF} object.
 }
 \description{
 Constructs a new CGF object representing the sum of multiple independent random variables.
-An optional adaptor function can be provided to transform the global parameter vector into the specific parameters required by the resulting CGF.
 }
-\details{
-\itemize{
-\item \strong{Adaptor Function}: Transforms the global parameter vector \code{theta} to match the structure required by the resulting CGF.
-This is essential when the summed CGF expects parameters in a different order or combination than the original model parameters.
-For example, if summing two r.vs where one depends on \code{lambda1 = alpha + beta} and the other on \code{lambda2 = beta + gamma},
-the adaptor function can will help in mapping a three-dimensional model parameter \code{theta = c(alpha, beta, gamma)} to \code{c(lambda1, lambda2)}.
-See the example below.
-\item \strong{Replication for i.i.d. Observations}: This is handles in one of two ways
-\enumerate{
-\item By \code{iidReps}: if \code{iidReps} is a positive integer.
-\item By \code{block_size}: if \code{block_size} is a positive integer.
-}
-If both \code{iidReps} and \code{block_size} are \code{NULL}, no replication is performed;
-}
-}
-\examples{
-\dontrun{
-# Example: Summing two non-identical Poisson r.vs (we use an adaptor function)
-
-# Scenario:
-# Y1 ~ Poisson(alpha)
-# Y2 ~ Poisson(2*alpha)
-# Y = Y1 + Y2 ~ Poisson(3*alpha)
-# Model Parameters: alpha
-# CGF for Y expects: distribution_params = c(lambda1, lambda2) = c(alpha, 2*alpaha)
-
-
-# First, define an adaptor function to map alpha
-# to distribution_params = c(alpha, 2*alpha) for the CGF of Y
-mapThetaToDistParams <- function(theta) c(theta, 2*theta)
-
-
-# Next, create individual Poisson CGFs with separate lambda parameters
-# PoissonModelCGF expects a single lambda parameter,
-# we use its adaptor argument to ensure that each CGF object receives the correct parameter from distribution_params
-K_Y1 <- PoissonModelCGF(lambda = function(x) x)       # For Y1: lambda1 = alpha
-K_Y2 <- PoissonModelCGF(lambda = function(x) 2*x )    # For Y2: lambda2 = 2*alpha
-
-# Then the CGF for the summed rvs using sumOfIndependentCGF with the adaptor
-sum_cgf <- sumOfIndependentCGF(
-  cgf_list = list(K_Y1, K_Y2),
-  adaptor = mapThetaToDistParams,
-  iidReps = 1  # No replication in this example
-)
-
-# # (Optional) Replicate the CGF for multiple i.i.d. observations
-# # For example, replicate the resulting CGF to be compatible with 5 iid copies of Y.
-# sum_cgf <- sumOfIndependentCGF(
-#   cgf_list = list(K_Y1, K_Y2),
-#   adaptor  = mapThetaToDistParams,
-#   iidReps  = 5  
-# )
-# # General testing 
-# # a sample of counts from two Poisson-distributed variables
-# Y <- c(24, 25, 13, 30, 33)
-# 
-# # Using `sum_cgf`
-# mle_sum <- find.saddlepoint.MLE(
-#   observed.data = Y,
-#   cgf = sum_cgf,
-#   starting.theta = 1
-# )$MLEs.theta
-# 
-# # Using a single Poisson CGF object (`pois_cgf`)
-# # This function maps the parameter `alpha` to the Poisson rate `lambda = 3 * alpha`
-# pois_adaptor <- function(alpha) 3 * alpha
-# pois_cgf <- PoissonModelCGF(lambda = pois_adaptor, iidReps = 5 )
-# mle_pois <- find.saddlepoint.MLE(
-#   observed.data = Y,
-#   cgf = pois_cgf,
-#   starting.theta = 1
-# )$MLEs.theta
-# # Both MLEs (`mle_sum` and `mle_pois`) should yield the same or very similar results
-}
-
+\seealso{
+\code{\link{adaptCGF}} for an example which also adapts the CGF object.
 }
