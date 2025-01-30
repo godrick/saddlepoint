@@ -79,7 +79,7 @@ compute.funcT <- function(theta,
   
   # Generate the dfdu_solve_fn function required by the C++ tvec_hat()
   # This function enables proper taping by capturing the dependency of theta through tvec
-  dfdu_solve_fn <- create_tvec_hat_dfdu_solve_fn(cgf)
+  dfdu_solve_fn <- create_tvec_hat_K2_solve_fn(cgf)
   
   # Check if gradient and/or Hessian is required
   taping_required <- (gradient || hessian)
@@ -91,11 +91,11 @@ compute.funcT <- function(theta,
     if (!taping_required) { return(list(vals = correction_func(tvec.hat, theta))) }
     
     func_T_wrapper <- function(par_vec) {
-      tvec.hat.for.ad <- tvec_hat(theta          = par_vec,
+      tvec.hat.for.ad <- tvec_hat_for_ad(theta          = par_vec,
                                   tvec           = tvec.hat,
                                   observations   = observed.data,
                                   K1_fn          = cgf$K1,
-                                  dfdu_solve_fn  = dfdu_solve_fn
+                                  K2_solve_fn  = dfdu_solve_fn
       )
       correction_func(tvec.hat.for.ad, par_vec)
     }
@@ -127,11 +127,11 @@ compute.funcT <- function(theta,
   if (!taping_required) { return(list(vals = correction_func(saddlepoint_res, theta) )) }
   
   func_T_wrapper <- function(par_vec) {
-    tvec.hat.for.ad <- tvec_hat(theta          = par_vec,
+    tvec.hat.for.ad <- tvec_hat_for_ad(theta          = par_vec,
                                 tvec           = saddlepoint_res,
                                 observations   = observed.data,
                                 K1_fn          = cgf$K1,
-                                dfdu_solve_fn  = dfdu_solve_fn
+                                K2_solve_fn  = dfdu_solve_fn
     )
     correction_func(tvec.hat.for.ad, par_vec)
   }

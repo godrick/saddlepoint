@@ -2,7 +2,7 @@
 % Please edit documentation in R/B-compute-spa-negll.R
 \name{compute.spa.negll}
 \alias{compute.spa.negll}
-\title{Compute saddlepoint approximation-based negative log-likelihood}
+\title{Compute a saddlepoint negative log-likelihood}
 \usage{
 compute.spa.negll(
   parameter_vector,
@@ -11,6 +11,7 @@ compute.spa.negll(
   tvec.hat = NULL,
   gradient = FALSE,
   hessian = FALSE,
+  method = "standard",
   ...
 )
 }
@@ -21,13 +22,16 @@ compute.spa.negll(
 
 \item{cgf}{A \code{CGF} object.}
 
-\item{tvec.hat}{(Optional) Numeric vector. If supplied, \code{tvec} is taken directly as this vector.}
+\item{tvec.hat}{(Optional) numeric vector. If provided, it overrides other ways
+of finding \code{tvec}.}
 
-\item{gradient}{Logical. If \code{TRUE}, the gradient is computed; if \code{FALSE}, it is not returned. Defaults to \code{FALSE}.}
+\item{gradient}{Logical. If \code{TRUE}, the gradient is computed.}
 
-\item{hessian}{Logical. If \code{TRUE}, the Hessian is computed; if \code{FALSE}, a \code{NULL} is returned in its place.}
+\item{hessian}{Logical. If \code{TRUE}, the Hessian is computed.}
 
-\item{...}{Further arguments passed to \code{saddlepoint.solve()} (if needed).}
+\item{method}{Character string. One of \code{"standard"} or \code{"zeroth"}.}
+
+\item{...}{Additional arguments passed to \code{saddlepoint.solve()} if \code{tvec.hat} is not provided.}
 }
 \value{
 A named list with elements:
@@ -38,16 +42,8 @@ A named list with elements:
 }
 }
 \description{
-Computes the saddlepoint-based negative log-likelihood for given parameters and data using one of the these:
-\itemize{
-\item \strong{User-Provided \code{tvec.hat}:} If \code{tvec.hat} is supplied, it is used directly.
-\item \strong{Analytic \code{tvec.hat}:} If the \code{CGF} object provides an analytic solution via \code{analytic_tvec_hat()}, it is utilized.
-\item \strong{Saddlepoint Solver:} Otherwise, a numeric solution is obtained using \code{saddlepoint.solve()}.
-}
-
-Internally, this function creates a tape (via RTMB's \code{MakeTape}) for the negative log-likelihood with respect to the parameter vector,
-and returns the evaluated negative log-likelihood, the gradient, and optionally the Hessian.
+Computes either "standard" or "zeroth-order" saddlepoint approximation to the negative log-likelihood.
 }
 \seealso{
-\code{\link{saddlepoint.solve}}, \code{\link{compute.zeroth.order.spa.negll}}
+\code{\link{saddlepoint.solve}}
 }

@@ -12,9 +12,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// tvec_hat
-ADrep tvec_hat(ADrep theta, vec tvec, vec observations, SEXP K1_fn, SEXP dfdu_solve_fn);
-RcppExport SEXP _saddlepoint_tvec_hat(SEXP thetaSEXP, SEXP tvecSEXP, SEXP observationsSEXP, SEXP K1_fnSEXP, SEXP dfdu_solve_fnSEXP) {
+// tvec_hat_for_ad
+ADrep tvec_hat_for_ad(ADrep theta, vec tvec, vec observations, SEXP K1_fn, SEXP K2_solve_fn);
+RcppExport SEXP _saddlepoint_tvec_hat_for_ad(SEXP thetaSEXP, SEXP tvecSEXP, SEXP observationsSEXP, SEXP K1_fnSEXP, SEXP K2_solve_fnSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,14 +22,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
     Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
     Rcpp::traits::input_parameter< SEXP >::type K1_fn(K1_fnSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type dfdu_solve_fn(dfdu_solve_fnSEXP);
-    rcpp_result_gen = Rcpp::wrap(tvec_hat(theta, tvec, observations, K1_fn, dfdu_solve_fn));
+    Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
+    rcpp_result_gen = Rcpp::wrap(tvec_hat_for_ad(theta, tvec, observations, K1_fn, K2_solve_fn));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_saddlepoint_tvec_hat", (DL_FUNC) &_saddlepoint_tvec_hat, 5},
+    {"_saddlepoint_tvec_hat_for_ad", (DL_FUNC) &_saddlepoint_tvec_hat_for_ad, 5},
     {NULL, NULL, 0}
 };
 

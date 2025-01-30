@@ -121,15 +121,15 @@ vector<Type> tvec_hat(const vector<Type>& tvec,
 //**** At the time of writing this, ADrep class is still not available in the master branch of RTMB.
 // //**** Remember to revert to Rcpp::ComplexVector if ADrep remains unavailable. 
 // [[Rcpp::export]]
-ADrep tvec_hat(ADrep theta, 
-               vec tvec,
-               vec observations,
-               SEXP K1_fn,    
-               SEXP dfdu_solve_fn 
+ADrep tvec_hat_for_ad(ADrep theta, 
+                      vec tvec,
+                      vec observations,
+                      SEXP K1_fn,    
+                      SEXP K2_solve_fn 
 ){
   
   Rcpp::Function K1_r(K1_fn);
-  Rcpp::Function dfdu_solve_r(dfdu_solve_fn);
+  Rcpp::Function K2_solve_r(K2_solve_fn);
   
   // Extract raw pointers to the underlying array of 'ad' elements.
   // 'adptr(x)' returns a pointer (ad*) to the first element of x.
@@ -152,7 +152,7 @@ ADrep tvec_hat(ADrep theta,
 
   
   // Call the main tvec_hat function that works with vector<a_scalar>.
-  vector<a_scalar> result = tvec_hat(tvec_ad, theta_ad, observations_ad, K1_r, dfdu_solve_r);
+  vector<a_scalar> result = tvec_hat(tvec_ad, theta_ad, observations_ad, K1_r, K2_solve_r);
   ADrep out_res(result.size());
   a_scalar* out_ptr = adptr(out_res);
   for (Eigen::Index i=0; i<static_cast<Eigen::Index>(result.size()); i++) out_ptr[i] = result[i];

@@ -322,7 +322,7 @@ saddlepoint.solve <- function(theta, y, cgf,
   
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
   
-  if (!is.null(cgf$analytic_tvec_hat(y, theta) )) {
+  if ( cgf$has_analytic_tvec_hat()  ) {
     message("An analytical solution is available via `cgf$analytic_tvec_hat(...)`. ",
             "Consider using that instead of numeric optimization.")
   }
@@ -474,13 +474,14 @@ compute.std.error <- function(observed.data,
                               zeroth.order = FALSE,
                               non.saddlepoint.negll.function = NULL) {
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
-  computeNegll_fn <- if (zeroth.order) compute.zeroth.order.spa.negll else compute.spa.negll
+  method_ <- ifelse(zeroth.order, "zeroth", "standard")
   
-  matrix.H <- computeNegll_fn(parameter_vector = estimated.theta, 
-                              observed.data    = observed.data,
-                              cgf              = cgf, 
-                              tvec.hat         = estimated.tvec, 
-                              hessian          = TRUE)$hessian
+  matrix.H <- compute.spa.negll(parameter_vector = estimated.theta, 
+                                observed.data    = observed.data,
+                                cgf              = cgf, 
+                                tvec.hat         = estimated.tvec, 
+                                hessian          = TRUE,
+                                method           = method_)$hessian
   
   if (!is.null(non.saddlepoint.negll.function)) {
     if (!is.function(non.saddlepoint.negll.function)) stop("'non.saddlepoint.negll.function' must be a function")
