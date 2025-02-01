@@ -2,7 +2,7 @@
 % Please edit documentation in R/B-compute-spa-negll.R
 \name{compute.spa.negll}
 \alias{compute.spa.negll}
-\title{Compute a saddlepoint negative log-likelihood}
+\title{Compute the saddlepoint negative log-likelihood}
 \usage{
 compute.spa.negll(
   parameter_vector,
@@ -42,7 +42,10 @@ A named list with elements:
 }
 }
 \description{
-Computes either "standard" or "zeroth-order" saddlepoint approximation to the negative log-likelihood.
+Computes either the "standard" or "zeroth-order" saddlepoint approximation to the negative log–likelihood.
+
+\strong{Note:} When a user–supplied t–vector is provided (via \code{tvec.hat}),
+the resulting AD tape is intended for one–time use only.
 }
 \seealso{
 \code{\link{saddlepoint.solve}}

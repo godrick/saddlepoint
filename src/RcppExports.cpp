@@ -12,9 +12,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// tvec_hat_for_ad
-ADrep tvec_hat_for_ad(ADrep theta, vec tvec, vec observations, SEXP K1_fn, SEXP K2_solve_fn);
-RcppExport SEXP _saddlepoint_tvec_hat_for_ad(SEXP thetaSEXP, SEXP tvecSEXP, SEXP observationsSEXP, SEXP K1_fnSEXP, SEXP K2_solve_fnSEXP) {
+// tvec_hat_from_tvec
+ADrep tvec_hat_from_tvec(ADrep theta, vec tvec, vec observations, SEXP K1_fn, SEXP K2_solve_fn);
+RcppExport SEXP _saddlepoint_tvec_hat_from_tvec(SEXP thetaSEXP, SEXP tvecSEXP, SEXP observationsSEXP, SEXP K1_fnSEXP, SEXP K2_solve_fnSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,13 +23,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
     Rcpp::traits::input_parameter< SEXP >::type K1_fn(K1_fnSEXP);
     Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
-    rcpp_result_gen = Rcpp::wrap(tvec_hat_for_ad(theta, tvec, observations, K1_fn, K2_solve_fn));
+    rcpp_result_gen = Rcpp::wrap(tvec_hat_from_tvec(theta, tvec, observations, K1_fn, K2_solve_fn));
     return rcpp_result_gen;
 END_RCPP
 }
-// saddlepointSolve
-ADrep saddlepointSolve(ADrep theta, vec observations, SEXP K2_solve_fn, SEXP saddlepoint_solve_fn, SEXP cgf_obj);
-RcppExport SEXP _saddlepoint_saddlepointSolve(SEXP thetaSEXP, SEXP observationsSEXP, SEXP K2_solve_fnSEXP, SEXP saddlepoint_solve_fnSEXP, SEXP cgf_objSEXP) {
+// tapedSaddlepointSolve
+ADrep tapedSaddlepointSolve(ADrep theta, vec observations, SEXP K2_solve_fn, SEXP saddlepoint_solve_fn, SEXP cgf_obj);
+RcppExport SEXP _saddlepoint_tapedSaddlepointSolve(SEXP thetaSEXP, SEXP observationsSEXP, SEXP K2_solve_fnSEXP, SEXP saddlepoint_solve_fnSEXP, SEXP cgf_objSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -38,20 +38,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
     Rcpp::traits::input_parameter< SEXP >::type saddlepoint_solve_fn(saddlepoint_solve_fnSEXP);
     Rcpp::traits::input_parameter< SEXP >::type cgf_obj(cgf_objSEXP);
-    rcpp_result_gen = Rcpp::wrap(saddlepointSolve(theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj));
+    rcpp_result_gen = Rcpp::wrap(tapedSaddlepointSolve(theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_saddlepoint_tvec_hat_for_ad", (DL_FUNC) &_saddlepoint_tvec_hat_for_ad, 5},
-    {"_saddlepoint_saddlepointSolve", (DL_FUNC) &_saddlepoint_saddlepointSolve, 5},
+    {"_saddlepoint_tvec_hat_from_tvec", (DL_FUNC) &_saddlepoint_tvec_hat_from_tvec, 5},
+    {"_saddlepoint_tapedSaddlepointSolve", (DL_FUNC) &_saddlepoint_tapedSaddlepointSolve, 5},
     {NULL, NULL, 0}
 };
 
-void rtmb_set_shared_pointers();
 RcppExport void R_init_saddlepoint(DllInfo *dll) {
-  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-  R_useDynamicSymbols(dll, FALSE);
-  rtmb_set_shared_pointers();
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

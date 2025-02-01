@@ -118,14 +118,13 @@ vector<Type> tvec_hat(const vector<Type>& tvec,
 
 
 
-//**** At the time of writing this, ADrep class is still not available in the master branch of RTMB.
-// //**** Remember to revert to Rcpp::ComplexVector if ADrep remains unavailable. 
+
 // [[Rcpp::export]]
-ADrep tvec_hat_for_ad(ADrep theta, 
-                      vec tvec,
-                      vec observations,
-                      SEXP K1_fn,    
-                      SEXP K2_solve_fn 
+ADrep tvec_hat_from_tvec(ADrep theta, 
+                         vec tvec,
+                         vec observations,
+                         SEXP K1_fn,    
+                         SEXP K2_solve_fn 
 ){
   
   Rcpp::Function K1_r(K1_fn);
@@ -310,23 +309,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 template<class dummy=void>
 void saddlepoint_solve_internal(const CppAD::vector<TMBad::ad_aug>& x, 
                                 CppAD::vector<TMBad::ad_aug>& y, 
@@ -496,11 +478,11 @@ vector<Type> saddlepoint_solve_hat(const vector<Type>& theta,
 
 
 // [[Rcpp::export]]
-ADrep saddlepointSolve(ADrep theta,
-                       vec observations,
-                       SEXP K2_solve_fn,
-                       SEXP saddlepoint_solve_fn,
-                       SEXP cgf_obj
+ADrep tapedSaddlepointSolve(ADrep theta,
+                            vec observations,
+                            SEXP K2_solve_fn,
+                            SEXP saddlepoint_solve_fn,
+                            SEXP cgf_obj
 ){
   
   // Rcpp::Function K1_r(K1_fn);
@@ -525,8 +507,15 @@ ADrep saddlepointSolve(ADrep theta,
   for (Eigen::Index i=0; i<observations.size(); i++) observations_ad(i)=observations(i);
   
   
-  
-  vector<a_scalar> result = saddlepoint_solve_hat(theta_ad, observations_ad, K1_r, K2_solve_r, saddlepoint_solve_r, cgf_obj_r, Rcpp::wrap(observations));
+  // Call the internal function which uses R's saddlepoint.solve
+  // to compute the t-vector while capturing the AD dependency.
+  vector<a_scalar> result = saddlepoint_solve_hat(theta_ad, 
+                                                  observations_ad, 
+                                                  K1_r, 
+                                                  K2_solve_r, 
+                                                  saddlepoint_solve_r, 
+                                                  cgf_obj_r, 
+                                                  Rcpp::wrap(observations));
   ADrep out_res(result.size());
   a_scalar* out_ptr = adptr(out_res);
   for (Eigen::Index i=0; i<static_cast<Eigen::Index>(result.size()); i++) out_ptr[i] = result[i];

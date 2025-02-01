@@ -1,62 +1,31 @@
 # R/compute-spa-negll.R
-# Objects: 
+# Functions:
+#   - get_nonAD_tvec_hat_vals(): Computes the t–vector when AD tracking is not needed.
+#   - choose_negll_fun(): Selects the negative log–likelihood function based on a method.
+#   - create_spa_taped_fun(): Constructs a taped function (i.e. a closure) that computes
+#         the saddlepoint negative log–likelihood (and optionally its gradient/Hessian) while
+#         capturing AD dependencies.
+#         NOTE: When a user-supplied t–vector is provided, the returned tape is for
+#         one–time use only.
+#   - compute.spa.negll(): The main function that returns the saddlepoint negative
+#         log–likelihood (and derivatives) for a given parameter vector.
 
 
 
 
-#-----------------------------------------------------------------
-# Maybe AD wrapper around `tvec_hat_for_ad()`
-#
-# This function ensures that if the `theta` being passed is an
-# advector (for AD), it re-runs the solution for tvec with `tvec_hat_for_ad`,
-# capturing the AD dependency. Otherwise, it just returns the numeric tvec.
-#-----------------------------------------------------------------
 
-#' Compute or Return a t-vector Depending on AD
-#'
-#' @description
-#' Returns the values of the saddlepoint equation after capturing the AD dependency.
-#'
-#' @param theta A numeric vector or an AD vector representing parameters.
-#' @param tvec Numeric vector. 
-#' @param observed.data Numeric vector of observed data.
-#' @param K1_fn A function giving the first derivative of the CGF.
-#' @param K2_solve_fn A function. See `create_tvec_hat_K2_solve_fn()`.
-#'
-#' @return A vector (numeric or AD) representing the relevant `tvec`.
-#' 
+# -----------------------------------------------------------------------------
+# Compute tvec values (no tape needed)
+# -----------------------------------------------------------------------------
 #' @noRd
-tvec_hat <- function(
-    theta,
-    current_tvec,
-    observed.data,
-    K1_fn,
-    K2_solve_fn
-) {
-  if (inherits(theta, "advector")) {
-    # re-compute for AD
-    tvec_hat_for_ad(
-      theta        = theta,
-      tvec         = current_tvec, 
-      observations = observed.data,
-      K1_fn        = K1_fn,
-      K2_solve_fn = K2_solve_fn
-    )
-  } else {
-    current_tvec
-  }
-}
-
-
-#' @noRd
-get_tvec_hat_vals <- function(parameter_vector,
-                              observed.data,
-                              cgf,
-                              user_tvec = NULL,
-                              ...) {
+get_nonAD_tvec_hat_vals <- function(parameter_vector, 
+                                    observed.data,
+                                    cgf,
+                                    user_tvec = NULL,
+                                    ...) {
   if (!is.null(user_tvec)) return(user_tvec)
   if (cgf$has_analytic_tvec_hat()) return(cgf$analytic_tvec_hat(observed.data, parameter_vector))
-  # Otherwise, solve numerically
+  # Otherwise, solve numerically using the R-based saddlepoint.solve()
   saddlepoint.solve(theta = parameter_vector,
                     y     = observed.data,
                     cgf   = cgf,
@@ -89,76 +58,85 @@ choose_negll_fun <- function(method, cgf) {
 
 
 
+
+# Constructs a taped function that computes the saddlepoint negative log–likelihood/or maybe the correction term???,
+# its gradient, and, optionally, its Hessian. The tape captures the AD dependency for the
+# entire computation.
+# If a user–supplied t–vector (`user_tvec`) is provided, it is used (and its AD dependency is
+# captured via the cpp's `tvec_hat_from_tvec()`). 
+# Note that in this case the resulting tape is intended for one–time use only.
+# NOTE: Additional arguments (...) are passed to saddlepoint.solve() only when no user_tvec
+#       is provided, but they are not (yet) forwarded to the C++ functions. 
 #' @noRd
-get_spa_taped_fun <- function(param_vec,
-                              observed.data,
-                              cgf,
-                              method = "standard",
-                              user_tvec = NULL,
-                              gradient = FALSE,
-                              hessian = FALSE,
-                              ... # additional arguments to saddlepoint.solve
+create_spa_taped_fun <- function(param_vec,
+                                 observed.data,
+                                 cgf,
+                                 method = "standard",
+                                 user_tvec = NULL,
+                                 gradient = FALSE,
+                                 hessian = FALSE,
+                                  ... # additional arguments to saddlepoint.solve
 ) {
   if (hessian && !gradient) gradient <- TRUE
   chosen_negll <- choose_negll_fun(method = method, cgf = cgf)
   K2_solve_fn <- create_tvec_hat_K2_solve_fn(cgf)
   
-  # The function that will be taped. Each time it's called with a parameter vector `par`,
-  # it figures out how to compute tvec (user-supplied, analytic, or numeric).
-  local_fn <- function(par) {
+  
+  
+  
+  
+  
+  # We will make a tape of "local_fn". First we need to determine how tvec is availed (user-supplied, analytic, or numeric), and 
+  # use the appropriate local_fn.
+  
+  if (!is.null(user_tvec)) {
     # CASE A: If user provided a numeric tvec, use it directly
     # The only issue with this branch is that we hope the resulting tape is used only once.
     # It's addition here is to help with standard error calculations; when MLEs.tvec has been obtained.
-    if (!is.null(user_tvec)) {
-      # We still call `tvec_hat_for_ad()` to ensure the AD engine 
-      # sees tvec as part of the expression.
-      final_tvec <- tvec_hat_for_ad(
+    local_fn <- function(par) {
+      # We call the cpp's `tvec_hat_from_tvec()` to ensure correct AD dependency. 
+      tvec_hat_vals <- tvec_hat_from_tvec(
         theta         = par,
         tvec          = user_tvec,
         observations  = observed.data,
         K1_fn         = cgf$K1,
         K2_solve_fn   = K2_solve_fn
       )
-      return(chosen_negll(final_tvec, par))
+      chosen_negll(tvec_hat_vals, par)
     }
-    
+  } else if(cgf$has_analytic_tvec_hat()) {
     # CASE B: If cgf has an analytic formula for tvec_hat, use it
-    if (cgf$has_analytic_tvec_hat()) {
+    local_fn <- function(par) {
       tvec_vals <- cgf$analytic_tvec_hat(observed.data, par)
-      return(chosen_negll(tvec_vals, par))
+      chosen_negll(tvec_vals, par)
     }
-    
+  } else {
     # CASE C: numeric solve each time
-    #   We do a numeric solve with the *numeric* version of par: RTMB:::getValues(par)
-    #   That means AD won't see the iterative steps, but we do get a different tvec
-    #   for each par. Then we pass it to tvec_hat_for_ad for AD tracking.
-    ##### One potential issue is that getValues(par) is an internal RTMB function => it may change
-    tvec_vals <- saddlepoint.solve(  
-      theta = RTMB:::getValues(par),  # numeric version of par
-      y     = observed.data,
-      cgf   = cgf,
-      ...
-    )
-    # tvec_vals is numeric
-    final_tvec <- tvec_hat_for_ad(
-      theta         = par,
-      tvec          = tvec_vals,
-      observations  = observed.data,
-      K1_fn         = cgf$K1,
-      K2_solve_fn   = K2_solve_fn
-    )
-    chosen_negll(final_tvec, par)
+    #   Here we use another cpp function tapedSaddlepointSolve(), that internally calls saddlepoint.solve()
+    #   The resulting tape from this senario internally knows to update the tvec values for each parameter vector.
+    #   This is the general case, but can be slow.
+    #   Other options would be to use a more efficient solver;
+    ##### Maybe look into saddlepoint.solve() or a version of it living in cpp
+    local_fn <- function(par) {
+      tvec_hat_vals <- tapedSaddlepointSolve(
+        theta         = par,
+        observations  = observed.data,
+        K2_solve_fn   = K2_solve_fn,
+        saddlepoint_solve_fn = saddlepoint.solve,
+        cgf_obj       = cgf
+      )
+      chosen_negll(tvec_hat_vals, par)
+    }
   }
-  tape_obj <- MakeTape(f = local_fn, x = param_vec)
   
-
+  tape_obj <- MakeTape(f = local_fn, x = param_vec)
   if (hessian) jacfun_obj <- tape_obj$jacfun()
   
-  function(par) {
+  function(theta) {
     list(
-      vals     = tape_obj(par),
-      gradient = if(gradient) as.vector(tape_obj$jacobian(par)) else NULL,
-      hessian  = if(hessian) jacfun_obj$jacobian(par) else NULL
+      vals     = tape_obj(theta),
+      gradient = if(gradient) as.vector(tape_obj$jacobian(theta)) else NULL,
+      hessian  = if(hessian) jacfun_obj$jacobian(theta) else NULL
     )
   }
   
@@ -170,10 +148,13 @@ get_spa_taped_fun <- function(param_vec,
 
 
 
-#' Compute a saddlepoint negative log-likelihood
+#' Compute the saddlepoint negative log-likelihood
 #'
 #' @description
-#' Computes either "standard" or "zeroth-order" saddlepoint approximation to the negative log-likelihood.
+#' Computes either the "standard" or "zeroth-order" saddlepoint approximation to the negative log–likelihood.
+#' 
+#' **Note:** When a user–supplied t–vector is provided (via `tvec.hat`),
+#' the resulting AD tape is intended for one–time use only.
 #'
 #' @param parameter_vector Numeric vector of parameters.
 #' @param observed.data Numeric vector of observed data.
@@ -217,7 +198,7 @@ compute.spa.negll <- function(parameter_vector,
   
   # If no gradient/hessian needed => direct numeric eval
   if (!gradient && !hessian) {
-    final_tvec <- get_tvec_hat_vals(
+    tvec_hat_vals <- get_nonAD_tvec_hat_vals(
       parameter_vector = parameter_vector,
       observed.data    = observed.data,
       cgf              = cgf,
@@ -225,23 +206,23 @@ compute.spa.negll <- function(parameter_vector,
       ...
     )
     chosen_negll <- choose_negll_fun(method = method, cgf = cgf)
-    val <- chosen_negll(final_tvec, parameter_vector)[1] ##### some attribute has not been stripped off
+    val <- chosen_negll(tvec_hat_vals, parameter_vector)[1] ##### [1] here strips off any unwanted attribute.
     return(list(vals = val, gradient = NULL, hessian = NULL))
   }
 
 
-  # Otherwise, get the taped function
-  fn <- get_spa_taped_fun(
-          param_vec     = parameter_vector,
-          observed.data = observed.data,
-          cgf           = cgf,
-          method        = method,
-          user_tvec     = tvec.hat,
-          gradient      = gradient,
-          hessian       = hessian,
-          ...
-  )
-  fn(parameter_vector)
+  # Otherwise, build an AD tape and return its evaluation.
+  taped_fun <- create_spa_taped_fun(
+                  param_vec     = parameter_vector,
+                  observed.data = observed.data,
+                  cgf           = cgf,
+                  method        = method,
+                  user_tvec     = tvec.hat,
+                  gradient      = gradient,
+                  hessian       = hessian,
+                  ... #### addtional arguments are passed to saddlepoint.solve() are still not being passed to cpp
+                  )
+  taped_fun(parameter_vector)
 }
 
 
