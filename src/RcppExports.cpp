@@ -27,9 +27,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// saddlepointSolve
+ADrep saddlepointSolve(ADrep theta, vec observations, SEXP K2_solve_fn, SEXP saddlepoint_solve_fn, SEXP cgf_obj);
+RcppExport SEXP _saddlepoint_saddlepointSolve(SEXP thetaSEXP, SEXP observationsSEXP, SEXP K2_solve_fnSEXP, SEXP saddlepoint_solve_fnSEXP, SEXP cgf_objSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< ADrep >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type saddlepoint_solve_fn(saddlepoint_solve_fnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type cgf_obj(cgf_objSEXP);
+    rcpp_result_gen = Rcpp::wrap(saddlepointSolve(theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_tvec_hat_for_ad", (DL_FUNC) &_saddlepoint_tvec_hat_for_ad, 5},
+    {"_saddlepoint_saddlepointSolve", (DL_FUNC) &_saddlepoint_saddlepointSolve, 5},
     {NULL, NULL, 0}
 };
 

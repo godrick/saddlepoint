@@ -5,3 +5,7 @@ tvec_hat_for_ad <- function(theta, tvec, observations, K1_fn, K2_solve_fn) {
     .Call(`_saddlepoint_tvec_hat_for_ad`, theta, tvec, observations, K1_fn, K2_solve_fn)
 }
 
+saddlepointSolve <- function(theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj) {
+    .Call(`_saddlepoint_saddlepointSolve`, theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj)
+}
+
