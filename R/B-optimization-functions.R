@@ -481,7 +481,7 @@ compute.std.error <- function(observed.data,
                                 cgf              = cgf, 
                                 tvec.hat         = estimated.tvec, 
                                 hessian          = TRUE,
-                                method           = method_)$hessian
+                                spa_method       = method_)$hessian
   
   if (!is.null(non.saddlepoint.negll.function)) {
     if (!is.function(non.saddlepoint.negll.function)) stop("'non.saddlepoint.negll.function' must be a function")

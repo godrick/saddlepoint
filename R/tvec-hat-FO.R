@@ -82,22 +82,22 @@ create_tvec_hat_K2_solve_fn <- function(cgf) {
 
 
 
-get_tape_res <- function(tape_obj, param_vec, gradient = FALSE, hessian = FALSE) {
-  
-  out_list <- list(
-    vals = tape_obj(param_vec),
-    gradient = NULL,
-    hessian = NULL
-  )
-  
-  if (gradient) { out_list$gradient <- as.vector(tape_obj$jacobian(param_vec)) }
-  
-  if (hessian) {
-    jacfun_obj <- tape_obj$jacfun()
-    out_list$hessian <- jacfun_obj$jacobian(param_vec)
-  }
-  out_list
-}
+# get_tape_res <- function(tape_obj, param_vec, gradient = FALSE, hessian = FALSE) {
+#   
+#   out_list <- list(
+#     vals = tape_obj(param_vec),
+#     gradient = NULL,
+#     hessian = NULL
+#   )
+#   
+#   if (gradient) { out_list$gradient <- as.vector(tape_obj$jacobian(param_vec)) }
+#   
+#   if (hessian) {
+#     jacfun_obj <- tape_obj$jacfun()
+#     out_list$hessian <- jacfun_obj$jacobian(param_vec)
+#   }
+#   out_list
+# }
 
 
 

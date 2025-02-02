@@ -91,7 +91,9 @@ find.saddlepoint.MLE <- function(observed.data,
   ineq.constraint.function <- get.ineq.constraint.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf, user.ineq.constraint.function = user.ineq.constraint.function)
   
   # Override objective function if zeroth order method is selected
-  if(zeroth.order) objective.function <- get.zeroth.saddlepoint.nll.function(tvec = starting.tvec, theta = starting.theta, cgf = cgf)
+  if(zeroth.order) objective.function <- get.zeroth.saddlepoint.nll.function(tvec = starting.tvec, 
+                                                                             theta = starting.theta, 
+                                                                             cgf = cgf)
   
   
   # configure optimizer options
@@ -129,24 +131,26 @@ find.saddlepoint.MLE <- function(observed.data,
   }
   
   if (discrepancy) {
-    # We'll use 'compute.funcT' with gradient=TRUE to get the derivative 
+    # We'll use 'compute.saddlepointLL.correction' with gradient=TRUE to get the derivative 
     # wrt 'theta' of the correction term at the final MLEs
-    out_funcT <- compute.funcT(
-      theta         = MLEs.theta,
-      observed.data = observed.data,
-      cgf           = cgf,
-      tvec.hat      = MLEs.tvec,    
-      gradient      = TRUE,         # needed for discrepancy
-      hessian       = FALSE,        # not needed
-      zeroth.order  = zeroth.order
+    
+    if(zeroth.order) {spa_method <- "zeroth"} else spa_method <- "standard"
+    out_ <- compute.saddlepointLL.correction(
+        parameter_vector = MLEs.theta,
+        observed.data    = observed.data,
+        cgf              = cgf,
+        tvec.hat = MLEs.tvec,
+        gradient = TRUE,     # needed for discrepancy
+        hessian  = FALSE,    # not needed
+        spa_method   = spa_method
     )
     
-    # out_funcT$gradient is the gradient wrt 'theta'
+    # out_$gradient is the gradient wrt 'theta'
     # The formula for the discrepancy approximation should be (-Hessian*gradientOfFuncT) if Hessian is negative definite
     # However, we are minimising the negative log-likelihood which has positive definite Hessian, we therefore
     # omit the negative sign from the formula for this computation
-    disc <- MLEs$inverse.hessian %*% out_funcT$gradient
-    MLEs$discrepancy <- as.vector(disc)   
+    discr <- MLEs$inverse.hessian %*% out_$gradient
+    MLEs$discrepancy <- as.vector(discr)   
   }
   
   MLEs$MLEs.tvec  = MLEs.tvec

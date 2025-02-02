@@ -33,32 +33,58 @@ get_nonAD_tvec_hat_vals <- function(parameter_vector,
 }
 
 
+
+# -----------------------------------------------------------------------------
+# Generic function selector for saddlepoint-based computations.
+# -----------------------------------------------------------------------------
 #' @noRd
-choose_negll_fun <- function(method, cgf) {
-  # “allowed” methods up front
-  allowed_methods <- c("standard", "zeroth")  # can expand in future?????
+choose_spa_function <- function(spa_method, cgf) {
+  allowed_methods <- c(
+    "negll_standard",  
+    "negll_zeroth",    
+    "correction_standard",  
+    "correction_zeroth"   
+  ) ##### can expand in future?????
+  ##### maybe the additional non-gaussian methods?
   
-  if (!method %in% allowed_methods) {
-    stop(sprintf("Unknown saddlepoint method '%s'. Allowed methods: %s",
-                 method, paste(allowed_methods, collapse=", ")))
+  if (!spa_method %in% allowed_methods) {
+    stop(sprintf(
+      "Unknown saddlepoint method '%s'. Allowed methods: %s",
+      spa_method, paste(allowed_methods, collapse = ", ")
+    ))
   }
   
-  neg_ll_fun   <- cgf$.get_private_method("neg_ll")
-  tilting_fun  <- cgf$.get_private_method("tilting_exponent")
+  neg_ll_fun  <- cgf$.get_private_method("neg_ll")             # function(tvec, theta)
+  tilt_fun    <- cgf$.get_private_method("tilting_exponent")     # function(tvec, theta)
+  funcT_first <- cgf$.get_private_method("func_T")             # function(tvec, theta)
   
-  if (method == "standard") {
+  
+  # Return whichever function is appropriate:
+  if (spa_method == "negll_standard") {
+    # The full negative log-likelihood
     return(neg_ll_fun)
+    
+  } else if (spa_method == "negll_zeroth") {
+    # The zeroth-order negative log-likelihood
+    return(function(tvec, theta) -tilt_fun(tvec, theta))
+    
+  } else if (spa_method == "correction_standard") {
+    # The first-order correction
+    return(funcT_first)
+    
   } else {
-    # method == "zeroth"
-    # Return - tilting exponent
-    return( function(tvec, parameter_vector) {-tilting_fun(tvec, parameter_vector)} )
+    # spa_method == "correction_zeroth" => the function computing -0.5 * log det(K2)
+    return(function(tvec, theta) {
+      K2_val <- cgf$K2(tvec, theta)
+      -0.5 * determinant(K2_val, logarithm = TRUE)$modulus
+    })
   }
 }
 
 
-
-
-
+# -----------------------------------------------------------------------------
+# Build an AD-taped function for the saddlepoint-based computation.
+# -----------------------------------------------------------------------------
 # Constructs a taped function that computes the saddlepoint negative log–likelihood/or maybe the correction term???,
 # its gradient, and, optionally, its Hessian. The tape captures the AD dependency for the
 # entire computation.
@@ -67,23 +93,21 @@ choose_negll_fun <- function(method, cgf) {
 # Note that in this case the resulting tape is intended for one–time use only.
 # NOTE: Additional arguments (...) are passed to saddlepoint.solve() only when no user_tvec
 #       is provided, but they are not (yet) forwarded to the C++ functions. 
+
 #' @noRd
 create_spa_taped_fun <- function(param_vec,
                                  observed.data,
                                  cgf,
-                                 method = "standard",
+                                 spa_method, # spa_method is one of "negll_standard", "negll_zeroth", "correction_standard", "correction_zeroth"
                                  user_tvec = NULL,
                                  gradient = FALSE,
                                  hessian = FALSE,
-                                  ... # additional arguments to saddlepoint.solve
+                                 ... # additional arguments to saddlepoint.solve
 ) {
+  
   if (hessian && !gradient) gradient <- TRUE
-  chosen_negll <- choose_negll_fun(method = method, cgf = cgf)
+  chosen_spa_fn <- choose_spa_function(spa_method = spa_method, cgf = cgf)
   K2_solve_fn <- create_tvec_hat_K2_solve_fn(cgf)
-  
-  
-  
-  
   
   
   # We will make a tape of "local_fn". First we need to determine how tvec is availed (user-supplied, analytic, or numeric), and 
@@ -102,13 +126,13 @@ create_spa_taped_fun <- function(param_vec,
         K1_fn         = cgf$K1,
         K2_solve_fn   = K2_solve_fn
       )
-      chosen_negll(tvec_hat_vals, par)
+      chosen_spa_fn(tvec_hat_vals, par)
     }
   } else if(cgf$has_analytic_tvec_hat()) {
     # CASE B: If cgf has an analytic formula for tvec_hat, use it
     local_fn <- function(par) {
       tvec_vals <- cgf$analytic_tvec_hat(observed.data, par)
-      chosen_negll(tvec_vals, par)
+      chosen_spa_fn(tvec_vals, par)
     }
   } else {
     # CASE C: numeric solve each time
@@ -125,7 +149,7 @@ create_spa_taped_fun <- function(param_vec,
         saddlepoint_solve_fn = saddlepoint.solve,
         cgf_obj       = cgf
       )
-      chosen_negll(tvec_hat_vals, par)
+      chosen_spa_fn(tvec_hat_vals, par)
     }
   }
   
@@ -147,7 +171,6 @@ create_spa_taped_fun <- function(param_vec,
 
 
 
-
 #' Compute the saddlepoint negative log-likelihood
 #'
 #' @description
@@ -163,7 +186,7 @@ create_spa_taped_fun <- function(param_vec,
 #'        of finding `tvec`.
 #' @param gradient Logical. If `TRUE`, the gradient is computed.
 #' @param hessian Logical. If `TRUE`, the Hessian is computed.
-#' @param method Character string. One of `"standard"` or `"zeroth"`. 
+#' @param spa_method Character string. One of `"standard"` or `"zeroth"`. 
 #' @param ... Additional arguments passed to `saddlepoint.solve()` if `tvec.hat` is not provided.
 #'
 #' @return A named list with elements:
@@ -182,7 +205,7 @@ compute.spa.negll <- function(parameter_vector,
                               tvec.hat = NULL,
                               gradient = FALSE,
                               hessian  = FALSE,
-                              method   = "standard",
+                              spa_method   = "standard",
                               ...) {
   if (!inherits(cgf, "CGF")) stop("`cgf` must be an object of class CGF")
   if (!is.numeric(parameter_vector)) stop("`parameter_vector` must be numeric.")
@@ -190,9 +213,14 @@ compute.spa.negll <- function(parameter_vector,
   if (!is.null(tvec.hat) && !is.numeric(tvec.hat)) stop("`tvec.hat` must be numeric.")
   if (!is.logical(gradient) || length(gradient) != 1) stop("`gradient` must be a logical.")
   if (!is.logical(hessian) || length(hessian) != 1) stop("`hessian` must be a logical.")
-  if (!is.character(method) || length(method) != 1) stop("`method` must be a character string.")
+  if (!is.character(spa_method) || length(spa_method) != 1) stop("`spa_method` must be a character string.")
   
   
+  if (spa_method == "standard") {
+    spa_method <- "negll_standard"
+  } else if (spa_method == "zeroth") {
+    spa_method <- "negll_zeroth"
+  }
   
   
   
@@ -205,25 +233,31 @@ compute.spa.negll <- function(parameter_vector,
       user_tvec        = tvec.hat,
       ...
     )
-    chosen_negll <- choose_negll_fun(method = method, cgf = cgf)
-    val <- chosen_negll(tvec_hat_vals, parameter_vector)[1] ##### [1] here strips off any unwanted attribute.
+    chosen_negll <- choose_spa_function(spa_method = spa_method, cgf = cgf)
+    val <- chosen_negll(tvec_hat_vals, parameter_vector)[1] ##### here, [1] strips off an attribute.
     return(list(vals = val, gradient = NULL, hessian = NULL))
   }
-
-
+  
+  
   # Otherwise, build an AD tape and return its evaluation.
   taped_fun <- create_spa_taped_fun(
-                  param_vec     = parameter_vector,
-                  observed.data = observed.data,
-                  cgf           = cgf,
-                  method        = method,
-                  user_tvec     = tvec.hat,
-                  gradient      = gradient,
-                  hessian       = hessian,
-                  ... #### addtional arguments are passed to saddlepoint.solve() are still not being passed to cpp
-                  )
+    param_vec     = parameter_vector,
+    observed.data = observed.data,
+    cgf           = cgf,
+    spa_method        = spa_method,
+    user_tvec     = tvec.hat,
+    gradient      = gradient,
+    hessian       = hessian,
+    ... #### addtional arguments are passed to saddlepoint.solve() are still not being passed to cpp
+  )
   taped_fun(parameter_vector)
 }
+
+
+
+
+
+
 
 
 

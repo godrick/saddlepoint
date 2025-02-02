@@ -11,7 +11,7 @@ compute.spa.negll(
   tvec.hat = NULL,
   gradient = FALSE,
   hessian = FALSE,
-  method = "standard",
+  spa_method = "standard",
   ...
 )
 }
@@ -29,7 +29,7 @@ of finding \code{tvec}.}
 
 \item{hessian}{Logical. If \code{TRUE}, the Hessian is computed.}
 
-\item{method}{Character string. One of \code{"standard"} or \code{"zeroth"}.}
+\item{spa_method}{Character string. One of \code{"standard"} or \code{"zeroth"}.}
 
 \item{...}{Additional arguments passed to \code{saddlepoint.solve()} if \code{tvec.hat} is not provided.}
 }

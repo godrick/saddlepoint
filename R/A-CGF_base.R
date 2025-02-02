@@ -501,8 +501,8 @@ CGF <- R6::R6Class(
                                  observed.data,
                                  tvec.hat = NULL,
                                  gradient = FALSE,
-                                 hessian = FALSE,
-                                 method = "standard",
+                                 hessian  = FALSE,
+                                 spa_method = "standard",
                                  ...) {
       compute.spa.negll(
         cgf              = self,
@@ -511,7 +511,7 @@ CGF <- R6::R6Class(
         tvec.hat         = tvec.hat,
         gradient         = gradient,
         hessian          = hessian,
-        method           = "standard",
+        spa_method       = "standard",
         ...
       )
     }
