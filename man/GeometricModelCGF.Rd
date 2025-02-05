@@ -11,13 +11,12 @@ GeometricModelCGF(prob, iidReps = "any", ...)
 and returns the success probability \eqn{prob} (a scalar) or a vector of probabilities.}
 
 \item{iidReps}{Either \code{"any"} (no forced dimension) or a positive integer specifying how many
-i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if \code{prob} is vector).}
+i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if \code{prob} is a vector).}
 
-\item{...}{Additional arguments passed to the underlying CGF creation function
-(e.g., optional operator overrides).}
+\item{...}{Additional arguments passed to the underlying CGF creation function}
 }
 \value{
-A CGF object
+A \code{CGF} object
 }
 \description{
 Creates a CGF object for the Geometric distribution with success probability

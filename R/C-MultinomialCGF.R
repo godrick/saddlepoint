@@ -68,8 +68,7 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #' **I.I.D. Replicates**:
 #' By setting \code{iidReps} to a positive integer \eqn{m}, you declare that the input vector \eqn{tvec} will be split
 #' into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multinomial sample. 
-#' If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage where the dimension 
-#' of \eqn{tvec} can vary without implying i.i.d. blocks.
+#' If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage.
 #' 
 #' @param n An adaptor or function defining the total count \eqn{n(\theta)}. 
 #'   It must accept a parameter vector \eqn{\theta} and return a single numeric value.

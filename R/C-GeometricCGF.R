@@ -183,11 +183,10 @@ validateProbLengths <- function(vec, prob, iidReps) {
 #' @param prob A function (or adaptor) that accepts a single parameter vector \code{theta}
 #'   and returns the success probability \eqn{prob} (a scalar) or a vector of probabilities.
 #' @param iidReps Either \code{"any"} (no forced dimension) or a positive integer specifying how many
-#'   i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if `prob` is vector).
+#'   i.i.d. blocks are expected. Each block correspond to one copy of the geometric variables (or multiple if `prob` is a vector).
 #' @param ... Additional arguments passed to the underlying CGF creation function
-#'   (e.g., optional operator overrides).
 #'
-#' @return A CGF object
+#' @return A `CGF` object
 #' @export
 GeometricModelCGF <- function(prob, iidReps = "any", ...) {
   if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
