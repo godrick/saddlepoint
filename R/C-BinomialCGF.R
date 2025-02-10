@@ -1,4 +1,4 @@
-# R/BinomialCGF.R
+# R/C-BinomialCGF.R
 
 
 

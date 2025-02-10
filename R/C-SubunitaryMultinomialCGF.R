@@ -24,7 +24,17 @@
   zm1 <- exp(tvec) - 1
   prob_sum <- sum(prob_vec)
   adjusted_prob_vec = prob_vec / prob_sum
-  n_val*log(prob_sum) + n_val*log1p( sum(adjusted_prob_vec*zm1) )
+  # n_val*log(prob_sum) + n_val*log1p( sum(adjusted_prob_vec*zm1) )
+  
+  
+  
+  d <- length(adjusted_prob_vec) 
+  nblocks <- length(tvec) / d
+  b_zm1 <- matrix(zm1, nrow = d, ncol = nblocks)
+  block_results <- apply(b_zm1, 2, function(zm1_block) {
+    n_val*log(prob_sum) + n_val*log1p( sum(adjusted_prob_vec*zm1_block) )
+  })
+  sum(block_results)
 }
 
 
@@ -72,8 +82,8 @@
 #'   returning the multinomial probabilities for the \eqn{d} active categories. 
 #'   The sum of these probabilities should be strictly less than one to account for 
 #'   the excluded category.
-#' @param iidReps Either \code{"any"} or a positive integer specifying how many
-#'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
+# #' @param iidReps Either \code{"any"} or a positive integer specifying how many
+# #'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.
 #'
 #' @return A `CGF` object.
@@ -82,15 +92,7 @@
 #' @export
 SubunitaryMultinomialModelCGF <- function(n, 
                                           prob_vec,
-                                          iidReps    = "any",
                                           ...){
-  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
-  if (!is.null(iidReps)) {
-    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
-        iidReps < 1 || iidReps != as.integer(iidReps) )  {
-      stop("'iidReps' must be 'any' or a positive integer.")
-    }
-  }
   
   
   multinom_cgf <- createMultinomialFamilyCGF(

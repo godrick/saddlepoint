@@ -4,7 +4,7 @@
 \alias{SubunitaryMultinomialModelCGF}
 \title{Subunitary Multinomial CGF}
 \usage{
-SubunitaryMultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
+SubunitaryMultinomialModelCGF(n, prob_vec, ...)
 }
 \arguments{
 \item{n}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric}, returning the number of trials in the multinomial distribution.}
@@ -13,9 +13,6 @@ SubunitaryMultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
 returning the multinomial probabilities for the \eqn{d} active categories.
 The sum of these probabilities should be strictly less than one to account for
 the excluded category.}
-
-\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
-i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
 
 \item{...}{Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.}
 }

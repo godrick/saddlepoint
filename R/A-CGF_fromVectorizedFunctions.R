@@ -215,10 +215,10 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' This function allows you to create a `CGF` object using vectorized functions
 #' along with any optional operators or methods.
 #'
-#' @param K_vectorized_func Function: returns a vector of K-values for tvec.
-#' @param K1_vectorized_func Function: returns a vector (gradient) for K1.
-#' @param K2_vectorized_func Function: returns a vector of second derivatives (often diagonal for IID).
-#' @param K3_vectorized_func,K4_vectorized_func Similar vectorized functions for K3 and K4.
+#' @param K_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.
+#' @param K1_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.
+#' @param K2_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.
+#' @param K3_vectorized_func,K4_vectorized_func Similar vectorized functions for the third and fourth derivatives.
 #' @param ineq_constraint_func Optional inequality constraint function.
 #' @param analytic_tvec_hat_func Optional tvec_hat function override.
 #' @param op_name Optional character string indicating the name of the operation or transformation being performed.
@@ -228,7 +228,7 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' @param K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC Optional operator overrides.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored Optional factored operator overrides.
 #' @param K2operator,K2operatorAK2AT Optional operator overrides.
-#' @param ... Any additional optional methods.
+#' @param ... Any additional named optional methods.
 #'
 #' @return A `CGF` object.
 #' @export

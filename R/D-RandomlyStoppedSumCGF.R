@@ -104,7 +104,15 @@
     scalar_Kx <- summand_cgf$K(tvec, param)
     count_ineq <- count_cgf$ineq_constraint(scalar_Kx, param)
     
-    c(count_ineq, summand_ineq)
+    # c(count_ineq, summand_ineq)
+    
+    out_ <- numeric(length(count_ineq) + length(summand_ineq)) * param[1]
+    if (length(count_ineq) > 0) out_[1:length(count_ineq)] <- count_ineq
+    if (length(summand_ineq) > 0) out_[(length(count_ineq)+1):length(out_)] <- summand_ineq
+    out_
+    # out_[(length(count_ineq)+1):length(out_)] <- summand_ineq
+    # out_
+    
   }
   
   # ------------------------------------------------------------------

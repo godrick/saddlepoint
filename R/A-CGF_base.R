@@ -543,16 +543,14 @@ CGF <- R6::R6Class(
 #' 
 #' @param analytic_tvec_hat_func Optional function for an analytic solution
 #'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(x, param)`.
-#' @param op_name A descriptive label for this CGF object. Used for the print method.
-#'               Default is "UnnamedOperation".
+#' @param op_name A descriptive label for the CGF object/operation. Default is "UnnamedOperation".
 #' 
 #' @param tilting_exponent (optional) Overriding function for the tilting exponent.
 #' @param neg_ll (optional) Overriding function for the negative log-likelihood.
 #' @param func_T (optional) Overriding function for the first-order correction term.
 #' @param K2operator,K2operatorAK2AT,K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC (optional) Overriding operator methods.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored (optional) Overriding factored-operator methods.
-#' @param ... Additional named methods or overrides. This demonstrates the extensibility
-#'   mechanism, letting you add new CGF-related methods without altering the base class.              
+#' @param ... Additional named methods or overrides.           
 #'
 #' @return An object of class `CGF`.
 #' @export

@@ -74,8 +74,8 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #'   It must accept a parameter vector \eqn{\theta} and return a single numeric value.
 #' @param prob_vec An adaptor or function defining the probability (or odds) vector \eqn{p(\theta)}. 
 #'   It must accept a parameter vector \eqn{\theta} and return a numeric vector.
-#' @param iidReps Either \code{"any"} or a positive integer specifying how many
-#'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
+# #' @param iidReps Either \code{"any"} or a positive integer specifying how many
+# #'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.
 #' 
 #' @return A `CGF` object (an R6 class) specialized for the multinomial distribution with user-defined mappings.
@@ -100,15 +100,7 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #' @export
 MultinomialModelCGF <- function(n,
                                 prob_vec,
-                                iidReps = "any",
                                 ...) {
-  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
-  if (!is.null(iidReps)) {
-    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
-        iidReps < 1 || iidReps != as.integer(iidReps) )  {
-      stop("'iidReps' must be 'any' or a positive integer.")
-    }
-  }
   
   multinom_cgf <- createMultinomialFamilyCGF(
     op_name = "MultinomialModelCGF",

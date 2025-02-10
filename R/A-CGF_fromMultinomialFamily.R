@@ -47,6 +47,18 @@ MultinomialFamilyCGF <- R6::R6Class(
   inherit   = CGF,   
   
   private = list(
+    .iidReps = NULL,
+    check_tvec_length = function(tvec, param) {
+      if (!is.null(private$.iidReps)) {
+        d <- length(param) - 1
+        if (length(tvec) != d * private$.iidReps) {
+          stop(sprintf(
+            "MultinomialFamilyCGF: length(tvec)=%d != d(%d)*iidReps(%d).",
+            length(tvec), d, private$.iidReps
+          ))
+        }
+      }
+    },
     
     # ------------------------------------------------------------------
     # Helper Functions
@@ -70,12 +82,6 @@ MultinomialFamilyCGF <- R6::R6Class(
       N_val * log1p(frac)
     },
     
-    # Returns expm1(tvec) = [exp(t_i)-1],
-    # used to rewrite sum(w_i e^{t_i}) as sum(w_i) + sum(w_i(e^{t_i}-1)).
-    zm1_from_t = function(tvec) {
-      expm1(tvec)
-    },
-    
     # The tilted distribution v_i = p_i e^{t_i} / sum_j p_j e^{t_j}.
     # If p_i = w_i / sum(w_i), we do: 
     #    numerator = w_i * exp(t_i), 
@@ -91,6 +97,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     # (the 5 required methods). Users can override by passing non-NULL.
     #-------------------------------------------------------------------
     K_func_default = function(tvec, param) {
+      # private$check_tvec_length(tvec, param) 
       d <- length(param) - 1  # dimension for one block
       nblocks <- length(tvec) / d
       
@@ -103,7 +110,7 @@ MultinomialFamilyCGF <- R6::R6Class(
       
       # Apply function to each column (block)
       block_values <- apply(tmat, 2, function(tblock) {
-        zm1 <- private$zm1_from_t(tblock)
+        zm1 <- exp(tblock) - 1
         private$K_z1p(zm1, N_val, odds_val, odds_sum)
       })
       
@@ -116,6 +123,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     # v must be the normalised vector of probabilities for the tilted distribution
     # If p_i = w_i / sum(w_j), then v_i = w_i e^{t_i}/ sum_j [w_j e^{t_j}].
     K1_func_default = function(tvec, param) {
+      # private$check_tvec_length(tvec, param) 
       d <- length(param) - 1  # dimension for a single block
       nblocks <- length(tvec) / d
       
@@ -134,6 +142,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     # K2(tvec, param) = N [ diag(v) - v v^T ]
     # That is a d x d matrix.
     K2_func_default = function(tvec, param) {
+      # private$check_tvec_length(tvec, param) 
       d <- length(param) - 1
       N_val    <- param[1]
       odds_val <- param[-1]
@@ -163,6 +172,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     # K3operator(tvec, u1, u2, u3, param).
     # The 3rd derivative "operator" at tvec, applied to vectors u1, u2, u3.
     K3operator_func_default = function(tvec, param, u1, u2, u3) {
+      # private$check_tvec_length(tvec, param) 
       d <- length(param) - 1
       nblocks <- length(tvec) / d
       
@@ -202,6 +212,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
     
     K4operator_func_default = function(tvec, param, u1, u2, u3, u4) {
+      # private$check_tvec_length(tvec, param) 
       d <- length(param) - 1
       nblocks <- length(tvec) / d
       
@@ -256,6 +267,7 @@ MultinomialFamilyCGF <- R6::R6Class(
       },
     
     K4operatorAABB_func_default = function(tvec, param, Q1, Q2) {
+      # private$check_tvec_length(tvec, param) 
       # # v <- private$v_from_t(tvec, odds_val)
       # 
       # # Q1v  <- Q1 %*% v
@@ -311,6 +323,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
     
     K3K3operatorAABBCC_func_default = function(tvec, param, Q1, Q2, Q3) {
+      # private$check_tvec_length(tvec, param) 
       
       # Q1v <- Q1 %*% v
       # Q2v <- Q2 %*% v
@@ -414,6 +427,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
     
     K3K3operatorABCABC_func_default = function(tvec, param, Q1, Q2, Q3) {
+      # private$check_tvec_length(tvec, param) 
       
       # Q1v <- as.vector(Q1 %*% v)
       # Q2v <- as.vector(Q2 %*% v)
@@ -571,8 +585,18 @@ MultinomialFamilyCGF <- R6::R6Class(
       K2operatorAK2AT_func = NULL,
       
       op_name = "UnnamedOperation",
+      iidReps = "any",
       ...
     ) {
+      
+      if (is.character(iidReps) && length(iidReps)==1 && tolower(iidReps)=="any") {
+        private$.iidReps <- NULL
+      }else {
+        if (!is.numeric(iidReps) || length(iidReps)!=1 || iidReps<1 || iidReps!=as.integer(iidReps) || is.infinite(iidReps)) {
+          stop("'iidReps' must be 'any' or a positive integer.")
+        }
+        private$.iidReps <- as.integer(iidReps)
+      }
       
       # If the user-supplied function is NULL, use the child's default. 
       # Otherwise use the user's function.
@@ -646,10 +670,11 @@ MultinomialFamilyCGF <- R6::R6Class(
 #' @param K4operatorAABB_factored_func,K3K3operatorAABBCC_factored_func,K3K3operatorABCABC_factored_func Optional overrides.
 #' @param K2operator_func,K2operatorAK2AT_func Optional overrides.
 #' @param op_name Character string operation label. Default "UnnamedOperation".
+# #' @param iidReps Either \code{"any"} or a positive integer specifying how many i.i.d. blocks are expected. Defaults to \code{"any"}.
 #' @param ... Additional arguments for future use or to pass to the base CGF's \code{initialize}.
 #'
 #' @return A CGF object.
-#' @export
+#' @noRd
 createMultinomialFamilyCGF <- function(
     K_func = NULL,
     K1_func = NULL,
@@ -702,6 +727,7 @@ createMultinomialFamilyCGF <- function(
     K2operatorAK2AT_func = K2operatorAK2AT_func,
     
     op_name = op_name,
+    iidReps = "any",
     ...
   )
 }

@@ -22,5 +22,5 @@ A \code{CGF} object.
 \description{
 Creates a CGF object for the Gamma distribution with shape \eqn{\alpha(\theta)} and
 rate \eqn{\beta(\theta)} defined by user-provided parameter functions.
-This function supports both i.i.d. and non-identical usage..
+This function supports both i.i.d. and non-identical usage.
 }

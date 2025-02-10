@@ -69,20 +69,20 @@ GammaCGF <- createCGF_fromVectorisedFunctions(
   op_name       = "GammaCGF"
 )
 
-#' @noRd
-validateGammaLengths <- function(vec, param, iidReps) {
-  d <- length(param) / 2
-  if (!is.null(iidReps)) {
-    expected_len <- d * iidReps
-    if (length(vec) != expected_len) {
-      stop(sprintf("Length of tvec/x is %d; expected %d (parameter dimension d = %d, iidReps = %s).",
-                   length(vec), expected_len, d, iidReps))
-    }
-  } else if (length(vec) %% d != 0) {
-    stop(sprintf("Length of tvec/x (%d) is not a multiple of the parameter dimension (%d).",
-                 length(vec), d))
-  }
-}
+# #' @noRd
+# validateGammaLengths <- function(vec, param, iidReps) {
+#   d <- length(param) / 2
+#   if (!is.null(iidReps)) {
+#     expected_len <- d * iidReps
+#     if (length(vec) != expected_len) {
+#       stop(sprintf("Length of tvec/x is %d; expected %d (parameter dimension d = %d, iidReps = %s).",
+#                    length(vec), expected_len, d, iidReps))
+#     }
+#   } else if (length(vec) %% d != 0) {
+#     stop(sprintf("Length of tvec/x (%d) is not a multiple of the parameter dimension (%d).",
+#                  length(vec), d))
+#   }
+# }
 
 
 
@@ -91,48 +91,48 @@ validateGammaLengths <- function(vec, param, iidReps) {
 
   createCGF_fromVectorisedFunctions(
     K_vectorized_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
       -alpha * log1p(-tvec / beta)
     },
     K1_vectorized_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
       alpha / (beta - tvec)
     },
     K2_vectorized_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
       alpha / (beta - tvec)^2
     },
     K3_vectorized_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
       2*alpha / (beta - tvec)^3
     },
     K4_vectorized_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
       6*alpha / (beta - tvec)^4
     },
     ineq_constraint_func = function(tvec, sr) {
-      validateGammaLengths(tvec, sr, iidReps)
+      validate2ParsLengths(tvec, sr, iidReps)
       len_s <- length(sr)/2
       beta  <- sr[len_s + 1:len_s]
       tvec - beta
     },
     analytic_tvec_hat_func = function(x, sr) {
-      validateGammaLengths(x, sr, iidReps)
+      validate2ParsLengths(x, sr, iidReps)
       len_s <- length(sr)/2
       alpha <- sr[1:len_s]
       beta  <- sr[len_s + 1:len_s]
@@ -152,7 +152,7 @@ validateGammaLengths <- function(vec, param, iidReps) {
 #' @description
 #' Creates a CGF object for the Gamma distribution with shape \eqn{\alpha(\theta)} and 
 #' rate \eqn{\beta(\theta)} defined by user-provided parameter functions. 
-#' This function supports both i.i.d. and non-identical usage..
+#' This function supports both i.i.d. and non-identical usage.
 #' 
 #'  
 #'
@@ -186,24 +186,6 @@ GammaModelCGF <- function(shape,
     param_adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
