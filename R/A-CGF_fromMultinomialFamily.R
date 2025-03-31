@@ -499,12 +499,12 @@ MultinomialFamilyCGF <- R6::R6Class(
         Qblock <- Q[idx_start:idx_end, idx_start:idx_end]
         
         
-        Qv <- as.vector(Qblock %*% v)         
+        Qv <- as.vector(Qblock %*% v) 
         vQv <- sum(v * Qv)               
         
         len_v <- length(v)
-        Qv_col <- Matrix(Qv, nrow = len_v, ncol = len_v, byrow = FALSE)
-        Qv_row <- Matrix(Qv, nrow = len_v, ncol = len_v, byrow = TRUE)
+        Qv_col <- matrix(Qv, nrow = len_v, ncol = len_v, byrow = FALSE)
+        Qv_row <- matrix(Qv, nrow = len_v, ncol = len_v, byrow = TRUE)
         
         expression_matrix <- Qblock^3 - 
                 3 * Qblock^2 * Qv_col - 
