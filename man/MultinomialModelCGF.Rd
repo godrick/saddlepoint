@@ -4,7 +4,7 @@
 \alias{MultinomialModelCGF}
 \title{Create a Parametric MultinomialCGF Object}
 \usage{
-MultinomialModelCGF(n, prob_vec, ...)
+MultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
 }
 \arguments{
 \item{n}{An adaptor or function defining the total count \eqn{n(\theta)}.
@@ -12,6 +12,8 @@ It must accept a parameter vector \eqn{\theta} and return a single numeric value
 
 \item{prob_vec}{An adaptor or function defining the probability (or odds) vector \eqn{p(\theta)}.
 It must accept a parameter vector \eqn{\theta} and return a numeric vector.}
+
+\item{iidReps}{Either \code{"any"} or a positive integer specifying how many}
 
 \item{...}{Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.}
 }

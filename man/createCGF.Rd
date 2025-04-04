@@ -43,8 +43,7 @@ createCGF(
 \item{analytic_tvec_hat_func}{Optional function for an analytic solution
 of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(x, param)}.}
 
-\item{op_name}{A descriptive label for this CGF object. Used for the print method.
-Default is "UnnamedOperation".}
+\item{op_name}{A descriptive label for the CGF object/operation. Default is "UnnamedOperation".}
 
 \item{tilting_exponent}{(optional) Overriding function for the tilting exponent.}
 
@@ -56,8 +55,7 @@ Default is "UnnamedOperation".}
 
 \item{K2operator, K2operatorAK2AT, K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC}{(optional) Overriding operator methods.}
 
-\item{...}{Additional named methods or overrides. This demonstrates the extensibility
-mechanism, letting you add new CGF-related methods without altering the base class.}
+\item{...}{Additional named methods or overrides.}
 }
 \value{
 An object of class \code{CGF}.

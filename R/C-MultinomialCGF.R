@@ -74,8 +74,8 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #'   It must accept a parameter vector \eqn{\theta} and return a single numeric value.
 #' @param prob_vec An adaptor or function defining the probability (or odds) vector \eqn{p(\theta)}. 
 #'   It must accept a parameter vector \eqn{\theta} and return a numeric vector.
-# #' @param iidReps Either \code{"any"} or a positive integer specifying how many
-# #'   i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
+#' @param iidReps Either \code{"any"} or a positive integer specifying how many
+#     i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.
 #' 
 #' @return A `CGF` object (an R6 class) specialized for the multinomial distribution with user-defined mappings.
@@ -91,7 +91,7 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #' # The resulting CGF object expects 2 i.i.d. multinomial blocks,
 #' # each of dimension 3. So tvec must be of length 6.
 #' tvec <- rep(0, 6)
-#' param <- c(0.2, 0.3, 0.5)  # or any unused parameter vector
+#' param <- c(10, 0.2, 0.3, 0.5)  # this will not be used since we have fixed_param
 #' 
 #' # We can now compute, e.g., the gradient:
 #' my_cgf$K1(tvec, param)
@@ -100,9 +100,11 @@ MultinomialCGF <- createMultinomialFamilyCGF(op_name = "MultinomialCGF")
 #' @export
 MultinomialModelCGF <- function(n,
                                 prob_vec,
+                                iidReps = "any",
                                 ...) {
   
   multinom_cgf <- createMultinomialFamilyCGF(
+    iidReps = iidReps,
     op_name = "MultinomialModelCGF",
     ...
   )

@@ -670,7 +670,7 @@ MultinomialFamilyCGF <- R6::R6Class(
 #' @param K4operatorAABB_factored_func,K3K3operatorAABBCC_factored_func,K3K3operatorABCABC_factored_func Optional overrides.
 #' @param K2operator_func,K2operatorAK2AT_func Optional overrides.
 #' @param op_name Character string operation label. Default "UnnamedOperation".
-# #' @param iidReps Either \code{"any"} or a positive integer specifying how many i.i.d. blocks are expected. Defaults to \code{"any"}.
+#' @param iidReps Either \code{"any"} or a positive integer specifying how many i.i.d. blocks are expected. Defaults to \code{"any"}.
 #' @param ... Additional arguments for future use or to pass to the base CGF's \code{initialize}.
 #'
 #' @return A CGF object.
@@ -698,6 +698,7 @@ createMultinomialFamilyCGF <- function(
     
     K2operator_func = NULL,
     K2operatorAK2AT_func = NULL,
+    iidReps = "any",
     
     op_name = "UnnamedOperation",
     ...
@@ -727,7 +728,7 @@ createMultinomialFamilyCGF <- function(
     K2operatorAK2AT_func = K2operatorAK2AT_func,
     
     op_name = op_name,
-    iidReps = "any",
+    iidReps = iidReps,
     ...
   )
 }

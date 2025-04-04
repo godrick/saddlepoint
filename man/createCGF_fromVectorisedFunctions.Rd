@@ -28,13 +28,13 @@ createCGF_fromVectorisedFunctions(
 )
 }
 \arguments{
-\item{K_vectorized_func}{Function: returns a vector of K-values for tvec.}
+\item{K_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.}
 
-\item{K1_vectorized_func}{Function: returns a vector (gradient) for K1.}
+\item{K1_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.}
 
-\item{K2_vectorized_func}{Function: returns a vector of second derivatives (often diagonal for IID).}
+\item{K2_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.}
 
-\item{K3_vectorized_func, K4_vectorized_func}{Similar vectorized functions for K3 and K4.}
+\item{K3_vectorized_func, K4_vectorized_func}{Similar vectorized functions for the third and fourth derivatives.}
 
 \item{ineq_constraint_func}{Optional inequality constraint function.}
 
@@ -54,7 +54,7 @@ createCGF_fromVectorisedFunctions(
 
 \item{K2operator, K2operatorAK2AT}{Optional operator overrides.}
 
-\item{...}{Any additional optional methods.}
+\item{...}{Any additional named optional methods.}
 }
 \value{
 A \code{CGF} object.

@@ -4,7 +4,7 @@
 \alias{linearlyMappedCGF}
 \title{CGF Object of a linearly mapped random variable \eqn{Y = A \, X}}
 \usage{
-linearlyMappedCGF(cgf, matrix_A, block_size = NULL, iidReps = NULL, ...)
+linearlyMappedCGF(cgf, matrix_A, iidReps = 1, ...)
 }
 \arguments{
 \item{cgf}{An object of class \code{CGF} for the base distribution \eqn{X}.}
@@ -12,11 +12,7 @@ linearlyMappedCGF(cgf, matrix_A, block_size = NULL, iidReps = NULL, ...)
 \item{matrix_A}{Either a numeric matrix (dense or sparse), or a function:
 \code{function(param) -> numeric matrix}.}
 
-\item{block_size}{Either \code{NULL} or a positive integer specifying the block size for replication.
-Default is \code{NULL}.}
-
-\item{iidReps}{Either \code{NULL} or a positive integer specifying how many i.i.d. blocks
-to expect. Default is \code{NULL}.}
+\item{iidReps}{A positive integer (default \code{1}) specifying how many i.i.d. blocks to expect.}
 
 \item{...}{Additional named arguments passed to \code{CGF} creation functions.}
 }
