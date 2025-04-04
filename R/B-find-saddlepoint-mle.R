@@ -53,7 +53,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' # TO DO: Add examples
+#' set.seed(1); x = rgamma(50, shape = 10, rate = 0.5)
+#' res <- find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF, starting.theta = c(1,1), std.error=TRUE)
+#' res$MLEs.theta
+#' res$std.error
 #' }
 #' @export
 find.saddlepoint.MLE <- function(observed.data,
