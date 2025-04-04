@@ -303,27 +303,24 @@
 #' @param cgf An object of class `CGF` for the base distribution \eqn{X}.
 #' @param matrix_A Either a numeric matrix (dense or sparse), or a function:
 #'   \code{function(param) -> numeric matrix}.
-#' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
-#'   Default is \code{NULL}.
-#' @param iidReps Either \code{NULL} or a positive integer specifying how many i.i.d. blocks 
-#'   to expect. Default is \code{NULL}.
+# #' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
+# #'   Default is \code{NULL}.
+#' @param iidReps A positive integer (default \code{1}) specifying how many i.i.d. blocks to expect.
 #' @param ... Additional named arguments passed to `CGF` creation functions.
 #'   
 #'
 #' @return A `CGF` object for \eqn{Y = A \, X}. 
 #' @export
-linearlyMappedCGF <- function(cgf, matrix_A, block_size = NULL, iidReps = NULL, ...) {
+linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
   if (!inherits(cgf, "CGF")) stop("'cgf' must be an object inheriting from class 'CGF'.")
   mapped_cgf <- .linearlyMappedCGF_internal(cgf, matrix_A, ...)
  
   #---------------------------------------------
   # # If iidReps == 1 => done. Otherwise wrap
   # # with iidReplicatesCGF().
-  # # This case also applies if iidReps is NULL and block_size is NULL.
   #---------------------------------------------
-  if (is.null(block_size) && is.null(iidReps)) return(mapped_cgf)
-  if (!is.null(iidReps) && iidReps == 1) return(mapped_cgf)
-  iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps, block_size = block_size)
+  if (iidReps !=1) return(iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps))
+  mapped_cgf
 }
 
 
