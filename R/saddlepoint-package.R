@@ -5,8 +5,8 @@
 "_PACKAGE"
 
 ## usethis namespace: start
-# #' @import RTMB
-#' @importFrom RTMB ADoverload
+#' @import RTMB
+#' @import Matrix
 #' @useDynLib saddlepoint, .registration = TRUE
 ## usethis namespace: end
 NULL

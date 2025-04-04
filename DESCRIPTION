@@ -1,7 +1,7 @@
 Package: saddlepoint
 Title: Saddlepoint methods with CGF operations
 Version: 0.9.0
-Date: 2024-07-05
+Date: 2025-01-06
 Authors@R: c(
     person("Godrick", "Oketch", role = c("aut", "cre"), email = "goke316@aucklanduni.ac.nz"),
     person("Jesse", "Goodman", role = c("aut")),
@@ -21,13 +21,16 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
     methods,
+    Matrix,
     Rcpp,
     RcppEigen,
     nloptr,
-    RTMB,
-    withr
+    RTMB
 LinkingTo: 
     Rcpp,
     RcppEigen,
     RTMB,
     TMB
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
