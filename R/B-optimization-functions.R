@@ -337,7 +337,7 @@ saddlepoint.solve <- function(theta, y, cgf,
     cgf$K(t.vec, theta) - sum(t.vec*y)
   }
   grad.objective.fun <- function(t.vec){
-    cgf$K1(t.vec, theta) - y
+    as.numeric(cgf$K1(t.vec, theta)) - y
   }
   eval_f <- function(t.vec) {
     list(objective = objective.fun(t.vec),
