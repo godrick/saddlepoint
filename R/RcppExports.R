@@ -9,3 +9,11 @@ tapedSaddlepointSolve <- function(theta, observations, K2_solve_fn, saddlepoint_
     .Call(`_saddlepoint_tapedSaddlepointSolve`, theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj)
 }
 
+matinv_TMBad <- function(x) {
+    .Call(`_saddlepoint_matinv_TMBad`, x)
+}
+
+matinv_double <- function(x) {
+    .Call(`_saddlepoint_matinv_double`, x)
+}
+

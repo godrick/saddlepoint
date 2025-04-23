@@ -42,10 +42,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// matinv_TMBad
+ADrep matinv_TMBad(ADrep x);
+RcppExport SEXP _saddlepoint_matinv_TMBad(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< ADrep >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(matinv_TMBad(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// matinv_double
+Eigen::MatrixXd matinv_double(const Eigen::MatrixXd& x);
+RcppExport SEXP _saddlepoint_matinv_double(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(matinv_double(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_tvec_hat_from_tvec", (DL_FUNC) &_saddlepoint_tvec_hat_from_tvec, 5},
     {"_saddlepoint_tapedSaddlepointSolve", (DL_FUNC) &_saddlepoint_tapedSaddlepointSolve, 5},
+    {"_saddlepoint_matinv_TMBad", (DL_FUNC) &_saddlepoint_matinv_TMBad, 1},
+    {"_saddlepoint_matinv_double", (DL_FUNC) &_saddlepoint_matinv_double, 1},
     {NULL, NULL, 0}
 };
 
