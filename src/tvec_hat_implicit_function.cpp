@@ -521,3 +521,21 @@ ADrep tapedSaddlepointSolve(ADrep theta,
   for (Eigen::Index i=0; i<static_cast<Eigen::Index>(result.size()); i++) out_ptr[i] = result[i];
   return out_res;
 }
+
+
+
+
+// [[Rcpp::export]]
+ADrep matinv_TMBad (ADrep x) {
+  if (x.ncol() != x.nrow())
+    Rcpp::stop("Expected a square matrix");
+  ConstMapMatrix X = MatrixInput(x);
+  return MatrixOutput(atomic::matinv(matrix<ad>(X)));
+}
+
+// [[Rcpp::export]]
+Eigen::MatrixXd matinv_double (const Eigen::MatrixXd& x) {
+  if (x.rows() != x.cols())
+    Rcpp::stop("Expected a square matrix");
+  return x.inverse();
+}

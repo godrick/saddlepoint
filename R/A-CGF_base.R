@@ -101,7 +101,25 @@ check_fun_sig <- function(fn, expected_args) {
 
 
 
-
+#------------------------------------------------------------------------
+### Preliminary helpers for logdet and inverse/solve
+### The issue is that Eigen's .inverse() seems more stable for near-singular matrices.
+### But, RTMB uses the solve() function in the reverse mode of determinant(..., log = T).
+### As a temporary workaround, we use a new atomic function via "ADjoint",
+### which computes the inverse using Eigen's .inverse() function.
+my_matinv <- function(x){
+  if (is(x, "advector")) {
+    return(matinv_TMBad(x)) # exported from atomic::matinv
+  }
+  matinv_double(x) # Eigen's .inverse()
+}
+my_logdet <- ADjoint(
+  function(x) determinant(x, log=TRUE)$modulus,
+  function(x, y, dy) {
+    my_matinv(x) * dy[1]
+  },
+  name = "my_logdet")
+#------------------------------------------------------------------------
 
 
 
@@ -287,7 +305,8 @@ CGF <- R6::R6Class(
         private$neg_ll <- function(tvec, parameter_vector) {
           te <- private$tilting_exponent(tvec, parameter_vector)
           K2_val <- self$K2(tvec, parameter_vector)
-          val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
+          # val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
+          val_logdet <- my_logdet(as.matrix(K2_val))
           0.5 * val_logdet + 0.5 * length(tvec)*log(2*pi) - te
         }
       }
