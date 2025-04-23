@@ -355,7 +355,8 @@ struct SaddlepointSolveOp : TMBad::global::DynamicInputOutputOperator {
     Rcpp::NumericVector tvec_sol = saddlepoint_solve_r(param_r, obs_, fobj_->getCgfObj());
     
     // Copy result to _args_.y
-    for (size_t i = 0; i < tvec_sol.size(); i++) _args_.y(i) = tvec_sol[i];
+    auto tvec_sol_size = tvec_sol.size();
+    for (auto i = 0; i < tvec_sol_size; i++) _args_.y(i) = tvec_sol[i];
   }
   
   
