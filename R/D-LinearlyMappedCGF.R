@@ -147,7 +147,8 @@
   K2operatorAK2ATfun <- function(tvec, parameter_vector, B) {
     A_current <- get_sparse_A(parameter_vector)
     B_A <- B %*% A_current
-    cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A) %*% t(B_A)
+    # cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A) %*% t(B_A)
+    cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A)
   }
   
   K3operatorfun <- function(tvec, parameter_vector, v1, v2, v3) {
