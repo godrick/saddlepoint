@@ -135,18 +135,18 @@
 #'
 #' @description
 #' Constructs a new \code{CGF} object by adapting the parameter vector using a user-supplied
-#' \code{param_adaptor} before invoking the original \code{CGF}'s methods.
+#' \code{adaptor} before invoking the original \code{CGF}'s methods.
 #'
 #'
 #' @param cgf A `CGF` object to be adapted.
-#' @param param_adaptor An \code{adaptor} or a function with signature \code{function(theta) -> adapted_param}.
+#' @param adaptor An \code{adaptor} or a function with signature \code{function(theta) -> adapted_param}.
 #' @param ... Additional named arguments passed to \code{\link{createCGF}}, the `CGF` object creation function (rarely needed).
 #' 
 #' 
 #' @details
 #' This function is useful when you have a \code{CGF} that expects its parameter vector
 #' to be in a certain format, but your high-level model provides a different parameter
-#' structure. By specifying a \code{param_adaptor}, you can dynamically
+#' structure. By specifying a \code{adaptor}, you can dynamically
 #' translate your model parameters to those that \code{cgf} requires.
 #'
 #' @return A new `CGF` object.
@@ -173,11 +173,11 @@
 #' # sum_cgf is a CGF that expects 2 parameters for the two Poisson variables
 #' sum_cgf <- sumOfIndependentCGF(cgf_list = list(K_Y1, K_Y2))
 #' 
-#' # param_adaptor that converts 'theta' to c(lambda1, lambda2)
+#' # adaptor that converts 'theta' to c(lambda1, lambda2)
 #' mapThetaToDistParams <- function(theta) c(theta, 2*theta) 
 #' 
 #' # Now adapt sum_cgf so it only needs a single 'theta':
-#' adapted_cgf <- adaptCGF(cgf = sum_cgf, param_adaptor = mapThetaToDistParams)
+#' adapted_cgf <- adaptCGF(cgf = sum_cgf, adaptor = mapThetaToDistParams)
 #' theta0 <- 5
 #' adapted_cgf$K1(0, theta0)  
 #' # OR sum_cgf$K1(0, c(theta0, 2*theta0))
@@ -185,8 +185,8 @@
 #' }
 #'
 #' @export
-adaptCGF <- function(cgf, param_adaptor, ...) {
+adaptCGF <- function(cgf, adaptor, ...) {
   if (!inherits(cgf, "CGF")) stop("'cgf' must be a CGF object (inherits from 'CGF').")
-  param_adaptor <- validate_function_or_adaptor(param_adaptor)
+  param_adaptor <- validate_function_or_adaptor(adaptor)
   .adaptCGF_internal(cgf, param_adaptor, ...)
 }
