@@ -4,12 +4,12 @@
 \alias{adaptCGF}
 \title{Create an adapted CGF object using an adaptor function}
 \usage{
-adaptCGF(cgf, param_adaptor, ...)
+adaptCGF(cgf, adaptor, ...)
 }
 \arguments{
 \item{cgf}{A \code{CGF} object to be adapted.}
 
-\item{param_adaptor}{An \code{adaptor} or a function with signature \code{function(theta) -> adapted_param}.}
+\item{adaptor}{An \code{adaptor} or a function with signature \code{function(theta) -> adapted_param}.}
 
 \item{...}{Additional named arguments passed to \code{\link{createCGF}}, the \code{CGF} object creation function (rarely needed).}
 }
@@ -18,12 +18,12 @@ A new \code{CGF} object.
 }
 \description{
 Constructs a new \code{CGF} object by adapting the parameter vector using a user-supplied
-\code{param_adaptor} before invoking the original \code{CGF}'s methods.
+\code{adaptor} before invoking the original \code{CGF}'s methods.
 }
 \details{
 This function is useful when you have a \code{CGF} that expects its parameter vector
 to be in a certain format, but your high-level model provides a different parameter
-structure. By specifying a \code{param_adaptor}, you can dynamically
+structure. By specifying a \code{adaptor}, you can dynamically
 translate your model parameters to those that \code{cgf} requires.
 }
 \examples{
@@ -48,11 +48,11 @@ K_Y2 <- PoissonModelCGF(lambda = adaptor(indices = 2))   # For Y2: lambda2 => th
 # sum_cgf is a CGF that expects 2 parameters for the two Poisson variables
 sum_cgf <- sumOfIndependentCGF(cgf_list = list(K_Y1, K_Y2))
 
-# param_adaptor that converts 'theta' to c(lambda1, lambda2)
+# adaptor that converts 'theta' to c(lambda1, lambda2)
 mapThetaToDistParams <- function(theta) c(theta, 2*theta) 
 
 # Now adapt sum_cgf so it only needs a single 'theta':
-adapted_cgf <- adaptCGF(cgf = sum_cgf, param_adaptor = mapThetaToDistParams)
+adapted_cgf <- adaptCGF(cgf = sum_cgf, adaptor = mapThetaToDistParams)
 theta0 <- 5
 adapted_cgf$K1(0, theta0)  
 # OR sum_cgf$K1(0, c(theta0, 2*theta0))
