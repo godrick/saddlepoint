@@ -201,6 +201,6 @@ GeometricModelCGF <- function(prob, iidReps = "any", ...) {
   
   p_adaptor <- validate_function_or_adaptor(prob)
   base_cgf <- .GeometricModelCGF_internal(iidReps, ...)
-  adaptCGF(cgf = base_cgf, param_adaptor = p_adaptor)
+  adaptCGF(cgf = base_cgf, adaptor = p_adaptor)
 }
 

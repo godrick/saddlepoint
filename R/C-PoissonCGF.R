@@ -195,7 +195,7 @@ PoissonModelCGF <- function(lambda, iidReps = "any", ...) {
   
   base_cgf <- .PoissonModelCGF_internal(iidReps, ...)
   
-  adaptCGF(cgf = base_cgf, param_adaptor = lambda_adaptor)
+  adaptCGF(cgf = base_cgf, adaptor = lambda_adaptor)
 }
 
 

@@ -240,7 +240,7 @@ NegBinModelCGF <- function(r, p, iidReps = "any", ...) {
   base_cgf <- .NegBinModelCGF_internal(iidReps, ...)
   adaptCGF(
     cgf = base_cgf,
-    param_adaptor = function(theta) { c(r_fn(theta), p_fn(theta)) }
+    adaptor = function(theta) { c(r_fn(theta), p_fn(theta)) }
   )
 }
 

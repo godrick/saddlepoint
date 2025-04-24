@@ -106,6 +106,6 @@ SubunitaryMultinomialModelCGF <- function(n,
   
   param_adaptor <- function(theta) c(n_fn(theta), prob_vec_fn(theta))
   
-  adaptCGF(cgf = multinom_cgf, param_adaptor = param_adaptor)
+  adaptCGF(cgf = multinom_cgf, adaptor = param_adaptor)
   
 }

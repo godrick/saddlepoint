@@ -279,7 +279,7 @@ BinomialModelCGF <- function(n, prob, iidReps = "any", ...) {
   
   adaptCGF(
     cgf = base_cgf,
-    param_adaptor = function(theta) c(n_fn(theta), p_fn(theta))
+    adaptor = function(theta) c(n_fn(theta), p_fn(theta))
   )
   
 }

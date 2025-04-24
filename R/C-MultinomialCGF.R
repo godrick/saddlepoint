@@ -114,7 +114,7 @@ MultinomialModelCGF <- function(n,
   # adapt the user param into c(n, p1, p2, ..., p_d) 
   param_adaptor <- function(theta) c(n_fn(theta), prob_vec_fn(theta))
   
-  adaptCGF(cgf = multinom_cgf, param_adaptor = param_adaptor)
+  adaptCGF(cgf = multinom_cgf, adaptor = param_adaptor)
 }
 
 

@@ -148,7 +148,7 @@ ExponentialModelCGF <- function(rate, iidReps = "any", ...) {
   
   rate_adaptor <- validate_function_or_adaptor(rate)
   base_cgf <- .ExponentialModelCGF_internal(iidReps, ...)
-  adaptCGF(cgf = base_cgf, param_adaptor = rate_adaptor)
+  adaptCGF(cgf = base_cgf, adaptor = rate_adaptor)
 }
 
 

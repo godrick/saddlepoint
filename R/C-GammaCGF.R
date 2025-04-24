@@ -183,7 +183,7 @@ GammaModelCGF <- function(shape,
   base_cgf <- .GammaModelCGF_internal(iidReps, ...)
   adaptCGF(
     cgf = base_cgf, 
-    param_adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))
+    adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))
   )
 }
 

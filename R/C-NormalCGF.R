@@ -200,7 +200,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps = "any", ...) {
   }
   
   base_cgf <- .MultivariateNormalModelCGF_internal(iidReps, ...)
-  adaptCGF(cgf = base_cgf, param_adaptor = param_adaptor_)
+  adaptCGF(cgf = base_cgf, adaptor = param_adaptor_)
 }
 
 
