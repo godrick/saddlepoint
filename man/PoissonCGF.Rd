@@ -15,7 +15,6 @@ PoissonCGF
 A ready-to-use CGF object for the Poisson distribution.
 }
 \details{
-#' @details
 \strong{Parameter Vector}: The \code{parameter_vector} for \code{PoissonCGF} is
 interpreted as the rate \eqn{\lambda}. By default, this object is vectorized
 for i.i.d. replicates of Poisson variables.
