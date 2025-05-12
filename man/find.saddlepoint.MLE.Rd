@@ -44,7 +44,7 @@ how different the saddlepoint approximation-based estimates are from the unknown
 
 \item{user.ineq.constraint.function}{Optional user-defined inequality constraints. Defaults to \code{NULL}.}
 
-\item{opts.user}{A named list of options for the \code{\link[nloptr:nloptr]{nloptr::nloptr}} optimizer. This
+\item{opts.user}{A named list of options for the \code{\link{nloptr}} optimizer. This
 should be a subset of the following elements: ftol_abs (> 0),
 maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
 See the \code{\link{nloptr}} package documentation for more details about these options.
@@ -59,7 +59,7 @@ A list containing:
 \item \code{MLEs.tvec, MLEs.theta}: The estimated saddlepoint \eqn{\hat{t}} and parameter vector \eqn{\hat{\theta}}.
 \item \code{std.error}, \code{inverse.hessian}: If \code{std.error=TRUE}, these hold the standard errors and the inverse Hessian.
 \item \code{discrepancy}: If \code{discrepancy=TRUE}, this is the approximated discrepancy between the resulting saddlepoint approximation-based MLEs and the unknown true MLEs.
-\item \code{solution, status, message}: The raw output from \code{\link[nloptr:nloptr]{nloptr::nloptr}}.
+\item \code{solution, status, message}: The raw output from \code{\link{nloptr}}.
 }
 }
 \description{
