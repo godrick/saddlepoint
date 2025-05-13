@@ -44,10 +44,10 @@ how different the saddlepoint approximation-based estimates are from the unknown
 
 \item{user.ineq.constraint.function}{Optional user-defined inequality constraints. Defaults to \code{NULL}.}
 
-\item{opts.user}{A named list of options for the nloptr optimizer. This
+\item{opts.user}{A named list of options for the \code{\link{nloptr}} optimizer. This
 should be a subset of the following elements: ftol_abs (> 0),
 maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
-See the nloptr package documentation for more details about these options.
+See the \code{\link{nloptr}} package documentation for more details about these options.
 By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
 Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.}
 
@@ -59,11 +59,11 @@ A list containing:
 \item \code{MLEs.tvec, MLEs.theta}: The estimated saddlepoint \eqn{\hat{t}} and parameter vector \eqn{\hat{\theta}}.
 \item \code{std.error}, \code{inverse.hessian}: If \code{std.error=TRUE}, these hold the standard errors and the inverse Hessian.
 \item \code{discrepancy}: If \code{discrepancy=TRUE}, this is the approximated discrepancy between the resulting saddlepoint approximation-based MLEs and the unknown true MLEs.
-\item \code{solution, status, message}: The raw output from \code{nloptr}.
+\item \code{solution, status, message}: The raw output from \code{\link{nloptr}}.
 }
 }
 \description{
-This function uses the nloptr package for optimization to find the maximum likelihood estimates (MLEs).
+This function uses the \code{\link{nloptr}} package for optimization to find the maximum likelihood estimates (MLEs).
 It takes a CGF object along with various parameters related to the optimization procedure.
 An alternative zeroth-order method can be enabled by setting the \code{zeroth.order} parameter to \code{TRUE}.
 }
