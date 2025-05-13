@@ -1,4 +1,5 @@
 
+
 // To streamline interactions between R and C++, all matrix operations are handled in R.
 // Previously, sparse matrices caused issues, but with RTMB's current support for them,
 // it's advantageous to manage all functions on the R side.
@@ -134,8 +135,8 @@ ADrep tvec_hat_from_tvec(ADrep theta,
   // 'adptr(x)' returns a pointer (ad*) to the first element of x.
   // We can then treat these pointers as arrays and index them.
   const a_scalar* theta_ptr = adptr(theta);
-              // const a_scalar* tvec_ptr = adptr(tvec);
-              // const a_scalar* observations_ptr = adptr(observations);
+  // const a_scalar* tvec_ptr = adptr(tvec);
+  // const a_scalar* observations_ptr = adptr(observations);
   
   
   
@@ -148,7 +149,7 @@ ADrep tvec_hat_from_tvec(ADrep theta,
   for (Eigen::Index i=0; i<tvec.size(); i++) tvec_ad(i)=tvec(i);
   for (Eigen::Index i=0; i<observations.size(); i++) observations_ad(i)=observations(i);
   
-
+  
   
   // Call the main tvec_hat function that works with vector<a_scalar>.
   vector<a_scalar> result = tvec_hat(tvec_ad, theta_ad, observations_ad, K1_r, K2_solve_r);
@@ -343,20 +344,26 @@ struct SaddlepointSolveOp : TMBad::global::DynamicInputOutputOperator {
   // Forward pass (0th order) with real doubles
   // ------------------------------------------
   void forward(TMBad::ForwardArgs<TMBad::Scalar> _args_) {
+    std::vector<double> x_vals(this->input_size());   //  |theta| + |obs|              
+    size_t p_theta = this->input_size() - this->output_size();   
+    std::vector<double> param_dbl(p_theta);                       
     
-    std::vector<double> x_vals(this->input_size());
-    std::vector<double> param_dbl(this->output_size());
-    for (size_t i = 0; i < x_vals.size(); ++i) x_vals[i] = _args_.x(i);
-    for (size_t i = 0; i < param_dbl.size(); ++i) param_dbl[i] = x_vals[i];
+    for (size_t i = 0; i < x_vals.size(); ++i)
+      x_vals[i] = _args_.x(i);
     
-    // Now call the R function saddlepoint.solve(...) to get tvec.
+    /* copy only theta (the first p_theta entries) */
+    for (size_t i = 0; i < p_theta; ++i)
+      param_dbl[i] = x_vals[i];
+    
     Rcpp::NumericVector param_r = Rcpp::wrap(param_dbl);
-    //  saddlepoint.solve(theta, obs, cgf, ...) -> returns numeric tvec
-    Rcpp::NumericVector tvec_sol = saddlepoint_solve_r(param_r, obs_, fobj_->getCgfObj());
     
-    // Copy result to _args_.y
-    auto tvec_sol_size = tvec_sol.size();
-    for (auto i = 0; i < tvec_sol_size; i++) _args_.y(i) = tvec_sol[i];
+    /* theta, obs, cgf ... */
+    // then call the R function saddlepoint.solve(...) to get tvec.
+    Rcpp::NumericVector tvec_sol =
+    saddlepoint_solve_r(param_r, obs_, fobj_->getCgfObj());
+    
+    for (auto i = 0; i < tvec_sol.size(); ++i)
+      _args_.y(i) = tvec_sol[i];
   }
   
   
@@ -489,7 +496,7 @@ ADrep tapedSaddlepointSolve(ADrep theta,
   // Rcpp::Function K1_r(K1_fn);
   Rcpp::Function K2_solve_r(K2_solve_fn);
   Rcpp::Function saddlepoint_solve_r(saddlepoint_solve_fn);
-
+  
   Rcpp::RObject cgf_obj_r(cgf_obj);
   
   Rcpp::Environment cgf_env(cgf_obj_r);
