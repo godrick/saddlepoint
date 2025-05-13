@@ -344,7 +344,7 @@ struct SaddlepointSolveOp : TMBad::global::DynamicInputOutputOperator {
   // Forward pass (0th order) with real doubles
   // ------------------------------------------
   void forward(TMBad::ForwardArgs<TMBad::Scalar> _args_) {
-    std::vector<double> x_vals(this->input_size());   //  |theta| + |obs|              
+    std::vector<double> x_vals(this->input_size());   //  |theta| + |obs|                  
     size_t p_theta = this->input_size() - this->output_size();   
     std::vector<double> param_dbl(p_theta);                       
     
