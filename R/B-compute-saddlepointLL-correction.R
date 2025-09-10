@@ -79,18 +79,20 @@ compute.saddlepointLL.correction <- function(parameter_vector,
     return(list(vals = val, gradient = NULL, hessian = NULL))
   }
   
-  # Otherwise, build an AD tape and return its evaluation.
-  taped_fun <- create_spa_taped_fun(
-    param_vec     = parameter_vector,
-    observed.data = observed.data,
-    cgf           = cgf,
-    spa_method    = spa_method,
-    user_tvec     = tvec.hat,
-    gradient      = gradient,
-    hessian       = hessian,
-    ... #### addtional arguments are passed to saddlepoint.solve() are still not being passed to cpp
-  )
-  taped_fun(parameter_vector)
+  stop("temporarily disabled: during edits")
+  
+  # # Otherwise, build an AD tape and return its evaluation.
+  # taped_fun <- create_spa_taped_fun(
+  #   param_vec     = parameter_vector,
+  #   observed.data = observed.data,
+  #   cgf           = cgf,
+  #   spa_method    = spa_method,
+  #   user_tvec     = tvec.hat,
+  #   gradient      = gradient,
+  #   hessian       = hessian,
+  #   ... #### addtional arguments are passed to saddlepoint.solve() are still not being passed to cpp
+  # )
+  # taped_fun(parameter_vector)
   
   
 }

@@ -367,7 +367,7 @@ saddlepoint.solve <- function(theta, y, cgf,
                        eval_g_ineq = ineq.as.a.function.of.tvec,
                        opts = opts,
                        lb = lb, ub = ub)
-  if (res$status < 0) warning("Saddlepoint solver failed to converge. Consider checking initial values or constraints.")
+  # if (res$status < 0) warning("Saddlepoint solver failed to converge. Consider checking initial values or constraints.")
   
   t_star <- res$solution
   

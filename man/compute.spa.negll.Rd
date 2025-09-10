@@ -12,41 +12,37 @@ compute.spa.negll(
   gradient = FALSE,
   hessian = FALSE,
   spa_method = "standard",
+  tvec_source = c("auto", "user", "analytic", "newton", "solver_atomic"),
+  solver_fun = saddlepoint.solve,
+  newton_t_init = NULL,
   ...
 )
 }
 \arguments{
 \item{parameter_vector}{Numeric vector of parameters.}
 
-\item{observed.data}{Numeric vector of observed data.}
+\item{observed.data}{Numeric vector of observations.}
 
 \item{cgf}{A \code{CGF} object.}
 
-\item{tvec.hat}{(Optional) numeric vector. If provided, it overrides other ways
-of finding \code{tvec}.}
+\item{tvec.hat}{Optional numeric t-vector (one-time tape).}
 
-\item{gradient}{Logical. If \code{TRUE}, the gradient is computed.}
+\item{gradient, hessian}{Logical flags for derivatives.}
 
-\item{hessian}{Logical. If \code{TRUE}, the Hessian is computed.}
+\item{spa_method}{"standard" or "zeroth".}
 
-\item{spa_method}{Character string. One of \code{"standard"} or \code{"zeroth"}.}
+\item{tvec_source}{One of "auto","user","analytic","newton","solver_atomic".}
 
-\item{...}{Additional arguments passed to \code{saddlepoint.solve()} if \code{tvec.hat} is not provided.}
+\item{solver_fun}{Numeric solver used when tvec_source="solver_atomic". Default \code{saddlepoint.solve}.}
+
+\item{newton_t_init}{Optional start for t in the Newton solver path.}
+
+\item{...}{Passed to solver_fun (when used).}
 }
 \value{
-A named list with elements:
-\describe{
-\item{vals}{Numeric scalar. The negative log-likelihood at \code{parameter_vector}.}
-\item{gradient}{Numeric vector. The gradient at \code{parameter_vector}, if \code{gradient=TRUE}.}
-\item{hessian}{The Hessian at \code{parameter_vector}, if \code{hessian=TRUE}.}
-}
+list(vals=..., gradient=..., hessian=...)
 }
 \description{
-Computes either the "standard" or "zeroth-order" saddlepoint approximation to the negative log–likelihood.
-
-\strong{Note:} When a user–supplied t–vector is provided (via \code{tvec.hat}),
-the resulting AD tape is intended for one–time use only.
-}
-\seealso{
-\code{\link{saddlepoint.solve}}
+Computes either the "standard" or "zeroth-order" saddlepoint approximation to the
+negative log–likelihood, with options for how the saddlepoint t-vector is obtained.
 }
