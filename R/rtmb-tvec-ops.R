@@ -19,6 +19,8 @@ rtmb_spa_cache_clear <- function() {
 
 
 
+
+
 #' Solve (K2)^{-1} w at (t, theta)
 #' @noRd
 create_tvec_hat_K2_solve_fn <- function(cgf) {
@@ -30,68 +32,175 @@ create_tvec_hat_K2_solve_fn <- function(cgf) {
   }
 }
 
-#' Build a Tape mapping theta -> t_hat(theta) via Newton on
-#'   F_tape(t,theta) = K(t;theta) - sum(t * y).
-#' Returns an RTMB Tape 'G' with G(theta) == t_hat(theta).
-#' @noRd
 
-# build_tvec_hat_newton_tape <- function(cgf, y, theta_init, t_init = NULL, ...) {
+
+
+# #' @noRd
+# build_tvec_hat_newton_tape <- function(cgf, y, theta_init, t_init = NULL, ...)
+# {
 #   stopifnot(inherits(cgf, "CGF"), is.numeric(theta_init), is.numeric(y))
 #   m <- length(y)
 #   if (is.null(t_init)) t_init <- rep(0, m)
-#   
-#   # Scalar objective whose gradient wrt t is K1 - y. Convex in t for CGFs.
+# 
+#   # Stream y from the environment (can be updated between evaluations)
+#   .rtmb_spa_env$y <- as.numeric(y)
+# 
+#   # Objective in (t, theta); grad_wrt_t = K1 - y
 #   obj_fun <- function(z) {
-#     u <- z[seq_len(m)]
+#     u     <- z[seq_len(m)]
 #     theta <- z[-seq_len(m)]
-#     cgf$K(u, theta) - sum(u * y)
+#     # Anchor DataEval to the tape by passing an AD argument (u)
+#     yAD <- RTMB::DataEval(function(dummy) .rtmb_spa_env$y, u)
+#     # yAD <- RTMB::DataEval(function(i) .rtmb_spa_env$y[i], seq_len(m))
+#     cgf$K(u, theta) - sum(u * yAD)
 #   }
-#   
-#  
-#   
-#   # Tape for the joint objective in (t, theta), initialized at (t_init, theta_init)
+# 
+#   # Tape in (t, theta)
 #   F_tape <- RTMB::MakeTape(obj_fun, x = c(t_init, theta_init))
-#   
-#   # NOTE: In RTMB >= 1.7 the argument name is 'random' (not 'indices')
-#   # Returns a tape Uhat_theta : theta -> t_hat(theta)
+# 
+# 
 #   Uhat_theta <- F_tape$newton(random = seq_len(m), ...)
-#   
-#   # Wrap to ensure a clean theta -> t_hat(theta) map (no concatenation with t_init)
+# 
+#   # Wrap to a pure theta → t̂(theta) tape
 #   G <- RTMB::MakeTape(function(theta) Uhat_theta(theta), theta_init)
-#   
 #   attr(G, "t_init") <- t_init
 #   G
 # }
 
-build_tvec_hat_newton_tape <- function(cgf, y, theta_init, t_init = NULL, ...) {
-  stopifnot(inherits(cgf, "CGF"), is.numeric(theta_init), is.numeric(y))
+
+
+
+#' @noRd
+.make_strictly_feasible_t0 <- function(cgf, t_init, theta, interior_margin = 1e-10) {
+  g <- cgf$ineq_constraint(t_init, theta)
+  if (!length(g)) return(t_init)                      # no constraints
+  if (all(is.finite(g)) && max(g) < -interior_margin) return(t_init)
+  
+  base <- rep(0, length(t_init))  # 0 is interior for Gamma/Exp and their linear maps
+  step <- 1.0
+  for (k in 1:60) {
+    t_try <- (1 - step) * base + step * t_init
+    g_try <- cgf$ineq_constraint(t_try, theta)
+    if (all(is.finite(g_try)) && max(g_try) < -interior_margin) return(t_try)
+    step <- step / 2
+  }
+  stop("Could not find a strictly feasible starting t (log-barrier needs g(t,theta)<0).")
+}
+
+#' @noRd
+auto_mu_from_grad_balance <- function(cgf, y, theta, t0, eta = 0.05) {
+  gvals0 <- cgf$ineq_constraint(t0, theta)
+  if (!length(gvals0)) return(0)                           # no constraints
+  if (!all(is.finite(gvals0)) || any(gvals0 >= 0))
+    stop("t0 must be strictly feasible for the log barrier (g(t0,theta) < 0).")
+  
+  # Main gradient size
+  g_main <- cgf$K1(t0, theta) - y
+  n_main <- sqrt(sum(g_main^2))
+  if (!is.finite(n_main) || n_main == 0) n_main <- 1
+  
+  # Barrier gradient size at start: -sum_i (1/g_i) * grad g_i
+  m <- length(t0)
+  ineq_tape <- RTMB::MakeTape(
+    function(a) cgf$ineq_constraint(a[seq_len(m)], a[-seq_len(m)]),
+    x = c(t0, theta)
+  )
+  J <- ineq_tape$jacobian(c(t0, theta))[, seq_len(m), drop = FALSE]  # grad_g/grat_t as rows
+  grad_phi <- -colSums(J / as.numeric(gvals0))  # broadcast by rows
+  n_phi <- sqrt(sum(grad_phi^2))
+  if (!is.finite(n_phi) || n_phi == 0) return(0)
+  
+  mu <- eta * n_main / n_phi
+  max(min(mu, 1e+2), 1e-8)   # conservative clamps
+}
+
+#' @noRd
+build_tvec_hat_newton_tape <- function(
+    cgf, y, theta_init, t_init = NULL,
+    barrier = c("log","soft","none"),
+    mu = "auto", eta = 0.05, interior_margin = 1e-10, ...
+) {
+  barrier <- match.arg(barrier)
   m <- length(y)
   if (is.null(t_init)) t_init <- rep(0, m)
   
-  # Stream y from the environment (can be updated between evaluations)
+  # stream data (y, μ, τ) into the tape
   .rtmb_spa_env$y <- as.numeric(y)
   
-  # Objective in (t, theta); grad_wrt_t = K1 - y
+  has_ineq <- function(t_vec, th) length(cgf$ineq_constraint(t_vec, th)) > 0L
+  
+  # If no constraints exist, override to "none"
+  if (!has_ineq(t_init, theta_init) && barrier != "none") barrier <- "none"
+  
+  # Feasible start for log barrier
+  t0 <- if (barrier == "log") .make_strictly_feasible_t0(cgf, t_init, theta_init, interior_margin) else t_init
+  
+  # Choose mu and (if needed) tau outside the tape; stream with DataEval
+  if (barrier == "log") {
+    mu_val <- if (identical(mu, "auto")) auto_mu_from_grad_balance(cgf, y, theta_init, t0, eta) else as.numeric(mu)
+    .rtmb_spa_env$mu <- mu_val
+  } else if (barrier == "soft") {
+    g0 <- cgf$ineq_constraint(t0, theta_init)
+    if (!length(g0)) { .rtmb_spa_env$tau <- 1; .rtmb_spa_env$mu <- 0 } else {
+      s0 <- max(-g0)                         # initial slack to boundary
+      tau <- max(1e-12, 0.05 * s0)
+      .rtmb_spa_env$tau <- tau
+      .rtmb_spa_env$mu  <- 1.0
+    }
+  } else {
+    .rtmb_spa_env$mu <- 0
+  }
+  
+  # Smooth barrier term added to the (t,theta) objective; y,mu,tau flow via DataEval
+  barrier_term <- function(t_vec, theta) {
+    # NOTE: no comparisons on AD types anywhere in this function.
+    # 'barrier' is a plain R string (non-AD), set outside the tape.
+    g <- cgf$ineq_constraint(t_vec, theta)
+    if (!length(g)) return(0)   # length() is metadata, not AD
+    
+    muAD <- RTMB::DataEval(function(dummy) .rtmb_spa_env$mu, t_vec)
+    
+    if (barrier == "log") {
+      # log barrier: requires strict feasibility; we enforce via t0 outside the tape
+      # no check of 'muAD' here; just multiply
+      -muAD * sum(log(-g))
+    } else if (barrier == "soft") {
+      # softplus barrier: fully smooth and defined everywhere
+      tauAD <- RTMB::DataEval(function(dummy) .rtmb_spa_env$tau, t_vec)
+      muAD * sum(log1p(exp(g / tauAD)))
+    } else {
+      # "none"
+      0
+    }
+  }
+  
+  
+  # Objective in (t, theta); grad_wrt_t is K1 - y + barrier_grad
   obj_fun <- function(z) {
     u     <- z[seq_len(m)]
     theta <- z[-seq_len(m)]
-    # Anchor DataEval to the tape by passing an AD argument (u)
-    yAD <- RTMB::DataEval(function(dummy) .rtmb_spa_env$y, u)
-    # yAD <- RTMB::DataEval(function(i) .rtmb_spa_env$y[i], seq_len(m))
-    cgf$K(u, theta) - sum(u * yAD)
+    yAD   <- RTMB::DataEval(function(dummy) .rtmb_spa_env$y, u)
+    cgf$K(u, theta) - sum(u * yAD) + barrier_term(u, theta)
   }
   
-  # Tape in (t, theta)
-  F_tape <- RTMB::MakeTape(obj_fun, x = c(t_init, theta_init))
-  
-  # RTMB ≥ 1.7 uses argument 'random' (higher‑order‑safe Newton)
+  # Tape over (t,theta)
+  F_tape <- RTMB::MakeTape(obj_fun, x = c(t0, theta_init))
+  # Optimize out t with Newton, producing a θ -> t̂(θ) function we can tape again
   Uhat_theta <- F_tape$newton(random = seq_len(m), ...)
   
-  # Wrap to a pure theta → t̂(theta) tape
+  # Wrap to a pure theta → t̂(theta) tape (so outer optimizers see a clean mapping)
   G <- RTMB::MakeTape(function(theta) Uhat_theta(theta), theta_init)
-  attr(G, "t_init") <- t_init
+  attr(G, "t_init")  <- t0
+  attr(G, "barrier") <- barrier
+  attr(G, "mu")      <- get0("mu", envir = .rtmb_spa_env, inherits = FALSE)
   G
 }
+
+
+
+
+
+
 
 
 
