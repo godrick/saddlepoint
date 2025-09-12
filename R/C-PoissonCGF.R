@@ -1,4 +1,4 @@
-# R/PoissonCGF.R
+# R/C-PoissonCGF.R
 # Objects: PoissonCGF, PoissonModelCGF
 
 # --- Elementwise formulas: used by both ready CGF and model CGF -------------
