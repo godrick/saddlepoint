@@ -51,7 +51,7 @@
 # split_param_to_mat(param) must return an M x D matrix of base parameters.
 #' @noRd
 .make_univariate_model_cgf_matrix <- function(
-  K_elem, K1_elem, K2_elem, K3_elem, K4_elem, That_elem,
+  K_elem, K1_elem, K2_elem, K3_elem, K4_elem, t_hat_elem,
   split_param_to_mat,
   iidReps,
   op_name,
@@ -64,7 +64,7 @@
             is.function(K2_elem),
             is.function(K3_elem),
             is.function(K4_elem),
-            is.function(That_elem),
+            is.function(t_hat_elem),
             is.function(split_param_to_mat))
 
   # Helper that prepares the expanded parameter matrix for a given vector 'vec'
@@ -96,7 +96,7 @@
     },
     analytic_tvec_hat_func = function(x, param) {
       pm <- prep_par(x, param)
-      That_elem(x, pm)
+      t_hat_elem(x, pm)
     },
     op_name = op_name,
     ...

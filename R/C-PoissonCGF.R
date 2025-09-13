@@ -9,7 +9,7 @@
     K2_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     K3_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     K4_elem = function(tvec, pm) pm[,1] *  exp(tvec),
-    That_elem = function(x, pm) log(x / pm[,1]),
+    t_hat_elem = function(x, pm) log(x / pm[,1]),
     split_param_to_mat = function(param) matrix(param, ncol = 1L),
     iidReps = iidReps,
     op_name = op_name,
@@ -17,7 +17,7 @@
   )
 }
 
-#' Poisson CGF Object
+#' Poisson CGF object
 #'
 #' Ready-to-use CGF for Poisson. Accepts scalar or vector `lambda`.
 #' If `length(tvec)` is a multiple of `length(lambda)`, evaluation proceeds (iidReps="any").
@@ -36,8 +36,10 @@ PoissonCGF <- .poisson_base_cgf(
 #'
 #' @description
 #' Poisson with rate(s) `lambda(theta)`. If `iidReps = "any"` (default),
-#' `length(tvec)` must be a multiple of `length(lambda(theta))`. If `iidReps = m`,
+#' `length(tvec)` must be a multiple of `length(lambda(theta))`. Supports i.i.d. and non-identical contexts
+#' with optional length enforcement via `iidReps`. If `iidReps = m`,
 #' then `length(tvec)` must be `m * length(lambda(theta))`.
+#'
 #'
 #' @param lambda A function or `adaptor` mapping `theta` -> scalar or vector of rates.
 #' @param iidReps Either `"any"` or a positive integer. Default `"any"`.
