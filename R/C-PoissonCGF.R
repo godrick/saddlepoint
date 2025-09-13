@@ -1,19 +1,20 @@
 # R/C-PoissonCGF.R
 # Objects: PoissonCGF, PoissonModelCGF
 
-# --- Elementwise formulas: used by both ready CGF and model CGF -------------
-# par_mat columns: [1] lambda
-.poisson_K      <- function(tvec, pm) { pm[,1] * (exp(tvec) - 1) }
-.poisson_K1     <- function(tvec, pm) { pm[,1] *  exp(tvec)       }
-.poisson_K2     <- function(tvec, pm) { pm[,1] *  exp(tvec)       }
-.poisson_K3     <- function(tvec, pm) { pm[,1] *  exp(tvec)       }
-.poisson_K4     <- function(tvec, pm) { pm[,1] *  exp(tvec)       }
-.poisson_That   <- function(x,    pm) { log(x / pm[,1]) }
-
-# Split parameter vector into an Mx1 matrix (no checks yet; general on purpose)
-.poisson_split_param_to_mat <- function(param) {
-  # Accepts scalar or vector lambda; returns M x 1 matrix.
-  matrix(param, ncol = 1L)
+# Internal factory: build Poisson CGF once using univariate utilities
+.poisson_base_cgf <- function(iidReps, op_name, ...) {
+  .make_univariate_model_cgf_matrix(
+    K_elem  = function(tvec, pm) pm[,1] * (exp(tvec) - 1),
+    K1_elem = function(tvec, pm) pm[,1] *  exp(tvec),
+    K2_elem = function(tvec, pm) pm[,1] *  exp(tvec),
+    K3_elem = function(tvec, pm) pm[,1] *  exp(tvec),
+    K4_elem = function(tvec, pm) pm[,1] *  exp(tvec),
+    That_elem = function(x, pm) log(x / pm[,1]),
+    split_param_to_mat = function(param) matrix(param, ncol = 1L),
+    iidReps = iidReps,
+    op_name = op_name,
+    ...
+  )
 }
 
 #' Poisson CGF Object
@@ -26,10 +27,7 @@
 #' # PoissonCGF$K(0.1, 2)
 #'
 #' @export
-PoissonCGF <- .make_univariate_model_cgf_matrix(
-  K_elem = .poisson_K, K1_elem = .poisson_K1, K2_elem = .poisson_K2,
-  K3_elem = .poisson_K3, K4_elem = .poisson_K4, That_elem = .poisson_That,
-  split_param_to_mat = .poisson_split_param_to_mat,
+PoissonCGF <- .poisson_base_cgf(
   iidReps = "any",                     # always "any" by default
   op_name = "PoissonCGF"
 )
@@ -63,10 +61,7 @@ PoissonModelCGF <- function(lambda, iidReps = "any", ...) {
 
   lambda_fn <- validate_function_or_adaptor(lambda)
 
-  base <- .make_univariate_model_cgf_matrix(
-    K_elem = .poisson_K, K1_elem = .poisson_K1, K2_elem = .poisson_K2,
-    K3_elem = .poisson_K3, K4_elem = .poisson_K4, That_elem = .poisson_That,
-    split_param_to_mat = .poisson_split_param_to_mat,
+  base <- .poisson_base_cgf(
     iidReps = iidReps,                   # enforce "any" or a fixed replication
     op_name = "PoissonModelCGF",
     ...
