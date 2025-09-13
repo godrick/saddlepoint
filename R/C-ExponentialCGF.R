@@ -56,23 +56,6 @@
 #'
 #' @export
 ExponentialCGF <- .exponential_base_cgf(iidReps = "any", op_name = "ExponentialCGF")
-  K_vectorized_func = function(tvec, lambda) {
-    -log(lambda[1] - tvec) + log(lambda[1])
-  },
-  K1_vectorized_func = function(tvec, lambda) { 1 / (lambda[1] - tvec) }, 
-  K2_vectorized_func = function(tvec, lambda) { 1 / (lambda[1] - tvec)^2},
-  K3_vectorized_func = function(tvec, lambda) { 2 / (lambda[1] - tvec)^3},
-  K4_vectorized_func = function(tvec, lambda) { 6 / (lambda[1] - tvec)^4},
-  ineq_constraint_func = function(tvec, lambda) { 
-    # Enforce tvec < lambda => tvec - lambda < 0
-    tvec - lambda[1] 
-  },
-  analytic_tvec_hat_func = function(x, lambda) {
-    # 1/(lambda - t)= x => t= lambda - 1/x
-    lambda[1] - 1 / x
-  },
-  op_name = "ExponentialCGF"
-)
 
 # ----------------------------------------------------------------------------
 #   A Parametric Model CGF for the Exponential distribution.
@@ -129,7 +112,6 @@ ExponentialModelCGF <- function(rate, iidReps = "any", ...) {
   base_cgf <- .ExponentialModelCGF_internal(iidReps, ...)
   adaptCGF(cgf = base_cgf, adaptor = rate_fn)
 }
-
 
 
 
