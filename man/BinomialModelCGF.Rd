@@ -7,39 +7,36 @@
 BinomialModelCGF(n, prob, iidReps = "any", ...)
 }
 \arguments{
-\item{n}{A function or adaptor returning \eqn{n} (an integer) or a vector of integers.}
+\item{n}{A function or \code{adaptor} mapping \code{theta} -> scalar or vector of trial counts.}
 
-\item{prob}{A function or adaptor returning \eqn{prob} in (0,1) or a vector of probabilities.}
+\item{prob}{A function or \code{adaptor} mapping \code{theta} -> scalar or vector of probabilities.}
 
-\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
-i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
+\item{iidReps}{Either \code{"any"} or a positive integer. Default \code{"any"}.}
 
-\item{...}{Additional arguments passed to CGF creating functions.}
+\item{...}{Passed through to the CGF creation (e.g., to override operators).}
 }
 \value{
-A \eqn{CGF} object.
+A \code{CGF} object.
 }
 \description{
-This creates a CGF object for Binomial(\eqn{n, prob}), where \eqn{n(\theta)} and
-\eqn{prob(\theta)} can each be a function (or adaptor) of the user parameter vector \eqn{\theta}.
-It supports i.i.d. replication (via \code{iidReps}) and non-identical usage by letting
-\eqn{n/p} return vectors.
+Binomial with parameters \code{n(theta)} and \code{prob(theta)}. If \code{iidReps = "any"} (default),
+\code{length(tvec)} must be a multiple of \code{length(n(theta))}. If \code{iidReps = m}, then
+\code{length(tvec)} must be \code{m * length(n(theta))}. It supports i.i.d. replication (via \code{iidReps}) and non-identical usage by
+causing \code{n(theta)} and \code{prob(theta)} to return vectors.
 }
 \examples{
-# ex 1) i.i.d. scenario: n=10, p=0.3 => param= c(10,0.3)
-# using direct functions:
+# i.i.d. example: n=10, p=0.3
 n_fn <- function(th) th[1]
 p_fn <- function(th) th[2]
-my_cgf <- BinomialModelCGF(n_fn, p_fn, iidReps=1) # if iidReps="any", length(tvec) determines the number of i.i.d. replicates
-my_cgf$K1(0, c(10,0.3))
+my_cgf <- BinomialModelCGF(n_fn, p_fn, iidReps = 1) # if iidReps="any", length(tvec) determines the number of i.i.d. replicates
+my_cgf$K1(0, c(10, 0.3))
 
-# ex 2) non-identical scenario: n= c(5, 10), p= c(0.2, 0.7)
-#   => param => c(5,10, 0.2,0.7)
+# non-identical example: n=c(5,10), p=c(0.2,0.7)
+# param ==> c(5,10, 0.2, 0.7)
 n_adapt <- function(th) th[1:2] # OR n_adapt <- adaptor(indices = 1:2)
 p_adapt <- function(th) th[3:4] # OR p_adapt <- adaptor(indices = 3:4)
 my_cgf2 <- BinomialModelCGF(n_adapt, p_adapt, iidReps="any") # default iidReps="any", if iidReps=m, then m-i.i.d. blocks are expected => length(tvec) must be a multiple of m
 # e.g. tvec= c(0,0) => length=2 => we have 2 binomial distributions: (5,0.2) and (10,0.7)
 my_cgf2$K1(c(0,0), c(5,10,0.2,0.7))
-
 
 }

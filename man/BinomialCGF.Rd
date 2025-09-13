@@ -12,20 +12,14 @@ An object of class \code{CGF} (R6), with standard methods:
 BinomialCGF
 }
 \description{
-A ready-to-use CGF object for the Binomial distribution. This object expects
-calls of the form \code{BinomialCGF$K(tvec, param)}, where \code{param}
-is a numeric vector \eqn{(n, p)}:
-\describe{
-\item{n}{A positive integer (the number of trials).}
-\item{p}{A probability in \eqn{(0,1)}.}
-}
+Ready-to-use CGF for Binomial(n, p). Accepts packed params \code{c(n_vec, p_vec)}.
+If \code{length(tvec)} is a multiple of \code{length(n_vec)}, evaluation proceeds (iidReps = "any").
 }
 \details{
-By default, \code{BinomialCGF} supports vectorized evaluation for i.i.d. replicates of
-Binomial random variables.
+By default, \code{BinomialCGF} supports vectorized evaluation for i.i.d. replicates.
 }
 \examples{
-# Evaluate the expected value of X ~ Binomial(10, 0.3) using the BinomialCGF object
+# Expected value of X ~ Binomial(10, 0.3)
 BinomialCGF$K1(0, c(10, 0.3))
 
 }

@@ -24,39 +24,30 @@
 #' NormalCGF$K1(0, c(5, 0.5)) # (expected value for N(5, 0.5) is 5)
 #'
 #' @export
-NormalCGF <- createCGF_fromVectorisedFunctions(
-  
-  # K(tvec) = sum_k [ mu t_k + 0.5 sigma^2 t_k^2 ]
-  K_vectorized_func = function(tvec, param) {
-    mu    <- param[1]
-    sigma2 <- param[2]^2
-    mu*tvec + 0.5*sigma2*tvec^2
-  },
-  # K1(tvec) => for each component i: mu + sigma^2 t_i
-  K1_vectorized_func = function(tvec, param) {
-    mu    <- param[1]
-    sigma2 <- param[2]^2
-    mu + sigma2 * tvec
-  },
-  # K2(tvec) => a diagonal matrix with diagonal = sigma^2
-  # For a length-n tvec, we expect an n-by-n matrix = sigma^2*I (in the parent class).
-  K2_vectorized_func = function(tvec, param) {
-    sigma2 <- param[2]^2
-    rep(sigma2, length(tvec))
-  },
-  # K3 is identically 0, but we must define a "vectorized" version that 
-  # takes (tvec, param) and acts on w1, w2, w3 => always 0
-  K3_vectorized_func = function(tvec, param) {
-    # 0 for any input => sum(0)
-    rep(0, length(tvec))  
-  },
-  # K4 is identically 0 as well => 0
-  K4_vectorized_func = function(tvec, param) {
-    rep(0, length(tvec))
-  },
-  analytic_tvec_hat_func = function(y, param) { (y - param[1])/(param[2]^2)  },
-  op_name = "NormalCGF"
-)
+## Internal factory – build Normal (univariate) CGF via univariate utilities
+.normal_base_cgf <- function(iidReps, op_name, ...) {
+  split_mus <- function(param) {
+    ln <- length(param) / 2
+    if (ln != as.integer(ln) || ln < 1) stop("Normal params must be concatenated as c(mu[1:L], sigma[1:L]).")
+    idx <- seq_len(ln)
+    cbind(mu = param[idx], sigma = param[ln + idx])
+  }
+  .make_univariate_model_cgf_matrix(
+    K_elem      = function(tvec, pm) pm[,1] * tvec + 0.5 * (pm[,2]^2) * tvec^2,
+    K1_elem     = function(tvec, pm) pm[,1] + (pm[,2]^2) * tvec,
+    K2_elem     = function(tvec, pm) (pm[,2]^2) + 0 * tvec,
+    K3_elem     = function(tvec, pm) rep(0, length(tvec)),
+    K4_elem     = function(tvec, pm) rep(0, length(tvec)),
+    t_hat_elem  = function(y, pm) (y - pm[,1]) / (pm[,2]^2),
+    split_param_to_mat = split_mus,
+    iidReps = iidReps,
+    op_name = op_name,
+    ...
+  )
+}
+
+#' @export
+NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
 
 
 
@@ -202,7 +193,6 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps = "any", ...) {
   base_cgf <- .MultivariateNormalModelCGF_internal(iidReps, ...)
   adaptCGF(cgf = base_cgf, adaptor = param_adaptor_)
 }
-
 
 
 

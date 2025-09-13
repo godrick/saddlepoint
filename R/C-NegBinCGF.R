@@ -27,77 +27,57 @@
 #'
 #'
 #' @export
-NegBinCGF <- createCGF_fromVectorisedFunctions(
-  
-  # ------------------------------------------------------------------------
-  # K(tvec, r, p):
-  # K(t) = r * log( p / [1 - (1-p)*exp(t)] )
-  # ------------------------------------------------------------------------
-  K_vectorized_func = function(tvec, param) {
-    r <- param[1]
-    p <- param[2]
-    # alpha(t) = 1 - (1-p)*exp(t)
-    # => K(t) = r * [ log(p) - log(alpha(t)) ]
-    alpha <- 1 - (1 - p)*exp(tvec)
-    r*(log(p) - log(alpha))
-  },
-  K1_vectorized_func = function(tvec, param) {
-    r <- param[1]
-    p <- param[2]
-    # K'(tvec, r, p):
-    #   = r * (1-p)*exp(t) / [alpha(t)]
-    num_ <- (1-p)*exp(tvec)
-    denom_ <- 1 - (1 - p)*exp(tvec)
-    r*num_/denom_
-  },
-  K2_vectorized_func = function(tvec, param) {
-    r <- param[1]
-    p <- param[2]
-    # K''(tvec, r, p):
-    #   = r*(1-p)*exp(t) / [alpha(t)]^2
-    num_ <- (1-p)*exp(tvec)
-    denom_ <- 1 - (1 - p)*exp(tvec)
-    r*num_/denom_^2
-  },
-  K3_vectorized_func = function(tvec, param) {
-    r <- param[1]
-    p <- param[2]
-    # K'''(tvec, r, p):
-    # = r*(1-p)*exp(t) * [1 + (1-p)*exp(t)] / [alpha(t)]^3
-    num_ <- (1-p)*exp(tvec) * (1 + (1-p)*exp(tvec))
-    denom_ <- 1 - (1 - p)*exp(tvec)
-    r*num_/denom_^3
-  },
-  K4_vectorized_func = function(tvec, param) {
-    r <- param[1]
-    p <- param[2]
-    # K''''(tvec, r, p):
-    #   = r*(1-p)*exp(t) * [1 + exp(2t) + 4exp(t)
-    #                       - 2p exp(2t) - 4p exp(t) + p^2 exp(2t)] / [alpha]^4
-    e_t <- exp(tvec)
-    e_2t <- exp(2*tvec)
-    alpha_ <- 1 - (1 - p)*e_t
-    
-    bracket_ <- 1 + e_2t + 4*e_t - 2*p*e_2t - 4*p*e_t + p^2*e_2t
-    numerator_ <- (1 - p)*e_t * bracket_
-    r*numerator_/(alpha_^4)
-  },
-  
-  # We want tvec < beta => tvec - beta < 0
-  # We'll just return (tvec - beta), which must be negative
-  ineq_constraint_func = function(tvec, param) {
-    # The domain is:  (1-p)*exp(t) < 1.
-    (1 - param[2])*exp(tvec) - 1
-  },
-  
-  analytic_tvec_hat_func = function(x, param)  { 
-    # solve K'(t_i)= x_i => r q_i e^t / [1 - q_i e^t ]= x_i
-    # => e^t= x_i / [q_i (r_i + x_i)]
-    q <- 1 - param[2]
-    log(x) - log(q*(param[1] + x))
-  },
-  op_name       = "NegBinCGF"
-)
+## Internal factory – build NegBin CGF via univariate utilities
+.negbin_base_cgf <- function(iidReps, op_name, ...) {
+  split_rp <- function(param) {
+    ln <- length(param) / 2
+    if (ln != as.integer(ln) || ln < 1) stop("NegBin params must be concatenated as c(r[1:L], p[1:L]).")
+    idx <- seq_len(ln)
+    cbind(r = param[idx], p = param[ln + idx])
+  }
+
+  .make_univariate_model_cgf_matrix(
+    K_elem      = function(tvec, pm) {
+      alpha <- 1 - (1 - pm[,2]) * exp(tvec)
+      pm[,1] * (log(pm[,2]) - log(alpha))
+    },
+    K1_elem     = function(tvec, pm) {
+      num <- (1 - pm[,2]) * exp(tvec)
+      denom <- 1 - (1 - pm[,2]) * exp(tvec)
+      pm[,1] * num / denom
+    },
+    K2_elem     = function(tvec, pm) {
+      num <- (1 - pm[,2]) * exp(tvec)
+      denom <- 1 - (1 - pm[,2]) * exp(tvec)
+      pm[,1] * num / denom^2
+    },
+    K3_elem     = function(tvec, pm) {
+      num <- (1 - pm[,2]) * exp(tvec) * (1 + (1 - pm[,2]) * exp(tvec))
+      denom <- 1 - (1 - pm[,2]) * exp(tvec)
+      pm[,1] * num / denom^3
+    },
+    K4_elem     = function(tvec, pm) {
+      e_t <- exp(tvec)
+      e_2t <- exp(2 * tvec)
+      alpha <- 1 - (1 - pm[,2]) * e_t
+      bracket <- 1 + e_2t + 4 * e_t - 2 * pm[,2] * e_2t - 4 * pm[,2] * e_t + pm[,2]^2 * e_2t
+      num <- (1 - pm[,2]) * e_t * bracket
+      pm[,1] * num / (alpha^4)
+    },
+    t_hat_elem  = function(x, pm) {
+      q <- 1 - pm[,2]
+      log(x) - log(q * (pm[,1] + x))
+    },
+    split_param_to_mat = split_rp,
+    iidReps = iidReps,
+    op_name = op_name,
+    ineq_elem = function(tvec, pm) (1 - pm[,2]) * exp(tvec) - 1,
+    ...
+  )
+}
+
+#' @export
+NegBinCGF <- .negbin_base_cgf(iidReps = "any", op_name = "NegBinCGF")
 
 
 
@@ -127,79 +107,7 @@ validate2ParsLengths <- function(vec, param, iidReps) {
 
 #' @noRd
 .NegBinModelCGF_internal <- function(iidReps, ...) {
-  createCGF_fromVectorisedFunctions(
-    K_vectorized_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      
-      alpha <- 1 - (1 - p)*exp(tvec)
-      r*(log(p) - log(alpha))
-    },
-    K1_vectorized_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      
-      num_ <- (1-p)*exp(tvec)
-      denom_ <- 1 - (1 - p)*exp(tvec)
-      r*num_/denom_
-    },
-    K2_vectorized_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      
-      num_ <- (1-p)*exp(tvec)
-      denom_ <- 1 - (1 - p)*exp(tvec)
-      r*num_/denom_^2
-    },
-    K3_vectorized_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      
-      num_ <- (1-p)*exp(tvec) * (1 + (1-p)*exp(tvec))
-      denom_ <- 1 - (1 - p)*exp(tvec)
-      r*num_/denom_^3
-    },
-    K4_vectorized_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      
-      e_t <- exp(tvec)
-      e_2t <- exp(2*tvec)
-      alpha_ <- 1 - (1 - p)*e_t
-      
-      bracket_ <- 1 + e_2t + 4*e_t - 2*p*e_2t - 4*p*e_t + p^2*e_2t
-      numerator_ <- (1 - p)*e_t * bracket_
-      r*numerator_/(alpha_^4)
-    },
-    
-
-    ineq_constraint_func = function(tvec, param) {
-      validate2ParsLengths(tvec, param, iidReps)
-      len_r <- length(param)/2
-      p <- param[len_r + 1:len_r]
-      (1 - p)*exp(tvec) - 1
-    },
-    
-    analytic_tvec_hat_func = function(x, param)  { 
-      validate2ParsLengths(x, param, iidReps)
-      len_r <- length(param)/2
-      r <- param[1:len_r]
-      p <- param[len_r + 1:len_r]
-      q <- 1 - p
-      log(x) - log(q*(r + x))
-    },
-    op_name       = "NegBinModelCGF"
-  )
+  .negbin_base_cgf(iidReps = iidReps, op_name = "NegBinModelCGF", ...)
 }
 
 
@@ -228,13 +136,7 @@ validate2ParsLengths <- function(vec, param, iidReps) {
 #' @return A `CGF` object.
 #' @export
 NegBinModelCGF <- function(r, p, iidReps = "any", ...) {
-  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
-  if (!is.null(iidReps)) {
-    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
-        iidReps < 1 || iidReps != as.integer(iidReps) )  {
-      stop("'iidReps' must be 'any' or a positive integer.")
-    }
-  }
+  .check_iidReps(iidReps)
   r_fn <- validate_function_or_adaptor(r)
   p_fn <- validate_function_or_adaptor(p)
   base_cgf <- .NegBinModelCGF_internal(iidReps, ...)
@@ -243,7 +145,6 @@ NegBinModelCGF <- function(r, p, iidReps = "any", ...) {
     adaptor = function(theta) { c(r_fn(theta), p_fn(theta)) }
   )
 }
-
 
 
 

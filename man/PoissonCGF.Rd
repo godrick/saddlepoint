@@ -3,7 +3,7 @@
 \docType{data}
 \name{PoissonCGF}
 \alias{PoissonCGF}
-\title{Poisson CGF Object}
+\title{Poisson CGF object}
 \format{
 An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 20.
 }
@@ -13,5 +13,10 @@ PoissonCGF
 \description{
 Ready-to-use CGF for Poisson. Accepts scalar or vector \code{lambda}.
 If \code{length(tvec)} is a multiple of \code{length(lambda)}, evaluation proceeds (iidReps="any").
+}
+\examples{
+# Evaluate K at t = 0.1 for lambda = 2
+# PoissonCGF$K(0.1, 2)
+
 }
 \keyword{datasets}

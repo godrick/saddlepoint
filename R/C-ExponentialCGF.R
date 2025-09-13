@@ -26,6 +26,23 @@
 
 
 
+## Internal factory – build Exponential CGF via univariate utilities
+.exponential_base_cgf <- function(iidReps, op_name, ...) {
+  .make_univariate_model_cgf_matrix(
+    K_elem      = function(tvec, pm) -log(pm[,1] - tvec) + log(pm[,1]),
+    K1_elem     = function(tvec, pm)  1 / (pm[,1] - tvec),
+    K2_elem     = function(tvec, pm)  1 / (pm[,1] - tvec)^2,
+    K3_elem     = function(tvec, pm)  2 / (pm[,1] - tvec)^3,
+    K4_elem     = function(tvec, pm)  6 / (pm[,1] - tvec)^4,
+    t_hat_elem  = function(x, pm) pm[,1] - 1 / x,
+    split_param_to_mat = function(param) matrix(param, ncol = 1L),
+    iidReps = iidReps,
+    op_name = op_name,
+    ineq_elem = function(tvec, pm) tvec - pm[,1],
+    ...
+  )
+}
+
 #' Exponential CGF Object
 #'
 #' A ready-to-use CGF object for the Exponential distribution.
@@ -38,7 +55,7 @@
 #' ExponentialCGF$K1(0, 2)  # (expected value for Exp(rate=2) is 1/2)
 #'
 #' @export
-ExponentialCGF <- createCGF_fromVectorisedFunctions(
+ExponentialCGF <- .exponential_base_cgf(iidReps = "any", op_name = "ExponentialCGF")
   K_vectorized_func = function(tvec, lambda) {
     -log(lambda[1] - tvec) + log(lambda[1])
   },
@@ -80,38 +97,7 @@ validateExponentialLengths <- function(vec, lambda, iidReps) {
 
 #' @noRd
 .ExponentialModelCGF_internal <- function(iidReps, ...) {
-  createCGF_fromVectorisedFunctions(
-    K_vectorized_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      -log(lambda - tvec) + log(lambda)
-    },
-    K1_vectorized_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      1 / (lambda - tvec)
-    },
-    K2_vectorized_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      1 / (lambda - tvec)^2
-    },
-    K3_vectorized_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      2 / (lambda - tvec)^3
-    },
-    K4_vectorized_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      6 / (lambda - tvec)^4
-    },
-    ineq_constraint_func = function(tvec, lambda) {
-      validateExponentialLengths(tvec, lambda, iidReps)
-      tvec - lambda
-    },
-    analytic_tvec_hat_func = function(x, lambda) {
-      validateExponentialLengths(x, lambda, iidReps)
-      lambda - 1 / x
-    },
-    op_name = "ExponentialModelCGF",
-    ...
-  )
+  .exponential_base_cgf(iidReps = iidReps, op_name = "ExponentialModelCGF", ...)
 }
 
 #' Create a Parametric Exponential CGF Object
@@ -138,20 +124,11 @@ validateExponentialLengths <- function(vec, lambda, iidReps) {
 #'
 #' @export
 ExponentialModelCGF <- function(rate, iidReps = "any", ...) {
-  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
-  if (!is.null(iidReps)) {
-    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
-        iidReps < 1 || iidReps != as.integer(iidReps)) {
-      stop("'iidReps' must be 'any' or a positive integer.")
-    }
-  }
-  
-  rate_adaptor <- validate_function_or_adaptor(rate)
+  .check_iidReps(iidReps)
+  rate_fn <- validate_function_or_adaptor(rate)
   base_cgf <- .ExponentialModelCGF_internal(iidReps, ...)
-  adaptCGF(cgf = base_cgf, adaptor = rate_adaptor)
+  adaptCGF(cgf = base_cgf, adaptor = rate_fn)
 }
-
-
 
 
 

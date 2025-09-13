@@ -55,6 +55,7 @@
   split_param_to_mat,
   iidReps,
   op_name,
+  ineq_elem = NULL,
   ...
 ) {
   .check_iidReps(iidReps)
@@ -66,6 +67,7 @@
             is.function(K4_elem),
             is.function(t_hat_elem),
             is.function(split_param_to_mat))
+  if (!is.null(ineq_elem)) stopifnot(is.function(ineq_elem))
 
   # Helper that prepares the expanded parameter matrix for a given vector 'vec'
   prep_par <- function(vec, param) {
@@ -98,8 +100,13 @@
       pm <- prep_par(x, param)
       t_hat_elem(x, pm)
     },
+    ineq_constraint_func = if (!is.null(ineq_elem)) {
+      function(tvec, param) {
+        pm <- prep_par(tvec, param)
+        ineq_elem(tvec, pm)
+      }
+    } else NULL,
     op_name = op_name,
     ...
   )
 }
-

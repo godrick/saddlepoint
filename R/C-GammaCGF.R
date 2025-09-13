@@ -26,48 +26,32 @@
 #' GammaCGF$K(0.5, c(2,2))
 #'
 #' @export
-GammaCGF <- createCGF_fromVectorisedFunctions(
-  
-  K_vectorized_func = function(tvec, param) {
-    alpha <- param[1]
-    beta  <- param[2]
-    # K(t) = -alpha * log1p(-t/beta)
-    # using log1p(x) for x = -(tvec/beta)
-    -alpha * log1p(-tvec/beta)
-  },
-  K1_vectorized_func = function(tvec, param) {
-    alpha <- param[1]
-    beta  <- param[2]
-    # K1(t) = alpha / (beta - t)
-    alpha / (beta - tvec)
-  },
-  K2_vectorized_func = function(tvec, param) {
-    alpha <- param[1]
-    beta  <- param[2]
-    # K2(t) = alpha / (beta - t)^2
-    alpha / (beta - tvec)^2
-  },
-  K3_vectorized_func = function(tvec, param) {
-    alpha <- param[1]
-    beta  <- param[2]
-    2 * alpha / (beta - tvec)^3
-  },
-  K4_vectorized_func = function(tvec, param) {
-    alpha <- param[1]
-    beta  <- param[2]
-    6 * alpha / (beta - tvec)^4
-  },
-  
-  # We want tvec < beta => tvec - beta < 0
-  # We'll just return (tvec - beta), which must be negative
-  ineq_constraint_func = function(tvec, param) {
-    beta <- param[2]
-    tvec - beta
-  },
-  
-  analytic_tvec_hat_func = function(x, param)  { param[2] - (param[1] / x) },
-  op_name       = "GammaCGF"
-)
+## Internal factory – build Gamma CGF via univariate utilities
+.gamma_base_cgf <- function(iidReps, op_name, ...) {
+  split_ab <- function(param) {
+    ln <- length(param) / 2
+    if (ln != as.integer(ln) || ln < 1) stop("Gamma params must be concatenated as c(shape[1:L], rate[1:L]).")
+    idx <- seq_len(ln)
+    cbind(shape = param[idx], rate = param[ln + idx])
+  }
+
+  .make_univariate_model_cgf_matrix(
+    K_elem      = function(tvec, pm) -pm[,1] * log1p(-tvec / pm[,2]),
+    K1_elem     = function(tvec, pm)  pm[,1] / (pm[,2] - tvec),
+    K2_elem     = function(tvec, pm)  pm[,1] / (pm[,2] - tvec)^2,
+    K3_elem     = function(tvec, pm)  2 * pm[,1] / (pm[,2] - tvec)^3,
+    K4_elem     = function(tvec, pm)  6 * pm[,1] / (pm[,2] - tvec)^4,
+    t_hat_elem  = function(x, pm) pm[,2] - (pm[,1] / x),
+    split_param_to_mat = split_ab,
+    iidReps = iidReps,
+    op_name = op_name,
+    ineq_elem = function(tvec, pm) tvec - pm[,2],
+    ...
+  )
+}
+
+#' @export
+GammaCGF <- .gamma_base_cgf(iidReps = "any", op_name = "GammaCGF")
 
 # #' @noRd
 # validateGammaLengths <- function(vec, param, iidReps) {
@@ -88,59 +72,7 @@ GammaCGF <- createCGF_fromVectorisedFunctions(
 
 #' @noRd
 .GammaModelCGF_internal <- function(iidReps, ...) {
-
-  createCGF_fromVectorisedFunctions(
-    K_vectorized_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      -alpha * log1p(-tvec / beta)
-    },
-    K1_vectorized_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      alpha / (beta - tvec)
-    },
-    K2_vectorized_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      alpha / (beta - tvec)^2
-    },
-    K3_vectorized_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      2*alpha / (beta - tvec)^3
-    },
-    K4_vectorized_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      6*alpha / (beta - tvec)^4
-    },
-    ineq_constraint_func = function(tvec, sr) {
-      validate2ParsLengths(tvec, sr, iidReps)
-      len_s <- length(sr)/2
-      beta  <- sr[len_s + 1:len_s]
-      tvec - beta
-    },
-    analytic_tvec_hat_func = function(x, sr) {
-      validate2ParsLengths(x, sr, iidReps)
-      len_s <- length(sr)/2
-      alpha <- sr[1:len_s]
-      beta  <- sr[len_s + 1:len_s]
-      beta - (alpha / x)
-    },
-    op_name = "GammaModelCGF",
-    ...
-  )
+  .gamma_base_cgf(iidReps = iidReps, op_name = "GammaModelCGF", ...)
 }
 
 
@@ -165,27 +97,15 @@ GammaCGF <- createCGF_fromVectorisedFunctions(
 #'
 #' @return A `CGF` object.
 #' @export
-GammaModelCGF <- function(shape,
-                          rate,
-                          iidReps = "any",
-                          ...) {
-  if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
-  if (!is.null(iidReps)) {
-    if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
-        iidReps < 1 || iidReps != as.integer(iidReps) )  {
-      stop("'iidReps' must be 'any' or a positive integer.")
-    }
-  }
-  
+GammaModelCGF <- function(shape, rate, iidReps = "any", ...) {
+  .check_iidReps(iidReps)
   shape_fn <- validate_function_or_adaptor(shape)
   rate_fn  <- validate_function_or_adaptor(rate)
-  
   base_cgf <- .GammaModelCGF_internal(iidReps, ...)
   adaptCGF(
-    cgf = base_cgf, 
+    cgf = base_cgf,
     adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))
   )
 }
-
 
 
