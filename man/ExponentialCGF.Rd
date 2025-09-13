@@ -13,6 +13,7 @@ ExponentialCGF
 }
 \description{
 A ready-to-use CGF object for the Exponential distribution.
+This object is vectorized for i.i.d. replicates of the same rate.
 }
 \examples{
 ExponentialCGF$K1(0, 2)  # (expected value for Exp(rate=2) is 1/2)

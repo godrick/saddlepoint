@@ -43,11 +43,33 @@
   )
 }
 
+
+
+# .exponential_base_cgf <- function(iidReps, op_name, ...) {
+#   .make_univariate_model_cgf_matrix(
+#     K_elem      = function(tvec, pm) -log1p(-tvec / pm[,1]),  # stable form
+#     K1_elem     = function(tvec, pm)  1 / (pm[,1] - tvec),
+#     K2_elem     = function(tvec, pm)  1 / (pm[,1] - tvec)^2,
+#     K3_elem     = function(tvec, pm)  2 / (pm[,1] - tvec)^3,
+#     K4_elem     = function(tvec, pm)  6 / (pm[,1] - tvec)^4,
+#     t_hat_elem  = function(x, pm) pm[,1] - 1 / x,
+#     split_param_to_mat = function(param) matrix(param, ncol = 1L),
+#     iidReps = iidReps,
+#     op_name = op_name,
+#     ineq_elem = function(tvec, pm) tvec - pm[,1],
+#     ...
+#   )
+# }
+
+
+
+
+
 #' Exponential CGF Object
 #'
 #' A ready-to-use CGF object for the Exponential distribution.
-# This object is vectorized for i.i.d. replicates of the same rate.
-#' 
+#' This object is vectorized for i.i.d. replicates of the same rate.
+#'
 #' @format An object of class \code{CGF} (R6), with usual methods \code{K},
 #'   \code{K1}, \code{K2}, \code{K3operator}, \code{K4operator}, etc.
 #'
@@ -62,26 +84,9 @@ ExponentialCGF <- .exponential_base_cgf(iidReps = "any", op_name = "ExponentialC
 # ----------------------------------------------------------------------------
 
 
-#' @noRd
-validateExponentialLengths <- function(vec, lambda, iidReps) {
-  len_vec <- length(vec)
-  len_lambda <- length(lambda)
-  if (!is.null(iidReps)) {
-    expected <- len_lambda * iidReps
-    if (len_vec != expected) {
-      stop(sprintf("Length mismatch: input vector has length %d; expected %d (lambda length %d times iidReps %d).",
-                   len_vec, expected, len_lambda, iidReps))
-    }
-  } else if (len_vec %% len_lambda != 0) {
-    stop(sprintf("Length mismatch: input vector length %d is not a multiple of lambda length %d.",
-                 len_vec, len_lambda))
-  }
-}
 
-#' @noRd
-.ExponentialModelCGF_internal <- function(iidReps, ...) {
-  .exponential_base_cgf(iidReps = iidReps, op_name = "ExponentialModelCGF", ...)
-}
+
+
 
 #' Create a Parametric Exponential CGF Object
 #'
@@ -109,7 +114,7 @@ validateExponentialLengths <- function(vec, lambda, iidReps) {
 ExponentialModelCGF <- function(rate, iidReps = "any", ...) {
   .check_iidReps(iidReps)
   rate_fn <- validate_function_or_adaptor(rate)
-  base_cgf <- .ExponentialModelCGF_internal(iidReps, ...)
+  base_cgf <- .exponential_base_cgf(iidReps = iidReps, op_name = "ExponentialModelCGF", ...)
   adaptCGF(cgf = base_cgf, adaptor = rate_fn)
 }
 

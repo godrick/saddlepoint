@@ -10,12 +10,12 @@
 #'
 #' A ready-to-use CGF object for the univariate Normal distribution with mean
 #' \eqn{\mu} and standard deviation \eqn{\sigma}. By default, \code{NormalCGF} evaluation for i.i.d. replicates.
-#' If \code{tvec} has length \eqn{n}, we interpret that as \eqn{n} i.i.d. replicates. 
+#' If \code{tvec} has length \eqn{n}, we interpret that as \eqn{n} i.i.d. replicates.
 #'
 #' @details
 #' **Parameter Vector**: The \code{parameter_vector} used when calling methods such as `K(tvec, parameter_vector)`
 #' must be a numeric vector of the form \eqn{(\mu, \sigma)} in that order.
-#' 
+#'
 #'
 #' @format
 #' An object of class \code{CGF} (R6), with the usual methods \code{K, K1, K2, etc.}
@@ -23,7 +23,7 @@
 #' @examples
 #' NormalCGF$K1(0, c(5, 0.5)) # (expected value for N(5, 0.5) is 5)
 #'
-#' @export
+#' @noRd
 ## Internal factory – build Normal (univariate) CGF via univariate utilities
 .normal_base_cgf <- function(iidReps, op_name, ...) {
   split_mus <- function(param) {
@@ -64,22 +64,22 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
       if (length(tvec) != d*iidReps) stop(sprintf("tvec has length %d, but expecting d*iidReps = %d*%d", length(tvec), d, iidReps))
       muVec     <- param[1:d]
       Sigma_mat <- matrix(param[(d+1):length(param)], nrow=d, ncol=d, byrow=FALSE)  ##### Matrix(advector(...),...) yields an error
-      
+
       tmat <- matrix(tvec, nrow = d)
       block_vals <- as.vector(crossprod(muVec, tmat)) + 0.5 * colSums(tmat * (Sigma_mat %*% tmat))
       sum(block_vals)
     }
-    
+
     K1fun <- function(tvec, param) {
       d <- (-1 + sqrt(1 + 4*length(param))) / 2
       if (length(tvec) != d*iidReps) stop(sprintf("tvec has length %d, but expecting d*iidReps = %d*%d", length(tvec), d, iidReps))
       muVec     <- param[1:d]
       Sigma_mat <- matrix(param[(d+1):length(param)], nrow=d, ncol=d, byrow=FALSE)
-      
+
       tmat <- matrix(tvec, nrow = d)
       as.vector(muVec + (Sigma_mat %*% tmat))
     }
-    
+
     K2fun <- function(tvec, param) {
       d <- (-1 + sqrt(1 + 4*length(param))) / 2
       if (length(tvec) != d*iidReps) stop(sprintf("tvec has length %d, but expecting d*iidReps = %d*%d", length(tvec), d, iidReps))
@@ -91,22 +91,22 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
       }
       big_mat
     }
-    
+
     K3opfun <- function(tvec, param, v1, v2, v3) 0
     K4opfun <- function(tvec, param, v1, v2, v3, v4) 0
-    
-    
+
+
     K4AABBfun <- function(tvec, param, Q1, Q2) 0
     K3K3operatorAABBCCfun <- function(tvec, param, Q1, Q2, Q3) 0
     K3K3operatorABCABCfun <- function(tvec, param, Q1, Q2, Q3) 0
-    
-    
+
+
     K3K3operatorABCABC_factoredfun <- function(tvec, param, A1, d1, A2, d2, A3, d3) 0
     K3K3operatorAABBCC_factoredfun <- function(tvec, param, A1, d1, A2, d2, A3, d3) 0
     K4operatorAABB_factoredfun     <- function(tvec, param, A1, d1, A2, d2) 0
-    
+
     func_Tfun <- function(tvec, param) 0
-  
+
     saddlepoint_t_MVN <- function(y, param) {
       d <- (-1 + sqrt(1 + 4*length(param))) / 2
       if (length(y) != d*iidReps) stop(sprintf("y has length %d, but expecting d*iidReps = %d*%d", length(y), d, iidReps))
@@ -116,16 +116,16 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
       res_mat <- solve(Sigma_mat, y_mat - muVec)
       as.vector(res_mat)
     }
-    
+
     createCGF(
-      K = Kfun, 
-      K1 = K1fun, 
-      K2 = K2fun, 
-      K3operator = K3opfun, 
-      K4operator = K4opfun, 
+      K = Kfun,
+      K1 = K1fun,
+      K2 = K2fun,
+      K3operator = K3opfun,
+      K4operator = K4opfun,
       analytic_tvec_hat_func = saddlepoint_t_MVN,
       op_name = "MultivariateNormalModelCGF",
-      
+
       func_T = func_Tfun,
       K4operatorAABB = K4AABBfun,
       K3K3operatorAABBCC = K3K3operatorAABBCCfun,
@@ -135,14 +135,14 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
       K3K3operatorABCABC_factored = K3K3operatorABCABC_factoredfun,
       ...
     )
-    
+
 }
 
 
 
 
 
-#' Create a Multivariate Normal CGF Object 
+#' Create a Multivariate Normal CGF Object
 #'
 #' @description
 #' Creates a CGF for an arbitrary \code{d}-dimensional normal distribution.
@@ -151,11 +151,11 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
 #'   \item \code{mu(theta)} returning a length-\eqn{d} numeric vector.
 #'   \item \code{sigma(theta)} returning a \eqn{d \times d} matrix.
 #' }
-#' 
+#'
 #' @details
 #' **I.I.D. Replicates**:
 #' By setting \code{iidReps} to a positive integer \eqn{m}, you declare that the input vector \eqn{tvec} will be split
-#' into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multivariate normal sample. 
+#' into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multivariate normal sample.
 #' If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage.
 #'
 #' @param mu A function(\code{theta}) -> numeric vector (the mean).
@@ -170,7 +170,7 @@ NormalCGF <- .normal_base_cgf(iidReps = "any", op_name = "NormalCGF")
 #'
 #' @export
 MultivariateNormalModelCGF <- function(mu, sigma, iidReps = "any", ...) {
-  
+
   if (is.character(iidReps) && length(iidReps) == 1 && tolower(iidReps) == "any") iidReps <- NULL
   if (!is.null(iidReps)) {
     if (length(iidReps) != 1 || is.infinite(iidReps) || !is.numeric(iidReps) ||
@@ -178,10 +178,10 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps = "any", ...) {
       stop("'iidReps' must be 'any' or a positive integer.")
     }
   }
-  
+
   mu_fn <- validate_function_or_adaptor(mu)
   sigma_fn <- validate_function_or_adaptor(sigma)
-  
+
   # param_adaptor: calls mu(theta) and sigma(theta), flattens
   param_adaptor_ <- function(theta) {
     muVal    <- mu_fn(theta)      # must be length d
@@ -189,7 +189,7 @@ MultivariateNormalModelCGF <- function(mu, sigma, iidReps = "any", ...) {
     if (nrow(sigmaVal) != length(muVal) || ncol(sigmaVal) != length(muVal)) stop("sigma(theta) must be a square matrix")
     c( muVal, as.vector(sigmaVal) )  # sigmaVal is column-major => must unwrap consistently (byrow = FALSE)
   }
-  
+
   base_cgf <- .MultivariateNormalModelCGF_internal(iidReps, ...)
   adaptCGF(cgf = base_cgf, adaptor = param_adaptor_)
 }

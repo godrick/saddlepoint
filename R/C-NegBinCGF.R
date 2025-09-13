@@ -6,7 +6,7 @@
 # NB_pgf <- function(z, r, p) {
 #   (p / (1 - (1-p)*z))^r
 # }
-# 
+#
 # # d/dz [ G(z) ] = G(z) * [ r (1-p) / (1 - (1-p)*z ) ]
 # NB_pgf_prime <- function(z, r, p) {
 #   r*(1-p)*NB_pgf(z, r, p) / (1 - (1-p)*z)
@@ -15,19 +15,8 @@
 
 
 
-#' Negative Binomial CGF Object
-#'
-#' A ready-to-use CGF object for the Negative Binomial distribution with number of successes \eqn{r}
-#' and success probability parameter \eqn{p}. The \code{parameter_vector} used when calling methods such as `K(tvec, parameter_vector)`
-#' should be a numeric vector \eqn{c(r, p)}.
-#' 
-#'
-#' @format An object of class \code{CGF} (an R6 class), with the usual methods:
-#' \code{K, K1, K2, K3operator, K4operator}, etc.
-#'
-#'
-#' @export
-## Internal factory – build NegBin CGF via univariate utilities
+
+#' @noRd
 .negbin_base_cgf <- function(iidReps, op_name, ...) {
   split_rp <- function(param) {
     ln <- length(param) / 2
@@ -76,6 +65,24 @@
   )
 }
 
+
+#' Negative Binomial CGF Object
+#'
+#' A ready-to-use CGF object for the Negative Binomial distribution with
+#' number of successes \eqn{r} and success probability \eqn{p}.
+#' The \code{parameter_vector} is \eqn{c(r, p)}.
+#'
+#' @details
+#' CGF: \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
+#' The inequality constraint \code{(1-p)\,e^t - 1 \le 0} is enforced via
+#' \code{ineq_constraint_func}.
+#'
+#' @format An object of class \code{CGF} (R6) with methods \code{K}, \code{K1},
+#' \code{K2}, \code{K3operator}, \code{K4operator}, etc.
+#'
+#' @examples
+#' NegBinCGF$K1(0, c(10, 0.25))  # E[X] = r(1-p)/p = 10 * 0.75 / 0.25 = 30
+#'
 #' @export
 NegBinCGF <- .negbin_base_cgf(iidReps = "any", op_name = "NegBinCGF")
 
@@ -85,30 +92,10 @@ NegBinCGF <- .negbin_base_cgf(iidReps = "any", op_name = "NegBinCGF")
 
 
 
-#' @noRd
-validate2ParsLengths <- function(vec, param, iidReps) {
-  d <- length(param) / 2
-  if (!is.null(iidReps)) {
-    expected_len <- d * iidReps
-    if (length(vec) != expected_len) {
-      stop(sprintf("Length of tvec/x is %d; expected %d (parameter dimension d = %d, iidReps = %s).",
-                   length(vec), expected_len, d, iidReps))
-    }
-  } else if (length(vec) %% d != 0) {
-    stop(sprintf("Length of tvec/x (%d) is not a multiple of the parameter dimension (%d).",
-                 length(vec), d))
-  }
-}
 
 
 
 
-
-
-#' @noRd
-.NegBinModelCGF_internal <- function(iidReps, ...) {
-  .negbin_base_cgf(iidReps = iidReps, op_name = "NegBinModelCGF", ...)
-}
 
 
 
@@ -120,11 +107,11 @@ validate2ParsLengths <- function(vec, param, iidReps) {
 #' Create a Parametric Negative Binomial CGF Object
 #'
 #' @description
-#' Creates a CGF object for the Negative Binomial distribution with number of successes \eqn{r(\theta)} and 
-#' success probability parameter \eqn{p(\theta)} defined by user-provided parameter functions. 
+#' Creates a CGF object for the Negative Binomial distribution with number of successes \eqn{r(\theta)} and
+#' success probability parameter \eqn{p(\theta)} defined by user-provided parameter functions.
 #' This function supports both i.i.d. and non-identical usage.
-#' 
-#'  
+#'
+#'
 #'
 #' @param r A function (or `adaptor`)  that accepts a single parameter vector \code{theta} and returns the number of successes.
 #' @param p A function (or `adaptor`)  that accepts a single parameter vector \code{theta} and returns a scalar success probability or a vector of success probabilities.
@@ -139,7 +126,7 @@ NegBinModelCGF <- function(r, p, iidReps = "any", ...) {
   .check_iidReps(iidReps)
   r_fn <- validate_function_or_adaptor(r)
   p_fn <- validate_function_or_adaptor(p)
-  base_cgf <- .NegBinModelCGF_internal(iidReps, ...)
+  base_cgf <- .negbin_base_cgf(iidReps = iidReps, op_name = "NegBinModelCGF", ...)
   adaptCGF(
     cgf = base_cgf,
     adaptor = function(theta) { c(r_fn(theta), p_fn(theta)) }

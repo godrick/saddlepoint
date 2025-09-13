@@ -6,21 +6,22 @@
 ##
 ## Distribution: Geometric(p), counting the number of failures before first success.
 ## PMF: P(X = k) = (1 - p)^k * p,  k = 0,1,2,...
-## 
-## CGF reference: 
+##
+## CGF reference:
 ##    K(t; p) = log( p ) - log( 1 - exp(t) + p * exp(t) ),
-## valid for t < -log(1 - p). 
+## valid for t < -log(1 - p).
 ##
 ##############################################################################
 
 # ----------------------------------------------------------------------------
 # First: A "ready-to-use" CGF object for a single geometric parameter "p".
-#        The user calls this with the scalar parameter_vector = p. By default, this allows i.i.d. usage. 
+#        The user calls this with the scalar parameter_vector = p. By default, this allows i.i.d. usage.
 #        For non-identical usage, see the second approach below.
 # ----------------------------------------------------------------------------
 
 
 ## Internal factory – build Geometric CGF via univariate utilities
+#' @noRd
 .geometric_base_cgf <- function(iidReps, op_name, ...) {
   .make_univariate_model_cgf_matrix(
     K_elem      = function(tvec, pm) log(pm[,1]) - log(1 - exp(tvec) + pm[,1]*exp(tvec)),
@@ -53,6 +54,7 @@
 #' This corresponds to the count of failures before the first success.
 #' By default, this object is vectorized for i.i.d. replicates of probability `prob`.
 #'
+#'
 #' @seealso \code{\link{GeometricModelCGF}}
 #'
 #' @format An object of class \code{CGF} (R6), with usual methods:
@@ -80,9 +82,6 @@ GeometricCGF <- .geometric_base_cgf(iidReps = "any", op_name = "GeometricCGF")
 # ----------------------------------------------------------------------------
 
 
-.GeometricModelCGF_internal <- function(iidReps, ...){
-  .geometric_base_cgf(iidReps = iidReps, op_name = "GeometricModelCGF", ...)
-}
 
 
 
@@ -106,6 +105,8 @@ GeometricCGF <- .geometric_base_cgf(iidReps = "any", op_name = "GeometricCGF")
 #' \eqn{prob(\theta)} given by a user-supplied function or adaptor.
 #' The resulting object correspond to the random variable that counts the number of failures before achieving the first success.
 #' It supports i.i.d. and non-identical contexts with optional length enforcement via `iidReps`.
+# When \code{iidReps = "any"}, \code{length(tvec)} must be a multiple of the number of parameter rows returned by the adaptor.
+# When \code{iidReps = m}, \code{length(tvec)} must equal \code{m} times that number.
 #'
 #' @param prob A function (or adaptor) that accepts a single parameter vector \code{theta}
 #'   and returns the success probability \eqn{prob} (a scalar) or a vector of probabilities.
@@ -118,6 +119,6 @@ GeometricCGF <- .geometric_base_cgf(iidReps = "any", op_name = "GeometricCGF")
 GeometricModelCGF <- function(prob, iidReps = "any", ...) {
   .check_iidReps(iidReps)
   p_fn <- validate_function_or_adaptor(prob)
-  base_cgf <- .GeometricModelCGF_internal(iidReps, ...)
+  base_cgf <- .geometric_base_cgf(iidReps = iidReps, op_name = "GeometricModelCGF", ...)
   adaptCGF(cgf = base_cgf, adaptor = p_fn)
 }

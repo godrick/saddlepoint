@@ -13,12 +13,11 @@ GeometricCGF
 }
 \description{
 A ready-to-use CGF object for a single-parameter Geometric distribution.
-This object correspond to the random variable that counts the number of failures before achieving the first success.
-The \code{parameter_vector} for \code{GeometricCGF} is taken to be the success probability \eqn{prob}.
-By default, this object is vectorized for i.i.d. replicates of Geometric random variables.
+This corresponds to the count of failures before the first success.
+By default, this object is vectorized for i.i.d. replicates of probability \code{prob}.
 }
 \examples{
-# the expected value of X~Geometric(prob = 0.3) using the CGF 
+# expected value of X~Geometric(prob = 0.3) via CGF
 GeometricCGF$K1(0, 0.3)
 
 }

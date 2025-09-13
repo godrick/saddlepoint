@@ -1,32 +1,8 @@
 # R/GammaCGF.R
 # Objects: GammaCGF, GammaModelCGF
 
-#' Gamma CGF Object
-#'
-#' A ready-to-use CGF object for the Gamma distribution with shape \eqn{\alpha}
-#' and rate \eqn{\beta}. The \code{parameter_vector} used when calling methods such as `K(tvec, parameter_vector)`
-#' should be a numeric vector \eqn{c(\alpha, \beta)}.
-#' 
-#'
-#' @details
-#' **CGF**: For a Gamma random variable \eqn{X} with shape \eqn{\alpha} and rate
-#' \eqn{\beta}, the cumulant generating function is:
-#' \deqn{K(t;\alpha, \beta) = -\alpha \,\log \bigl(1 - t/\beta\bigr), \quad t < \beta.}
-#'
-#' **Parameter Vector**: The \code{parameter_vector} is assumed to have the form 
-#' \eqn{(\alpha, \beta)}. You must ensure 
-#' that \eqn{t < \beta} for valid evaluations.
-#'
-#' @format An object of class \code{CGF} (an R6 class), with the usual methods:
-#' \code{K, K1, K2, K3operator, K4operator}, etc.
-#'
-#' @examples
-#' # Evaluate K at t=0.5 for shape=2, rate=2 (thus t<2).
-#' # param = c(2, 2)
-#' GammaCGF$K(0.5, c(2,2))
-#'
-#' @export
-## Internal factory – build Gamma CGF via univariate utilities
+
+#' @noRd
 .gamma_base_cgf <- function(iidReps, op_name, ...) {
   split_ab <- function(param) {
     ln <- length(param) / 2
@@ -50,30 +26,39 @@
   )
 }
 
+
+#' Gamma CGF Object
+#'
+#' A ready-to-use CGF object for the Gamma distribution with shape \eqn{\alpha}
+#' and rate \eqn{\beta}. The \code{parameter_vector} used when calling methods such as `K(tvec, parameter_vector)`
+#' should be a numeric vector \eqn{c(\alpha, \beta)}.
+#'
+#'
+#' @details
+#' **CGF**: For a Gamma random variable \eqn{X} with shape \eqn{\alpha} and rate
+#' \eqn{\beta}, the cumulant generating function is:
+#' \deqn{K(t;\alpha, \beta) = -\alpha \,\log \bigl(1 - t/\beta\bigr), \quad t < \beta.}
+#'
+#' **Parameter Vector**: The \code{parameter_vector} is assumed to have the form
+#' \eqn{(\alpha, \beta)}. You must ensure
+#' that \eqn{t < \beta} for valid evaluations.
+#'
+#' @format An object of class \code{CGF} (an R6 class), with the usual methods:
+#' \code{K, K1, K2, K3operator, K4operator}, etc.
+#'
+#' @examples
+#' # Evaluate K at t=0.5 for shape=2, rate=2 (thus t<2).
+#' # param = c(2, 2)
+#' GammaCGF$K(0.5, c(2,2))
+#'
 #' @export
 GammaCGF <- .gamma_base_cgf(iidReps = "any", op_name = "GammaCGF")
 
-# #' @noRd
-# validateGammaLengths <- function(vec, param, iidReps) {
-#   d <- length(param) / 2
-#   if (!is.null(iidReps)) {
-#     expected_len <- d * iidReps
-#     if (length(vec) != expected_len) {
-#       stop(sprintf("Length of tvec/x is %d; expected %d (parameter dimension d = %d, iidReps = %s).",
-#                    length(vec), expected_len, d, iidReps))
-#     }
-#   } else if (length(vec) %% d != 0) {
-#     stop(sprintf("Length of tvec/x (%d) is not a multiple of the parameter dimension (%d).",
-#                  length(vec), d))
-#   }
-# }
 
 
 
-#' @noRd
-.GammaModelCGF_internal <- function(iidReps, ...) {
-  .gamma_base_cgf(iidReps = iidReps, op_name = "GammaModelCGF", ...)
-}
+
+
 
 
 
@@ -82,11 +67,11 @@ GammaCGF <- .gamma_base_cgf(iidReps = "any", op_name = "GammaCGF")
 #' Create a Parametric Gamma CGF Object
 #'
 #' @description
-#' Creates a CGF object for the Gamma distribution with shape \eqn{\alpha(\theta)} and 
-#' rate \eqn{\beta(\theta)} defined by user-provided parameter functions. 
+#' Creates a CGF object for the Gamma distribution with shape \eqn{\alpha(\theta)} and
+#' rate \eqn{\beta(\theta)} defined by user-provided parameter functions.
 #' This function supports both i.i.d. and non-identical usage.
-#' 
-#'  
+#'
+#'
 #'
 #' @param shape A function (or `adaptor`)  that accepts a single parameter vector \code{theta} and returns the shape parameter.
 #' @param rate A function (or `adaptor`)  that accepts a single parameter vector \code{theta} and returns the rate parameter.
@@ -101,7 +86,7 @@ GammaModelCGF <- function(shape, rate, iidReps = "any", ...) {
   .check_iidReps(iidReps)
   shape_fn <- validate_function_or_adaptor(shape)
   rate_fn  <- validate_function_or_adaptor(rate)
-  base_cgf <- .GammaModelCGF_internal(iidReps, ...)
+  base_cgf <- .gamma_base_cgf(iidReps = iidReps, op_name = "GammaModelCGF", ...)
   adaptCGF(
     cgf = base_cgf,
     adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))

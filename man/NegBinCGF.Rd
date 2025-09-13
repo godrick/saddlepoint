@@ -5,15 +5,24 @@
 \alias{NegBinCGF}
 \title{Negative Binomial CGF Object}
 \format{
-An object of class \code{CGF} (an R6 class), with the usual methods:
-\code{K, K1, K2, K3operator, K4operator}, etc.
+An object of class \code{CGF} (R6) with methods \code{K}, \code{K1},
+\code{K2}, \code{K3operator}, \code{K4operator}, etc.
 }
 \usage{
 NegBinCGF
 }
 \description{
-A ready-to-use CGF object for the Negative Binomial distribution with number of successes \eqn{r}
-and success probability parameter \eqn{p}. The \code{parameter_vector} used when calling methods such as \code{K(tvec, parameter_vector)}
-should be a numeric vector \eqn{c(r, p)}.
+A ready-to-use CGF object for the Negative Binomial distribution with
+number of successes \eqn{r} and success probability \eqn{p}.
+The \code{parameter_vector} is \eqn{c(r, p)}.
+}
+\details{
+CGF: \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
+The inequality constraint \code{(1-p)\,e^t - 1 \le 0} is enforced via
+\code{ineq_constraint_func}.
+}
+\examples{
+NegBinCGF$K1(0, c(10, 0.25))  # E[X] = r(1-p)/p = 10 * 0.75 / 0.25 = 30
+
 }
 \keyword{datasets}
