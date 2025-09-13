@@ -1,4 +1,4 @@
-# R/cgf-univariate-utils.R
+# R/A2-cgf-univariate-utils.R
 # Univariate CGF utilities:
 # - "iidReps" is *always* either "any" or a positive integer (no NULL, no tolower).
 # - Broadcasting is done with matrices (no lists) to keep AD happy.
@@ -25,14 +25,14 @@
 
   if (identical(iidReps, "any")) {
     if (N %% M != 0L) {
-      stop(sprintf("`tvec` length %d is not a multiple of parameter length %d (iidReps=\"any\").", N, M))
+      stop(sprintf("'tvec' length %d is not a multiple of parameter length %d (iidReps=\"any\").", N, M))
     }
     reps <- N %/% M
   } else {
     reps <- as.integer(iidReps)
     expected <- M * reps
     if (N != expected) {
-      stop(sprintf("`tvec` length %d != %d (= %d parameters × iidReps=%d).", N, expected, M, reps))
+      stop(sprintf("'tvec' length %d != %d (= %d parameters × iidReps=%d).", N, expected, M, reps))
     }
   }
 

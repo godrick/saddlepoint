@@ -12,6 +12,9 @@ compute.saddlepointLL.correction(
   gradient = FALSE,
   hessian = FALSE,
   spa_method = "standard",
+  tvec_source = c("auto", "user", "analytic", "newton", "solver_atomic"),
+  solver_fun = saddlepoint.solve,
+  newton_t_init = NULL,
   ...
 )
 }
@@ -23,15 +26,22 @@ compute.saddlepointLL.correction(
 \item{cgf}{A \code{CGF} object.}
 
 \item{tvec.hat}{(Optional) Numeric vector. If supplied, \code{tvec} is taken directly
-as this vector (the saddlepoint \eqn{\hat{t}}). Otherwise, we solve for it numerically if \code{cgf$has_analytic_tvec_hat()} is \code{FALSE}.}
+as this vector (the saddlepoint \eqn{\hat{t}}). Otherwise we compute it (analytic if
+available, else numeric solve).}
 
-\item{gradient}{Logical. If \code{TRUE}, the gradient wrt \code{parameter_vector} is returned.}
+\item{gradient}{Logical. If \code{TRUE}, return gradient wrt \code{parameter_vector}.}
 
-\item{hessian}{Logical. If \code{TRUE}, the Hessian wrt \code{parameter_vector} is returned.}
+\item{hessian}{Logical. If \code{TRUE}, return Hessian wrt \code{parameter_vector}.}
 
-\item{spa_method}{Character string. One of \code{"standard"} or \code{"zeroth"}.}
+\item{spa_method}{Character string. One of \code{"standard"} (first-order) or \code{"zeroth"}.}
 
-\item{...}{Optional arguments to be passed to \code{\link{saddlepoint.solve}}.}
+\item{tvec_source}{One of "auto","user","analytic","newton","solver_atomic". See \code{compute.spa.negll}.}
+
+\item{solver_fun}{Numeric solver used when \code{tvec_source="solver_atomic"} or in non-AD path. Default \code{saddlepoint.solve}.}
+
+\item{newton_t_init}{Optional start for t in the Newton solver path.}
+
+\item{...}{Passed to \code{solver_fun} when used.}
 }
 \value{
 A named list with elements:

@@ -7,31 +7,17 @@
 PoissonModelCGF(lambda, iidReps = "any", ...)
 }
 \arguments{
-\item{lambda}{An \code{adaptor} or a function mapping a parameter vector to a numeric vector rate(s).
-The function must accept a single parameter vector and return the Poisson rate parameter (\eqn{\lambda}) or vector of rates.}
+\item{lambda}{A function or \code{adaptor} mapping \code{theta} -> scalar or vector of rates.}
 
-\item{iidReps}{Either \code{"any"} or a positive integer specifying how many
-i.i.d. blocks are expected. Defaults to \code{"any"}, meaning no restriction on the length of \code{tvec}.}
+\item{iidReps}{Either \code{"any"} or a positive integer. Default \code{"any"}.}
 
-\item{...}{Additional arguments passed to the base CGF creation function, such as optional method overrides.}
+\item{...}{Passed through to the CGF creation (e.g., to override operators).}
 }
 \value{
-A CGF object.
+A \code{CGF} object.
 }
 \description{
-Creates a CGF for the Poisson distribution with a rate parameter (\eqn{\lambda}) determined
-by a user-supplied function or adaptor. Supports i.i.d. and non-identical contexts
-with optional length enforcement via \code{iidReps}.
-}
-\examples{
-# ex 1: i.i.d. scenario for univariate Poisson(rate = 2)
-ex_iid <- PoissonModelCGF(lambda = function(x) x[1])
-# OR ex_iid <- PoissonModelCGF(lambda = function(x) x[1], iidReps = 3)
-ex_iid$K1(rep(0,3), 2)
-
-# ex 2: non-identical scenario with replication: lambda returns c(2,5), iidReps=3
-ex_repeat <- PoissonModelCGF(lambda = adaptor(indices = 1:2), iidReps = 3)
-# OR ex_repeat <- PoissonModelCGF(lambda = function(x) c(2,5) )
-ex_repeat$K1(rep(0,6), c(2,5))
-
+Poisson with rate(s) \code{lambda(theta)}. If \code{iidReps = "any"} (default),
+\code{length(tvec)} must be a multiple of \code{length(lambda(theta))}. If \code{iidReps = m},
+then \code{length(tvec)} must be \code{m * length(lambda(theta))}.
 }

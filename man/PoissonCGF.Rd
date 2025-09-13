@@ -5,23 +5,13 @@
 \alias{PoissonCGF}
 \title{Poisson CGF Object}
 \format{
-An object of class \code{CGF} (an R6 class), with standard methods
-\code{K}, \code{K1}, \code{K2}, \code{K3operator}, etc.
+An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 20.
 }
 \usage{
 PoissonCGF
 }
 \description{
-A ready-to-use CGF object for the Poisson distribution.
-}
-\details{
-\strong{Parameter Vector}: The \code{parameter_vector} for \code{PoissonCGF} is
-interpreted as the rate \eqn{\lambda}. By default, this object is vectorized
-for i.i.d. replicates of Poisson variables.
-}
-\examples{
-# Evaluate K at t = 0.1 for lambda = 2
-# PoissonCGF$K(0.1, 2)
-
+Ready-to-use CGF for Poisson. Accepts scalar or vector \code{lambda}.
+If \code{length(tvec)} is a multiple of \code{length(lambda)}, evaluation proceeds (iidReps="any").
 }
 \keyword{datasets}
