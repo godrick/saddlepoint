@@ -64,16 +64,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getValues1
+Rcpp::NumericVector getValues1(ADrep x);
+RcppExport SEXP _saddlepoint_getValues1(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< ADrep >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(getValues1(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_saddlepoint_tvec_hat_from_tvec", (DL_FUNC) &_saddlepoint_tvec_hat_from_tvec, 5},
     {"_saddlepoint_tapedSaddlepointSolve", (DL_FUNC) &_saddlepoint_tapedSaddlepointSolve, 5},
     {"_saddlepoint_matinv_TMBad", (DL_FUNC) &_saddlepoint_matinv_TMBad, 1},
     {"_saddlepoint_matinv_double", (DL_FUNC) &_saddlepoint_matinv_double, 1},
+    {"_saddlepoint_getValues1", (DL_FUNC) &_saddlepoint_getValues1, 1},
     {NULL, NULL, 0}
 };
 
+void rtmb_set_shared_pointers();
 RcppExport void R_init_saddlepoint(DllInfo *dll) {
-    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
-    R_useDynamicSymbols(dll, FALSE);
+  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+  R_useDynamicSymbols(dll, FALSE);
+  rtmb_set_shared_pointers();
 }

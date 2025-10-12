@@ -4,18 +4,19 @@
 \alias{iidReplicatesCGF}
 \title{Replicate a CGF object over multiple i.i.d. blocks and/or with a fixed block size}
 \usage{
-iidReplicatesCGF(cgf, iidReps = NULL, block_size = NULL)
+iidReplicatesCGF(cgf, iidReps = "any", block_size = NULL)
 }
 \arguments{
 \item{cgf}{A \code{CGF} object.}
 
-\item{iidReps}{Either \code{NULL} or a positive integer specifying the number of i.i.d. blocks.}
+\item{iidReps}{Either \code{"any"} (default) or a positive integer.}
 
-\item{block_size}{Either \code{NULL} or a positive integer specifying the size of each block.}
+\item{block_size}{Either NULL, a positive integer, or a function
+\code{function(param) -> positive integer}. When a function is provided,
+the block size is determined dynamically from the current parameter vector.}
 }
 \value{
-A new CGF object that operates on length-\eqn{m d} input vectors, chunked
-into \eqn{m} blocks, each block of length \eqn{d}.
+A \code{CGF} object
 }
 \description{
 Extends a given \code{CGF} object to handle multiple i.i.d. blocks. You can specify:
@@ -26,14 +27,63 @@ Extends a given \code{CGF} object to handle multiple i.i.d. blocks. You can spec
 }
 }
 \details{
+Let \eqn{N = \mathrm{length(tvec)}}, \code{d = block_size}, and \code{iidReps} the number of blocks.
 \itemize{
-\item If \code{iidReps} is provided (without \code{block_size}), the length of the input vector is split evenly into \code{iidReps} blocks.
-\item If \code{block_size} is provided (without \code{iidReps}), the input vector length determines how many blocks there are.
-\item If both are provided, the input vector length must be \code{block_size * iidReps}, creating exactly \code{iidReps} blocks, each of length \code{block_size}.
+\item If \code{iidReps = "any"} and \code{block_size = NULL}: pass-through (no splitting).
+\item If \code{iidReps = "any"} and \code{block_size = d}: require \code{N \%\% d == 0}, set \code{iidReps = N/d}.
+\item If \code{iidReps = m} and \code{block_size = NULL}: require \code{N \%\% m == 0}, set \code{d = N/m}, \code{iidReps = m}.
+\item If \code{iidReps = m} and \code{block_size = d}: require \code{N == d * m}, set \code{iidReps = m}.
 }
 }
 \examples{
-# Suppose cgf is dimension=3, and we want 5 blocks => dimension=15
-#   aggregator <- iidReplicatesCGF(cgf, iidReps=5)
+## Base CGF: univariate Poisson with lambda(theta) = theta[1]
+pois <- PoissonModelCGF(lambda = function(th) th[1], iidReps = "any")
+theta <- c(2)  # rate
+
+## iidReps = "any", block_size = NULL
+pass <- iidReplicatesCGF(pois, iidReps = "any", block_size = NULL)
+identical(pass, pois)  # TRUE
+pass$K1(0, theta)  # same as pois$K1(0, theta)
+
+## block_size only
+tvec <- c(0.1, -0.2, 0.0, 0.3)    # N = 4
+agg_b <- iidReplicatesCGF(pois, block_size = 2)  # 2 blocks each of length 2
+k1_b  <- agg_b$K1(tvec, theta)
+k1_ref <- c(pois$K1(tvec[1:2], theta), pois$K1(tvec[3:4], theta))
+all.equal(k1_b, k1_ref) # TRUE
+
+## iidReps only: split tvec into exactly iidReps blocks (block size inferred)
+t6 <- c(0.1, -0.2, 0.0, 0.3, 0.2, -0.1)  # N = 6
+agg_m <- iidReplicatesCGF(pois, iidReps = 3)     # B = 3, d = N/B = 2
+K2_m  <- agg_m$K2(t6, theta)
+# Off-block covariances are zero (block diagonal)
+is_zero <- function(M) max(abs(M)) < 1e-12
+is_zero(K2_m[1:2, 3:4]) && is_zero(K2_m[1:2, 5:6]) && is_zero(K2_m[3:4, 5:6])
+
+Both iidReps and block_size: require N == d * B
+agg_fix <- iidReplicatesCGF(pois, iidReps = 3, block_size = 2)  # N must be 6 here
+all.equal(agg_fix$K1(t6, theta), agg_m$K1(t6, theta))  # same objects agg_fix/agg_m
+\dontrun{
+  # Mismatch example (errors at evaluation, not at construction):
+  bad <- iidReplicatesCGF(pois, iidReps = 3, block_size = 4)
+  bad$K1(t6, theta)  # length(t6) = 6 != 3 * 4  ==> error
+}
+
+
+## Here the inner Poisson builder requires EXACTLY 2 inner replicates.
+inner2 <- PoissonModelCGF(lambda = adaptor(indices = 1), iidReps = 2)
+t6 <- c(0.1, -0.2, 0.0, 0.3, 0.2, -0.1)  # N = 6
+# With block_size = 2, each outer block (length d = 2) satisfies the inner rule.
+outer <- iidReplicatesCGF(inner2, block_size = 2)  # B = 3 blocks; d = 2 per block
+outer$K1(t6, theta)  # valid; each block passes inner iidReps = 2 check
+
+## Non-identical setup
+## lambda(theta) returns a vector of length 2; inner builder set to "any".
+nonid <- PoissonModelCGF(lambda = function(th) c(th[1], 3*th[1]), iidReps = "any")
+t12 <- rep(c(0.05, -0.10, 0.00, 0.20), 3)  # N = 12
+# With iidReps = 3 (outer), we have 3 blocks each of size 4.
+# The inner builder sees d = 4 with 2 inner replicates per block.
+agg_nonid <- iidReplicatesCGF(nonid, iidReps = 3)
+agg_nonid$K1(t12, theta)
 
 }

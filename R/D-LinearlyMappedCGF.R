@@ -2,37 +2,23 @@
 # Object: linearlyMappedCGF
 
 
-# A linearly mapped CGF for Y = A X, where X is the random vector of the CGF 'cgf'.
-# 'matrix_A' can be either:
-# (1) A fixed numeric matrix (dense or sparse).
-# (2) A function param_vector -> numeric matrix (dense or sparse).
-#
-# If matrix_A is numeric but not sparse, it is converted to a sparse matrix.
-# If matrix_A is already a function, it should itself handle any needed sparse conversion.
-#
-# If `iidReps = 1`, the code behaves exactly like a single linearly mapped CGF.
-# If `iidReps > 1`, then we treat length(tvec) as `block_size * iidReps`,
-# chunk it into `iidReps` blocks, and for each block we do:
-#   block_t -> A^T block_t -> base_cgf's K, K1, etc.
-# Then we sum (K, K3operator, K4operator) or create block-diagonal (K2) or
-# piecewise concatenations (K1) as needed.
 
 
-# nBlocks = length(tvec) / block_size
-# If block_size == 1, each block contains a single element of tvec. The number of blocks
-# equals the length of tvec, => a single linearly mapped CGF with no chunking.
-# If block_size > 1, each block contains 'block_size' elements, and the total number of
-# blocks (nBlocks) is reduced accordingly. This creates nBlocks copies, each of dimension 'block_size'.
 
 
-##### Check this??
-# Note: While `block_size = 1` and `iidReps = 1` result in the same functional outcome (a single linearly mapped CGF),
-# they represent different configurations:
-# - `iidReps = 1` treats the entire input vector `tvec` as a single block, explicitly disabling replication.
-# - `block_size = 1` treats each element of `tvec` as an individual block, effectively reconstructing the original result
-#   through summation or aggregation.
-# In practice, both configurations result in no chunking or block-specific logic being applied.
-##### For now, `block_size = 1` will yield an error: we enforce at least 2 blocks for replication in iidReplicatesCGF()
+#' @keywords internal
+.as_RTMB_mat <- function(A_) {
+  # Already AD sparse
+  if (inherits(A_, "adsparse")) return(A_)
+  # Numeric sparse from Matrix
+  if (inherits(A_, "sparseMatrix")) return(A_)
+  # AD dense matrix: advector with a 'dim' attribute
+  if (inherits(A_, "advector") && !is.null(attr(A_, "dim"))) return(A_)
+  # Base numeric dense matrix
+  if (is.matrix(A_)) return(Matrix::Matrix(A_, sparse = TRUE))
+  stop("matrix_A(param) returned unsupported type: ", paste(class(A_), collapse = ", "),
+       ". Expected numeric matrix, 'sparseMatrix', AD dense (advector with dim), or 'adsparse'.")
+}
 
 
 
@@ -40,108 +26,89 @@
 
 
 
-
-
-
-
-
-
-
-
+#' @keywords internal
 .linearlyMappedCGF_internal <- function(cgf, matrix_A, ...){
-  
-  
-  #---------------------------------------------
-  # # Convert matrix_A to a function param->sparse
-  #---------------------------------------------
+
+
+
+
+
   is_matrix_A_function <- is.function(matrix_A)
   A_fun <- NULL
   is_already_sparse <- FALSE
-  
+
   if (!is_matrix_A_function) {
-    # Check for both dense and sparse matrices
+    # numeric (dense or sparse) at construction time --> standardize once
     if (!is.matrix(matrix_A) && !inherits(matrix_A, "sparseMatrix")) {
-      stop("'matrix_A' must be a numeric matrix, a sparse matrix, or a function returning a matrix.")
+      stop("'matrix_A' must be a numeric matrix, a sparseMatrix, or a function returning one of these or an AD equivalent.")
     }
-    
-    # Ensure sparse representation if not already sparse
     if (!inherits(matrix_A, "sparseMatrix")) matrix_A <- Matrix::Matrix(matrix_A, sparse = TRUE)
-    
     is_already_sparse <- TRUE
     A_fun <- function(param) matrix_A
   } else {
-    # Handle function case
-    A_fun <- function(param) {
-      A_ <- matrix_A(param)
-      # Ensure sparse representation
-      if (!inherits(A_, "sparseMatrix")) A_ <- Matrix::Matrix(A_, sparse = TRUE)
-      A_
-    }
+    ##### function case: DO NOT call Matrix::Matrix() on AD objects
+    A_fun <- function(param) .as_RTMB_mat(matrix_A(param))
   }
-  
-  
-  # Helper to retrieve a sparse matrix
+
+
+
   #### this is not needed, but I'll keep it for now; might be useful for exta checks (central spot for extra logic)
   get_sparse_A <- function(param) {
-    if (is_already_sparse) {
-      return(matrix_A)
-    } else {
-      A_fun(param)
-    }
+    if (is_already_sparse) matrix_A else A_fun(param)
   }
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
   #---------------------------------------------
   # # Single-block linearlyMapped CGF (iidReps = 1 OR {iidReps = NULL AND block_size = NULL})
   # # Overrides for K, K1, K2, etc., where 'A_current' = get_sparse_A(parameter_vector)
   #---------------------------------------------
-  
+
   # Key identity: K_Y(t) = K_X(A^T t) (with t assumed to be a column vector)
   Kfun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     if (nrow(A_current) != length(tvec)) stop("Dimension mismatch: nrow(matrix_A) != length(tvec).")
     cgf$K(t(A_current) %*% tvec, parameter_vector)
   }
-  
+
   # Key identity: K_Y' = A K_X'
   K1fun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     if (nrow(A_current) != length(tvec)) stop("Dimension mismatch: nrow(matrix_A) != length(tvec).")
     A_current %*% cgf$K1(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
-  
+
   # Key identity: K_Y'' = A K_X'' A^T
   K2fun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     k2_base <- cgf$K2(as.vector(t(A_current) %*% tvec), parameter_vector)
     A_current %*% k2_base %*% t(A_current)
   }
-  
+
   # Key identity: K_Y(t) - t^T K_Y'(t) = K_X(A^T t) - t^T A K_X'(A^T t) = K_X(A^T t) - (A^T t)^T K_X'(A^T t)
   tilting_exponent <- cgf$.get_private_method("tilting_exponent")
   tiltingfun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     tilting_exponent(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
-  
+
   # neg_ll: cgf's neg_ll will be used.
   # # neg_ll <- cgf$.get_private_method("neg_ll")
   # negllfun <- NULL
-  
+
   # Key identity: x^T K_Y'' y = x^T A K_X'' A^T y = (A^T x)^T K_X'' A^T y
   K2operatorfun <- function(tvec, parameter_vector, x, y) {
     A_current <- get_sparse_A(parameter_vector)
-    cgf$K2operator(as.vector(t(A_current) %*% tvec), 
+    cgf$K2operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
-                   as.vector(t(A_current) %*% x), 
-                   as.vector(t(A_current) %*% y), 
+                   as.vector(t(A_current) %*% x),
+                   as.vector(t(A_current) %*% y),
     )
   }
-  
+
   # Returns B K_Y'' B^T as a function of the supplied (non-parameter) argument B
   # Key identity: B K_Y'' B^T = B A K_X'' A^T B^T = (B A) K_X'' (B A)^T
   K2operatorAK2ATfun <- function(tvec, parameter_vector, B) {
@@ -150,20 +117,20 @@
     # cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A) %*% t(B_A)
     cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A)
   }
-  
+
   K3operatorfun <- function(tvec, parameter_vector, v1, v2, v3) {
     A_current <- get_sparse_A(parameter_vector)
-    cgf$K3operator(as.vector(t(A_current) %*% tvec), 
+    cgf$K3operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
-                   as.vector(t(A_current) %*% v1), 
-                   as.vector(t(A_current) %*% v2), 
+                   as.vector(t(A_current) %*% v1),
+                   as.vector(t(A_current) %*% v2),
                    as.vector(t(A_current) %*% v3)
     )
   }
-  
+
   K4operatorfun <- function(tvec, parameter_vector, v1, v2, v3, v4) {
     A_current <- get_sparse_A(parameter_vector)
-    cgf$K4operator(as.vector(t(A_current) %*% tvec), 
+    cgf$K4operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
                    as.vector(t(A_current) %*% v1),
                    as.vector(t(A_current) %*% v2),
@@ -171,8 +138,8 @@
                    as.vector(t(A_current) %*% v4)
     )
   }
-  
-  
+
+
   # All the operator forms involving matrices Q are equivalent to applying the same method for BaseCGF with Q_inner = A^T Q A
   K4operatorAABBfun <- function(tvec, parameter_vector, Q1, Q2) {
     A_current <- get_sparse_A(parameter_vector)
@@ -181,7 +148,7 @@
     # Q2_inner <- tA %*% Q2 %*% A_current
     cgf$K4operatorAABB(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner)
   }
-  
+
   K3K3operatorAABBCCfun <- function(tvec, parameter_vector, Q1, Q2, Q3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
@@ -190,7 +157,7 @@
     # Q3_inner <- tA %*% Q3 %*% A_current
     cgf$K3K3operatorAABBCC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
   }
-  
+
   K3K3operatorABCABCfun <- function(tvec, parameter_vector, Q1, Q2, Q3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
@@ -199,7 +166,7 @@
     # Q3_inner <- tA %*% Q3 %*% A_current
     cgf$K3K3operatorABCABC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
   }
-  
+
   #### We avoid the factored forms for now (avoiding the potentially expensive loops)
   func_Tfun <- function(tvec, parameter_vector) {
     Q <- solve(K2fun(tvec, parameter_vector))
@@ -208,8 +175,8 @@
     K4operatorAABB_val <- K4operatorAABBfun(tvec, parameter_vector, Q, Q)
     K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12
   }
-  
-  
+
+
   # For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
   # Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r
   K4operatorAABB_factored <- cgf$.get_private_method("K4operatorAABB_factored")
@@ -220,7 +187,7 @@
     B2_inner <- tA %*% B2
     K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2)
   }
-  
+
   K3K3operatorAABBCC_factored <- cgf$.get_private_method("K3K3operatorAABBCC_factored")
   K3K3operatorAABBCC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
@@ -230,7 +197,7 @@
     B3_inner <- tA %*% B3
     K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
   }
-  
+
   K3K3operatorABCABC_factored <- cgf$.get_private_method("K3K3operatorABCABC_factored")
   K3K3operatorABCABC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
@@ -240,24 +207,24 @@
     B3_inner <- tA %*% B3
     K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
   }
-  
+
   # inequality constraints for the transformed variable Y = A * X are the same as those
   # for the original variable X, evaluated at the transformed input A.transpose() * tvec.
   ineq_constraintfun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     cgf$ineq_constraint(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
-  
-  
+
+
   # ------------------------------------------------------------------
   # # Build the new mapped CGF using createCGF
   # ------------------------------------------------------------------
   createCGF(
-    K = Kfun, 
-    K1 = K1fun, 
-    K2 = K2fun, 
-    K3operator = K3operatorfun, 
-    K4operator = K4operatorfun, 
+    K = Kfun,
+    K1 = K1fun,
+    K2 = K2fun,
+    K3operator = K3operatorfun,
+    K4operator = K4operatorfun,
     ineq_constraint = ineq_constraintfun,
     analytic_tvec_hat_func = NULL,
     tilting_exponent = tiltingfun,
@@ -289,39 +256,146 @@
 
 
 #' @title CGF Object of a linearly mapped random variable \eqn{Y = A \, X}
-#' 
+#'
 #' @description
 #' Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
 #' \eqn{X} is described by the input CGF `cgf`. The argument `matrix_A` can be:
-#' 
+#'
 #' - **A numeric matrix** (dense or sparse).
-#' - **A function**: \eqn{\theta \mapsto A(\theta)} returning a numeric matrix.
+#' - **A function**: \eqn{\theta \mapsto A(\theta)}
+#' See details for the possible options of `matrix_A`.
 #'
 #' If `matrix_A` is a function, it is called for each invocation of the CGF
 #' methods to retrieve the current matrix (allowing parameter-dependent transformations).
-#' 
+#'
+#' @details
+#' Accepted types for \code{matrix_A}:
+#' \itemize{
+#'   \item \strong{numeric constant} matrix, dense or \code{Matrix} sparse. If dense, it is converted once
+#'         at construction to a sparse \code{Matrix}.
+#'   \item \strong{function} \eqn{\theta \mapsto A(\theta)} returning one of:
+#'         \itemize{
+#'           \item a numeric \code{matrix} (dense); it will be internally handled as sparse;
+#'           \item a \code{Matrix} sparse matrix (preferred for large problems);
+#'           \item an RTMB::AD-dense matrix (RTMB \code{advector} with a \code{dim} attribute);
+#'           \item an RTMB::AD-sparse matrix (RTMB \code{adsparse}), created e.g. via
+#'                 \code{A <- RTMB::AD(Matrix::sparseMatrix(...)); A@x[] <- ...}.
+#'         }
+#' }
+#'
+#'
+#'
 #'
 #' @param cgf An object of class `CGF` for the base distribution \eqn{X}.
-#' @param matrix_A Either a numeric matrix (dense or sparse), or a function:
-#'   \code{function(param) -> numeric matrix}.
-# #' @param block_size Either \code{NULL} or a positive integer specifying the block size for replication.
-# #'   Default is \code{NULL}.
-#' @param iidReps A positive integer (default \code{1}) specifying how many i.i.d. blocks to expect.
-#' @param ... Additional named arguments passed to `CGF` creation functions.
-#'   
+#' @param matrix_A Either a numeric matrix (dense or \code{Matrix} sparse), or a function
+#'   \code{function(\theta) -> A(\theta)} returning one of: numeric dense matrix,
+#'   \code{Matrix} sparse matrix, RTMB AD‑dense (an \code{advector} with a \code{dim})
+#'   or RTMB \code{adsparse}.
 #'
-#' @return A `CGF` object for \eqn{Y = A \, X}. 
+#' @param iidReps Either \code{"any"} (default) or a positive integer. See
+#'   \code{\link{iidReplicatesCGF}} for the replication semantics.
+#' @param ... Additional named arguments passed to `CGF` creation functions.
+#'
+#'
+#' @examples
+#' ## Example 1: constant numeric A
+#' \dontrun{
+#' lambda_fun <- function(theta) c(theta[1], theta[2])   # two Poisson rates
+#' pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")
+#'
+#' A_const <- rbind(c(1, 0),
+#'                  c(0.5, 1))
+#' mapped  <- linearlyMappedCGF(cgf = pois2, matrix_A = A_const, iidReps = "any")
+#'
+#' B <- 3L # 3 replicated 2-d blocks
+#' t_one <- c(0.10, -0.05)
+#' y_one <- c(3.0,   4.0)
+#' tvec  <- rep(t_one, B)
+#' y <- rep(y_one, B)
+#' theta <- c(2.0, 3.0)
+#'
+#' ## Identity check: K1_Y(t) = A K1_X(A^T t)
+#' t_block <- t_one
+#' A_now   <- A_const
+#' lhs_K1  <- mapped$K1(t_block, theta)
+#' poisk1 <- pois2$K1(as.vector(t(A_now) %*% t_block), theta)
+#' rhs_K1  <- A_now %*% poisk1
+#'
+#' ## SPA negative log-likelihood + gradient + Hessian
+#' res <- compute.spa.negll(
+#'   parameter_vector = theta,
+#'   observed.data    = y,
+#'   cgf              = mapped,
+#'   gradient         = TRUE,
+#'   hessian          = TRUE,
+#'   tvec_source      = "newton",
+#'   spa_method       = "standard"
+#' )
+#' }
+#' ## Example 2: A(theta) dense-vs-sparse (adsparse)
+#' \dontrun{
+#' library(Matrix)
+#'
+#' lambda_fun <- function(theta) c(theta[1], theta[2])   # base 2-d Poisson
+#' pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")
+#'
+#' ## Dense A(theta) depending on theta[1]
+#' A_theta_dense <- function(theta) {
+#'   matrix(c(1, 0,
+#'            0.5*theta[1], 1), 2, 2, byrow = TRUE)
+#' }
+#'
+#' ## AD-sparse A(theta) with fixed sparsity pattern, AD-filled values
+#' A_theta_sparse <- function(theta) {
+#'   A0 <- sparseMatrix(i = c(1L, 2L, 2L),
+#'                      j = c(1L, 1L, 2L),
+#'                      x = c(1, 0, 1),
+#'                      dims = c(2L, 2L))
+#'   A  <- RTMB::AD(A0)
+#'   A@x[] <- c(1, 0.5*theta[1], 1)
+#'   A
+#' }
+#'
+#' mapped_dense  <- linearlyMappedCGF(cgf = pois2, matrix_A = A_theta_dense,  iidReps = "any")
+#' mapped_sparse <- linearlyMappedCGF(cgf = pois2, matrix_A = A_theta_sparse, iidReps = "any")
+#'
+#' ## Data: B = 3 identical 2-vectors
+#' B     <- 3L
+#' y_one <- c(3.0, 4.0)
+#' y     <- rep(y_one, B)
+#' theta <- c(2.0, 3.0) # only theta[1] affects A(theta)
+#'
+#' nll_dense <- compute.spa.negll(theta, y, mapped_dense,
+#'                                gradient=TRUE, hessian=TRUE,
+#'                                tvec_source="newton", spa_method="standard")
+#' nll_sparse <- compute.spa.negll(theta, y, mapped_sparse,
+#'                                 gradient=TRUE, hessian=TRUE,
+#'                                 tvec_source="newton", spa_method="standard")
+#' }
+#'
+#' @return A `CGF` object for \eqn{Y = A \, X}.
 #' @export
-linearlyMappedCGF <- function(cgf, matrix_A, iidReps = 1, ...) {
+linearlyMappedCGF <- function(cgf, matrix_A, iidReps = "any", ...) {
   if (!inherits(cgf, "CGF")) stop("'cgf' must be an object inheriting from class 'CGF'.")
-  mapped_cgf <- .linearlyMappedCGF_internal(cgf, matrix_A, ...)
- 
-  #---------------------------------------------
-  # # If iidReps == 1 => done. Otherwise wrap
-  # # with iidReplicatesCGF().
-  #---------------------------------------------
-  if (iidReps !=1) return(iidReplicatesCGF(cgf = mapped_cgf, iidReps = iidReps))
-  mapped_cgf
+  .check_iidReps(iidReps)
+
+  mapped <- .linearlyMappedCGF_internal(cgf, matrix_A, ...)
+
+
+  block_size <- if (is.function(matrix_A)) {
+    bs_fun <- function(param) {
+      A_ <- matrix_A(param)
+      as.integer(nrow(A_))
+    }
+    # only for printing, never evaluated
+    attr(bs_fun, "label") <- "nrow(A(theta))" # cosmetic: used only for informative printing
+    bs_fun
+  } else {
+    as.integer(nrow(matrix_A))
+  }
+
+
+  iidReplicatesCGF(cgf = mapped, iidReps = iidReps, block_size = block_size)
 }
 
 

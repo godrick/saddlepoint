@@ -17,3 +17,7 @@ matinv_double <- function(x) {
     .Call(`_saddlepoint_matinv_double`, x)
 }
 
+getValues1 <- function(x) {
+    .Call(`_saddlepoint_getValues1`, x)
+}
+

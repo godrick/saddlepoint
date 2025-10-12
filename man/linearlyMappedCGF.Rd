@@ -4,15 +4,18 @@
 \alias{linearlyMappedCGF}
 \title{CGF Object of a linearly mapped random variable \eqn{Y = A \, X}}
 \usage{
-linearlyMappedCGF(cgf, matrix_A, iidReps = 1, ...)
+linearlyMappedCGF(cgf, matrix_A, iidReps = "any", ...)
 }
 \arguments{
 \item{cgf}{An object of class \code{CGF} for the base distribution \eqn{X}.}
 
-\item{matrix_A}{Either a numeric matrix (dense or sparse), or a function:
-\code{function(param) -> numeric matrix}.}
+\item{matrix_A}{Either a numeric matrix (dense or \code{Matrix} sparse), or a function
+\code{function(\theta) -> A(\theta)} returning one of: numeric dense matrix,
+\code{Matrix} sparse matrix, RTMB AD‑dense (an \code{advector} with a \code{dim})
+or RTMB \code{adsparse}.}
 
-\item{iidReps}{A positive integer (default \code{1}) specifying how many i.i.d. blocks to expect.}
+\item{iidReps}{Either \code{"any"} (default) or a positive integer. See
+\code{\link{iidReplicatesCGF}} for the replication semantics.}
 
 \item{...}{Additional named arguments passed to \code{CGF} creation functions.}
 }
@@ -24,9 +27,102 @@ Creates a CGF object for the random vector \eqn{Y = A(\theta) \, X}, where
 \eqn{X} is described by the input CGF \code{cgf}. The argument \code{matrix_A} can be:
 \itemize{
 \item \strong{A numeric matrix} (dense or sparse).
-\item \strong{A function}: \eqn{\theta \mapsto A(\theta)} returning a numeric matrix.
+\item \strong{A function}: \eqn{\theta \mapsto A(\theta)}
+See details for the possible options of \code{matrix_A}.
 }
 
 If \code{matrix_A} is a function, it is called for each invocation of the CGF
 methods to retrieve the current matrix (allowing parameter-dependent transformations).
+}
+\details{
+Accepted types for \code{matrix_A}:
+\itemize{
+\item \strong{numeric constant} matrix, dense or \code{Matrix} sparse. If dense, it is converted once
+at construction to a sparse \code{Matrix}.
+\item \strong{function} \eqn{\theta \mapsto A(\theta)} returning one of:
+\itemize{
+\item a numeric \code{matrix} (dense); it will be internally handled as sparse;
+\item a \code{Matrix} sparse matrix (preferred for large problems);
+\item an RTMB::AD-dense matrix (RTMB \code{advector} with a \code{dim} attribute);
+\item an RTMB::AD-sparse matrix (RTMB \code{adsparse}), created e.g. via
+\code{A <- RTMB::AD(Matrix::sparseMatrix(...)); A@x[] <- ...}.
+}
+}
+}
+\examples{
+## Example 1: constant numeric A
+\dontrun{
+lambda_fun <- function(theta) c(theta[1], theta[2])   # two Poisson rates
+pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")
+
+A_const <- rbind(c(1, 0),
+                 c(0.5, 1))
+mapped  <- linearlyMappedCGF(cgf = pois2, matrix_A = A_const, iidReps = "any")
+
+B <- 3L # 3 replicated 2-d blocks
+t_one <- c(0.10, -0.05)
+y_one <- c(3.0,   4.0)
+tvec  <- rep(t_one, B)
+y <- rep(y_one, B)
+theta <- c(2.0, 3.0)
+
+## Identity check: K1_Y(t) = A K1_X(A^T t)
+t_block <- t_one
+A_now   <- A_const
+lhs_K1  <- mapped$K1(t_block, theta)
+poisk1 <- pois2$K1(as.vector(t(A_now) \%*\% t_block), theta)
+rhs_K1  <- A_now \%*\% poisk1
+
+## SPA negative log-likelihood + gradient + Hessian
+res <- compute.spa.negll(
+  parameter_vector = theta,
+  observed.data    = y,
+  cgf              = mapped,
+  gradient         = TRUE,
+  hessian          = TRUE,
+  tvec_source      = "newton",
+  spa_method       = "standard"
+)
+}
+## Example 2: A(theta) dense-vs-sparse (adsparse)
+\dontrun{
+library(Matrix)
+
+lambda_fun <- function(theta) c(theta[1], theta[2])   # base 2-d Poisson
+pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")
+
+## Dense A(theta) depending on theta[1]
+A_theta_dense <- function(theta) {
+  matrix(c(1, 0,
+           0.5*theta[1], 1), 2, 2, byrow = TRUE)
+}
+
+## AD-sparse A(theta) with fixed sparsity pattern, AD-filled values
+A_theta_sparse <- function(theta) {
+  A0 <- sparseMatrix(i = c(1L, 2L, 2L),
+                     j = c(1L, 1L, 2L),
+                     x = c(1, 0, 1),
+                     dims = c(2L, 2L))
+  A  <- RTMB::AD(A0)
+  A@x[] <- c(1, 0.5*theta[1], 1)
+  A
+}
+
+mapped_dense  <- linearlyMappedCGF(cgf = pois2, matrix_A = A_theta_dense,  iidReps = "any")
+mapped_sparse <- linearlyMappedCGF(cgf = pois2, matrix_A = A_theta_sparse, iidReps = "any")
+
+## Data: B = 3 identical 2-vectors
+B     <- 3L
+y_one <- c(3.0, 4.0)
+y     <- rep(y_one, B)
+theta <- c(2.0, 3.0) # only theta[1] affects A(theta)
+
+nll_dense <- compute.spa.negll(theta, y, mapped_dense,
+                               gradient=TRUE, hessian=TRUE,
+                               tvec_source="newton", spa_method="standard")
+nll_sparse <- compute.spa.negll(theta, y, mapped_sparse,
+                                gradient=TRUE, hessian=TRUE,
+                                tvec_source="newton", spa_method="standard")
+}
+
 }

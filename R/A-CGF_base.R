@@ -11,7 +11,7 @@
 #       - K4operator(tvec, parameter_vector, v1, v2, v3, v4)
 #  3) The class also supports optional methods (tilting_exponent, neg_ll, func_T, etc.). Users
 #     can supply them or rely on defaults.
-#  4) Some methods are private (e.g., neg_ll, func_T, and operator "factored" forms). We do not want 
+#  4) Some methods are private (e.g., neg_ll, func_T, and operator "factored" forms). We do not want
 #     them directly accessible via $ from an instance. They remain hidden in the private environment.
 #  5) Public methods include a few optional operators (like K2operator) and the `.get_private_method`
 #     for controlled access to certain private methods.
@@ -128,24 +128,24 @@ my_logdet <- ADjoint(
 #' @noRd
 CGF <- R6::R6Class(
   classname = "CGF",
-  
+
   # ----------------------------------------------------------
   # Private fields / methods
   # ----------------------------------------------------------
   private = list(
-    
+
     # --- CORE user-supplied method pointers ---
     K_func = NULL,
     K1_func = NULL,
     K2_func = NULL,
     K3operator_func = NULL,
     K4operator_func = NULL,
-    
+
     # --- OPTIONAL user-supplied method pointers ---
     ineq_constraint_func = NULL,
     analytic_tvec_hat_func = NULL,
-    
-    
+
+
     # "Hidden" or private-labeled methods:
     #  These are the default or user-supplied tilting_exponent, neg_ll, func_T, etc.
     tilting_exponent = NULL,
@@ -154,7 +154,7 @@ CGF <- R6::R6Class(
     K4operatorAABB_factored = NULL,
     K3K3operatorAABBCC_factored = NULL,
     K3K3operatorABCABC_factored = NULL,
-    
+
 
     # Additional optional operator pointers
     K4operatorAABB_func = NULL,
@@ -163,15 +163,15 @@ CGF <- R6::R6Class(
     K2operator_func = NULL,
     K2operatorAK2AT_func = NULL
   ),
-  
+
   # ----------------------------------------------------------
   # Public members (accessible via $ on CGF object)
   # ----------------------------------------------------------
   public = list(
-    
+
     # Keep a call_history for debugging/tracking
     call_history = NULL,
-    
+
     # Pre-declare optional public methods here so we can safely overwrite them in `initialize`.
     K2operator = NULL,
     K2operatorAK2AT = NULL,
@@ -181,7 +181,7 @@ CGF <- R6::R6Class(
     ineq_constraint = NULL,
     has_analytic_tvec_hat = NULL,
     analytic_tvec_hat = NULL,
-    
+
     # -----------------------------------------------------------------------
     # CONSTRUCTOR
     # -----------------------------------------------------------------------
@@ -209,8 +209,8 @@ CGF <- R6::R6Class(
       private$K2_func <- K2_func
       private$K3operator_func <- K3operator_func
       private$K4operator_func <- K4operator_func
-      
-      
+
+
       # --- Store optional user-supplied methods ---
       private$ineq_constraint_func <- ineq_constraint_func
       private$analytic_tvec_hat_func <- analytic_tvec_hat_func
@@ -219,9 +219,9 @@ CGF <- R6::R6Class(
       private$K4operatorAABB_func <- K4operatorAABB_func
       private$K3K3operatorAABBCC_func <- K3K3operatorAABBCC_func
       private$K3K3operatorABCABC_func <- K3K3operatorABCABC_func
-      
-      
-      
+
+
+
       # --- Assign or default for "factored" private methods ---
       if (!is.null(K4operatorAABB_factored_func)) {
         ##### We may use check_fun_sig here to ensure the user's function has the correct number of arguments
@@ -245,7 +245,7 @@ CGF <- R6::R6Class(
           res
         }
       }
-      
+
       if (!is.null(K3K3operatorAABBCC_factored_func)) {
         private$K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) K3K3operatorAABBCC_factored_func(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
       } else {
@@ -268,7 +268,7 @@ CGF <- R6::R6Class(
           res
         }
       }
-      
+
       if (!is.null(K3K3operatorABCABC_factored_func)) {
         private$K3K3operatorABCABC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) K3K3operatorABCABC_factored_func(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
       } else {
@@ -289,7 +289,7 @@ CGF <- R6::R6Class(
           res
         }
       }
-      
+
       # --- Assign or default for private tilting_exponent, neg_ll, and func_T ---
       if (!is.null(tilting_exponent_func)) {
         private$tilting_exponent <- function(tvec, parameter_vector) tilting_exponent_func(tvec, parameter_vector)
@@ -298,15 +298,15 @@ CGF <- R6::R6Class(
           self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
         }
       }
-      
+
       if (!is.null(neg_ll_func)) {
         private$neg_ll <- function(tvec, parameter_vector) neg_ll_func(tvec, parameter_vector)
       } else {
         private$neg_ll <- function(tvec, parameter_vector) {
           te <- private$tilting_exponent(tvec, parameter_vector)
           K2_val <- self$K2(tvec, parameter_vector)
-          # val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
-          val_logdet <- my_logdet(as.matrix(K2_val))
+          val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
+          # val_logdet <- my_logdet(as.matrix(K2_val))
           0.5 * val_logdet + 0.5 * length(tvec)*log(2*pi) - te
         }
       }
@@ -321,7 +321,7 @@ CGF <- R6::R6Class(
           diag_K2_inv <- diag(chol_K2_inv)
           d <- diag_K2_inv^2
           A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
-          
+
           K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
           K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
           K3K3_ABC  <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
@@ -329,7 +329,7 @@ CGF <- R6::R6Class(
         }
       }
 
-      
+
       # --- Record operation name in the call history ---
       if (!is.character(op_name)) stop("'operation' must be of type character")
       self$call_history <- if (!is.null(self$call_history)) {
@@ -337,13 +337,13 @@ CGF <- R6::R6Class(
       } else {
         op_name
       }
-      
-      
+
+
       # ---------------------------------------------------------------------
       # Overwrite the public optional operators if the user supplied custom versions
       # Otherwise, assign defaults
       #---------------------------------------------------------------------
-      
+
       # K2operator
       if (!is.null(K2operator_func)) {
         self$K2operator <- function(tvec, parameter_vector, x, y) {
@@ -355,7 +355,7 @@ CGF <- R6::R6Class(
           as.vector(t(x) %*% (K2_val %*% y))
         }
       }
-      
+
       # K2operatorAK2AT
       if (!is.null(K2operatorAK2AT_func)) {
         self$K2operatorAK2AT <- function(tvec, parameter_vector, A) {
@@ -367,7 +367,7 @@ CGF <- R6::R6Class(
           A %*% K2_val %*% t(A)
         }
       }
-      
+
       # K4operatorAABB
       if (!is.null(K4operatorAABB_func)) {
         self$K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
@@ -379,10 +379,10 @@ CGF <- R6::R6Class(
           diag_Q1 <- diag(chol_Q1)
           d1 <- diag_Q1^2
           A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-          private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1) 
+          private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1)
         }
       }
-      
+
       # K3K3operatorAABBCC
       if (!is.null(K3K3operatorAABBCC_func)) {
         self$K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
@@ -397,7 +397,7 @@ CGF <- R6::R6Class(
           private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
         }
       }
-      
+
       # K3K3operatorABCABC
       if (!is.null(K3K3operatorABCABC_func)) {
         self$K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
@@ -412,7 +412,7 @@ CGF <- R6::R6Class(
           private$K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
         }
       }
-      
+
       # ineq_constraint
       if (!is.null(ineq_constraint_func)) {
         self$ineq_constraint <- function(tvec, parameter_vector) {
@@ -423,7 +423,7 @@ CGF <- R6::R6Class(
           numeric(0)
         }
       }
-      
+
       # has_analytic_tvec_hat / analytic_tvec_hat
       self$has_analytic_tvec_hat <- function() {
         !is.null(private$analytic_tvec_hat_func)
@@ -436,39 +436,39 @@ CGF <- R6::R6Class(
       } else {
         self$analytic_tvec_hat <- NULL
       }
-        
+
     },
-    
-    
-    
-    
+
+
+
+
     # -----------------------------------------------------------------------
-    # REQUIRED PUBLIC METHODS 
+    # REQUIRED PUBLIC METHODS
     # -----------------------------------------------------------------------
     K = function(tvec, parameter_vector) {
       private$K_func(tvec, parameter_vector)
     },
-    
+
     K1 = function(tvec, parameter_vector) {
       private$K1_func(tvec, parameter_vector)
     },
-    
+
     K2 = function(tvec, parameter_vector) {
       private$K2_func(tvec, parameter_vector)
     },
-    
+
     K3operator = function(tvec, parameter_vector, v1, v2, v3) {
       private$K3operator_func(tvec, parameter_vector, v1, v2, v3)
     },
-    
+
     K4operator = function(tvec, parameter_vector, v1, v2, v3, v4) {
       private$K4operator_func(tvec, parameter_vector, v1, v2, v3, v4)
     },
-    
-    
-    
-    
-    
+
+
+
+
+
     # -----------------------------------------------------------------------
     # Print method
     # -----------------------------------------------------------------------
@@ -481,7 +481,7 @@ CGF <- R6::R6Class(
       cat("Class hierarchy:", paste(class(self), collapse = " -> "), "\n")
       invisible(self)
     },
-    
+
     # -----------------------------------------------------------------------
     # CONTROLLED ACCESS to Private Methods
     # -----------------------------------------------------------------------
@@ -494,24 +494,24 @@ CGF <- R6::R6Class(
       }
       # a whitelist of allowed private methods
       allowed_methods <- c(
-        "neg_ll", 
-        "tilting_exponent", 
-        "K4operatorAABB_factored", 
-        "K3K3operatorAABBCC_factored", 
+        "neg_ll",
+        "tilting_exponent",
+        "K4operatorAABB_factored",
+        "K3K3operatorAABBCC_factored",
         "K3K3operatorABCABC_factored",
         "func_T"
       )
       if (!(method_name %in% allowed_methods)) {
         stop(paste0("Access to private method '", method_name, "' is not permitted."))
       }
-      
+
       method_ <- private[[method_name]]
       if (!is.function(method_)) {
         stop(paste0("Private member '", method_name, "' is not a function."))
       }
       method_
     },
-    
+
     # -----------------------------------------------------------------------
     # EXAMPLE Additional Method: compute.spa.negll
     # (calls a global compute.spa.negll function with the cgf object)
@@ -544,12 +544,12 @@ CGF <- R6::R6Class(
 # ------------------------------------------------------------------------
 #' Create a CGF object from user-defined functions
 #'
-#' 
+#'
 #' @description
-#' This creates an object of type CGF using user-supplied functions. You supply 
-#' the five essential methods (`K`, `K1`, `K2`, `K3operator`, `K4operator`) plus 
+#' This creates an object of type CGF using user-supplied functions. You supply
+#' the five essential methods (`K`, `K1`, `K2`, `K3operator`, `K4operator`) plus
 #' any optional overrides (e.g., `tilting_exponent` or `neg_ll`), and it returns
-#' a `CGF` instance. 
+#' a `CGF` instance.
 #'
 #'
 #' @param K A function `K(tvec, parameter_vector) -> numeric scalar`.
@@ -557,23 +557,23 @@ CGF <- R6::R6Class(
 #' @param K2 A function `K2(tvec, parameter_vector) -> numeric matrix`.
 #' @param K3operator A function implementing the third-order operator.
 #' @param K4operator A function implementing the fourth-order operator.
-#' 
+#'
 #' @param ineq_constraint Optional function for inequality constraints.
-#' 
+#'
 #' @param analytic_tvec_hat_func Optional function for an analytic solution
 #'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(x, param)`.
 #' @param op_name A descriptive label for the CGF object/operation. Default is "UnnamedOperation".
-#' 
+#'
 #' @param tilting_exponent (optional) Overriding function for the tilting exponent.
 #' @param neg_ll (optional) Overriding function for the negative log-likelihood.
 #' @param func_T (optional) Overriding function for the first-order correction term.
 #' @param K2operator,K2operatorAK2AT,K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC (optional) Overriding operator methods.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored (optional) Overriding factored-operator methods.
-#' @param ... Additional named methods or overrides.           
+#' @param ... Additional named methods or overrides.
 #'
 #' @return An object of class `CGF`.
 #' @export
-createCGF <- function(K, K1, K2, K3operator, K4operator, 
+createCGF <- function(K, K1, K2, K3operator, K4operator,
                       ineq_constraint = NULL,
                       analytic_tvec_hat_func = NULL,
                       op_name = "UnnamedOperation",
@@ -604,13 +604,13 @@ createCGF <- function(K, K1, K2, K3operator, K4operator,
     K2operator_func               = K2operator,
     K2operatorAK2AT_func          = K2operatorAK2AT
   )
-  
+
   # Any additional named overrides passed via ...
   additional_methods <- list(...)
-  
+
   # Merge user-supplied with additional; latter has precedence
   all_optional_methods <- modifyList(user_optional_methods, additional_methods)
-  
+
   # Construct and return the CGF object
   do.call(CGF$new, c(
     list(

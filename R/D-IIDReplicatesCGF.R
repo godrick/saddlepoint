@@ -1,143 +1,58 @@
 # R/IIDReplicatesCGF.R
 # Objects: iidReplicatesCGF
-# Areas to review are marked with `####`
-##### For now we do not unify the two cases (iidReps and block_size)
-##### So any change in one case should be reflected in the other case as well
 
 
 
-###############################################################################
-# NOTE:
-#
-# In this code, we refer to functions like K(), K1(), K2(), etc. as "aggregators."
-# Each of these functions takes an input vector `tvec` and combines (sums or
-# concatenates) results across multiple blocks (i.i.d. or fixed size). In other
-# words, these functions "aggregate" the block-wise results from the underlying
-# base CGF into a final output. That's why we call them "aggregators."
-#
-# Based on the arguments 'iidReps' and 'block_size', we may have three scenarios:
-#
-# (A) A single aggregator function with minimal branching:
-#     - Store 'iidReps', 'block_size', etc. in closure variables.
-#     - Do a small if/else for each aggregator (K, K1, etc.) to detect scenario.
-#     - Pros: Little code duplication.
-#     - Cons: Some branching in every call, and the code can get a bit messy.
-#
-# (B) Completely separate aggregator definitions for each scenario:
-#     - One set of aggregator functions if (iidReps && block_size),
-#       one set if only iidReps, another if only block_size.
-#     - Pros: Zero branching inside aggregator calls.
-#     - Cons: Code duplication across scenarios (harder to maintain).
-#
-# (C) Helper functions (get_nBlocks, get_blockSize) that do scenario checks:
-#     - Each aggregator just calls these helpers, then loops over blocks.
-#     - Pros: Easier to maintain than (B); simpler than (A) because the scenario logic is centralized
-#       in the helpers.
-#     - Cons: Slight overhead of helper function calls. Not sure if this can be a performance issue.
-#
-# ==> For now, we chose Option C
-###############################################################################
-
-
-
-
-
-#------------------------------------------------------------
-# Helper functions 
-#------------------------------------------------------------
-# a helper for chunking
-chunkIndices <- function(i, block_size) {
-  seq.int((i - 1)*block_size + 1, i*block_size)
-}
-
-
-
-
-
-# ------------------------------------------------------------------
-# Internal function; the actual implementation
-#   iidReps and block_size will have been by the calling function.
-# ------------------------------------------------------------------
 .iidReplicatesCGF_internal <- function(cgf, iidReps, block_size) {
-  useBoth   <- (!is.null(iidReps) && !is.null(block_size))
-  onlyIID   <- (!is.null(iidReps) &&  is.null(block_size))
-  onlyBlock <- ( is.null(iidReps) && !is.null(block_size))
-  
-  # ------------------------------------------------------------------
-  # Helper functions that figure out nBlocks and blockSize on the fly
-  #   depending on whether iidReps, block_size, or both are supplied.
-  # ------------------------------------------------------------------
-  get_nBlocks <- function(n) { # n here is the length of tvec
-    if (onlyIID) {
-      if (n %% iidReps != 0) {
-        stop("Length of tvec must be divisible by 'iidReps'.")
-      }
-      return(iidReps) # number of blocks
-    } 
-    if (useBoth) {
-      # Must match exactly block_size * iidReps
-      if (n != block_size * iidReps) {
-        stop("When both 'iidReps' and 'block_size' are given, ",
-             "length(tvec) must be block_size * iidReps.")
-      }
-      return(iidReps)   
-    } else {
-      # onlyBlock
-      if (n %% block_size != 0) {
-        stop("Length of tvec must be divisible by 'block_size'.")
-      }
-      return(n / block_size)
-    }
+
+  # d = block_size, B = number of blocks, N = length of tvec
+  chunkIndices <- function(i, block_size) {
+    seq.int((i - 1)*block_size + 1, i*block_size)
   }
-  
-  get_blockSize <- function(n) {
-    if (onlyIID) {
-      if (n %% iidReps != 0) {
-        stop("Length of tvec must be divisible by 'iidReps'.")
-      }
-      # block size is n / iidReps
-      return(n / iidReps)
+
+  # format block_size for labels; never forces evaluation
+  .format_block_size_tag <- function(block_size) {
+    if (is.null(block_size)) return(NULL)
+    if (is.function(block_size)) {
+      lab <- attr(block_size, "label")
+      if (is.character(lab) && nzchar(lab)) return(lab)
+      return("d(theta)")   # default symbolic tag
     }
-    if (useBoth) {
-      # Must match exactly block_size * iidReps
-      if (n != block_size * iidReps) {
-        stop("When both 'iidReps' and 'block_size' are given, ",
-             "length(tvec) must be block_size * iidReps.")
-      }
-      return(block_size)
-    } else {
-      # onlyBlock
-      if (n %% block_size != 0) {
-        stop("Length of tvec must be divisible by 'block_size'.")
-      }
-      return(block_size)
-    }
+    block_size
   }
-  
-  
+
+
+
   # fetch some private methods from the base CGF
   tilting_exponent <- cgf$.get_private_method("tilting_exponent")
   neg_ll <- cgf$.get_private_method("neg_ll")
   func_T <- cgf$.get_private_method("func_T")
-  
+
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
   # ------------------------------------------------------------------
-  
+
+
   # K => sum over blocks
   Kfun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)  # how many blocks?
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      # s <- idxs[i,1]; e <- idxs[i,2]
       total <- total + cgf$K(tvec[idx], param)
     }
     total
   }
-  
-  
+
+
   # ------------------------------------------------------------------
   # #### NOTE:
   # The line `out_ <- numeric(n)` currently triggers an error during
@@ -152,133 +67,210 @@ chunkIndices <- function(i, block_size) {
   # ------------------------------------------------------------------
   # K1 => piecewise concatenation
   K1fun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
-    out_ <- numeric(n) * param[1]  # tie to 'param' to avoid tape error
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    N <- length(tvec)
+
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
+    out_ <- numeric(N) * param[1]
+    for (i in seq_len(B)) {
+      # s <- idxs[i,1]; e <- idxs[i,2]
+      # out[s:e] <- cgf$K1(tvec[s:e], param)
+      idx <- chunkIndices(i, d)
       out_[idx] <- cgf$K1(tvec[idx], param)
     }
     out_
   }
-  
+
+
+  # K1fun <- function(tvec, param) {
+  #   n <- length(tvec)
+  #   N <- get_nBlocks(n)
+  #   bS <- get_blockSize(n)
+  #   out_ <- numeric(n) * param[1]  # tie to 'param' to avoid tape error
+  #   for (i in seq_len(N)) {
+  #     idx <- chunkIndices(i, bS)
+  #     out_[idx] <- cgf$K1(tvec[idx], param)
+  #   }
+  #   out_
+  # }
+
+
+
   # K2 => block-diagonal
   K2fun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
-    big_mat <- Matrix::Matrix(0, nrow = n, ncol = n) * param[1] #### decide on sparse?
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
-      big_mat[idx, idx] <- cgf$K2(tvec[idx], param)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
+    accum <- matrix(0, nrow = N, ncol = N) * param[1]
+    for (i in seq_len(B)) {
+      # s <- idxs[i, 1]; e <- idxs[i, 2]
+      idx <- chunkIndices(i, d)
+      k2 <- cgf$K2(tvec[idx], param)
+      if (is.null(dim(k2))) k2 <- matrix(k2, nrow = d, ncol = d)  # d = 1 hardening
+      accum[idx, idx] <- as.matrix(k2)
+      # s <- idxs[i,1]; e <- idxs[i,2]
+      # accum[s:e, s:e] <- cgf$K2(tvec[s:e], param)
     }
-    big_mat
+    accum
   }
-  
+
+
+
+
   # tilting_exponent => sum
   tiltingfun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + tilting_exponent(tvec[idx], param)
     }
     total
   }
-  
+
+
   # neg_ll => sum
   negllfun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + neg_ll(tvec[idx], param)
     }
     total
   }
-  
-  
+
+
   # func_T => sum
   func_Tfun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + func_T(tvec[idx], param)
     }
     total
   }
-  
+
   # K2operator => sum
   K2operatorfun <- function(tvec, param, x, y) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + cgf$K2operator(tvec[idx], param, x[idx], y[idx])
     }
     total
   }
-  
-  
+
+
   # K2operatorAK2AT => block-diagonal
-  K2operatorAK2ATfun <- function(tvec, param, B) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
-    big_mat <- Matrix::Matrix(0, nrow = n, ncol = n) * param[1] #### decide on sparse?
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
-      subB <- B[idx, idx, drop = FALSE]
-      big_mat[idx, idx] <- cgf$K2operatorAK2AT(tvec[idx], param, subB)
+  K2operatorAK2ATfun <- function(tvec, param, Bmat) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
+    out <- matrix(0, nrow = N, ncol = N) * param[1]
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      subBmat <- Bmat[idx, idx, drop = FALSE]
+      out[idx, idx] <- as.matrix(cgf$K2operatorAK2AT(tvec[idx], param, subBmat))
     }
-    big_mat
+    out
   }
-  
+
   # K3operator => sum
   K3operatorfun <- function(tvec, param, v1, v2, v3) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + cgf$K3operator(tvec[idx], param, v1[idx], v2[idx], v3[idx])
     }
     total
   }
-  
+
   # K4operator => sum
   K4operatorfun <- function(tvec, param, v1, v2, v3, v4) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       total <- total + cgf$K4operator(tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx])
     }
     total
   }
 
-  
+
   # K4operatorAABB => sum
   K4operatorAABBfun <- function(tvec, param, Q1, Q2) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       # slice out sub-block of Q1, Q2
       ### (Verify?) Q1 is block-diagonal of size (n·iidReps) × (n·iidReps). The relevant sub-block is n×n
       Q1sub <- Q1[idx, idx, drop = FALSE]
@@ -287,16 +279,21 @@ chunkIndices <- function(i, block_size) {
     }
     total
   }
-  
-  
+
+
   # K3K3operatorAABBCC => sum
   K3K3operatorAABBCCfun <- function(tvec, param, Q1, Q2, Q3) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       Q1sub <- Q1[idx, idx, drop = FALSE]
       # Q2sub <- Q2[idx, idx, drop=FALSE]
       # Q3sub <- Q3[idx, idx, drop=FALSE]
@@ -304,15 +301,20 @@ chunkIndices <- function(i, block_size) {
     }
     total
   }
-  
+
   # K3K3operatorABCABC => sum
   K3K3operatorABCABCfun <- function(tvec, param, Q1, Q2, Q3) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
     total <- 0
-    for (i in seq_len(N)) {
-      idx <- chunkIndices(i, bS)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
       Q1sub <- Q1[idx, idx, drop = FALSE]
       # Q2sub <- Q2[idx, idx, drop=FALSE]
       # Q3sub <- Q3[idx, idx, drop=FALSE]
@@ -320,24 +322,30 @@ chunkIndices <- function(i, block_size) {
     }
     total
   }
-  
-  
+
+
   # ineq_constraint => concatenation
   ineq_constraintfun <- function(tvec, param) {
-    n <- length(tvec)
-    N <- get_nBlocks(n)
-    bS <- get_blockSize(n)
-    
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+    # d_cur <- .block_size_value(block_size, getval_param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
+
     # call once for length
-    idx_first <- chunkIndices(1, bS)
+    idx_first <- seq.int(1, d)
     first_val <- cgf$ineq_constraint(tvec[idx_first], param)
     L <- length(first_val)
-    
-    out_ <- numeric(L * N) * param[1] #### Modified to depend on `param`
+    if (L == 0L) return(numeric(0) * param[1])
+
+    out_ <- numeric(L * B) * param[1] #### Modified to depend on param
     out_[1:L] <- first_val
-    if (N > 1) {
-      for (i in 2:N) {
-        idx <- chunkIndices(i, bS)
+    if (B > 1) {
+      for (i in 2:B) {
+        idx <- chunkIndices(i, d)
         val <- cgf$ineq_constraint(tvec[idx], param)
         start_ <- (i - 1)*L + 1
         out_[start_:(i*L)] <- val
@@ -345,7 +353,7 @@ chunkIndices <- function(i, block_size) {
     }
     out_
   }
-  
+
   # for the analytic_tvec_hat_func:
   # We'll do a chunk approach if cgf$analytic_tvec_hat() is non-NULL:
   # e.g. chunk x => pass each chunk to cgf$analytic_tvec_hat => combine?
@@ -353,40 +361,46 @@ chunkIndices <- function(i, block_size) {
   analytic_tvec_hat_func <- NULL # If the base CGF had no valid function, just return NULL
   if (cgf$has_analytic_tvec_hat()) {
     analytic_tvec_hat_func <- function(x, param) {
-      n <- length(x)
-      N <- get_nBlocks(n)
-      bS <- get_blockSize(n)
-      out_ <- numeric(n) * param[1]
-      for (i in seq_len(N)) {
-        idx <- chunkIndices(i, bS)
+      N <- length(x)
+      d_cur <- .block_size_value(block_size, param)
+      # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
+      # d_cur <- .block_size_value(block_size, getval_param)
+      lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+      d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+
+      out_ <- numeric(N) * param[1]
+      for (i in seq_len(B)) {
+        idx <- chunkIndices(i, d)
         out_[idx] <- cgf$analytic_tvec_hat(x[idx], param)
       }
       out_
     }
   }
-  
-  
-  # ------------------------------------------------------------------
-  # Construct a character label for op_name
-  # ------------------------------------------------------------------
-  if (useBoth) {
-    op_label <- sprintf("iidReplicatesCGF(iidReps=%d,bS=%d)", iidReps, block_size)
-  } else if (onlyIID) {
-    op_label <- sprintf("iidReplicatesCGF(iidReps=%d)", iidReps)
-  } else { # onlyBlock
-    op_label <- sprintf("iidReplicatesCGF(bS=%d)", block_size)
+
+  bs_tag <- .format_block_size_tag(block_size)
+
+  pieces <- character(0)
+  if (!identical(iidReps, "any")) pieces <- c(pieces, sprintf("iidReps=%d", as.integer(iidReps)))
+  if (!is.null(bs_tag))          pieces <- c(pieces, sprintf("bS=%s", bs_tag))
+
+  op_label <- if (length(pieces)) {
+    sprintf("iidReplicatesCGF(%s)", paste(pieces, collapse = ","))
+  } else {
+    "iidReplicatesCGF"
   }
-  
-  
+
+
+
   # ------------------------------------------------------------------
   # Build the new CGF object
   # ------------------------------------------------------------------
   createCGF(
-    K = Kfun, 
-    K1 = K1fun, 
-    K2 = K2fun, 
-    K3operator = K3operatorfun, 
-    K4operator = K4operatorfun, 
+    K = Kfun,
+    K1 = K1fun,
+    K2 = K2fun,
+    K3operator = K3operatorfun,
+    K4operator = K4operatorfun,
     ineq_constraint = ineq_constraintfun,
     analytic_tvec_hat_func = analytic_tvec_hat_func,
     tilting_exponent = tiltingfun,
@@ -427,47 +441,93 @@ chunkIndices <- function(i, block_size) {
 #'
 #' @description
 #' Extends a given `CGF` object to handle multiple i.i.d. blocks. You can specify:
-#' 
+#'
 #' - \code{iidReps} only,
 #' - \code{block_size} only,
 #' - or both \code{iidReps} and \code{block_size}.
 #'
-#' @param cgf A `CGF` object. 
-#' @param iidReps Either \code{NULL} or a positive integer specifying the number of i.i.d. blocks.
-#' @param block_size Either \code{NULL} or a positive integer specifying the size of each block.
+#' @param cgf A `CGF` object.
+#' @param iidReps Either `"any"` (default) or a positive integer.
+#' @param block_size Either NULL, a positive integer, or a function
+#'   \code{function(param) -> positive integer}. When a function is provided,
+#'   the block size is determined dynamically from the current parameter vector.
 #'
-#' @return A new CGF object that operates on length-\eqn{m d} input vectors, chunked
-#'   into \eqn{m} blocks, each block of length \eqn{d}.
-#' 
+#' @return A `CGF` object
+#'
 #' @details
+#' Let \eqn{N = \mathrm{length(tvec)}}, \code{d = block_size}, and \code{iidReps} the number of blocks.
 #' \itemize{
-#'   \item If \code{iidReps} is provided (without \code{block_size}), the length of the input vector is split evenly into \code{iidReps} blocks.
-#'   \item If \code{block_size} is provided (without \code{iidReps}), the input vector length determines how many blocks there are.
-#'   \item If both are provided, the input vector length must be \code{block_size * iidReps}, creating exactly \code{iidReps} blocks, each of length \code{block_size}.
+#'   \item If `iidReps = "any"` and `block_size = NULL`: pass-through (no splitting).
+#'   \item If `iidReps = "any"` and `block_size = d`: require `N %% d == 0`, set `iidReps = N/d`.
+#'   \item If `iidReps = m` and `block_size = NULL`: require `N %% m == 0`, set `d = N/m`, `iidReps = m`.
+#'   \item If `iidReps = m` and `block_size = d`: require `N == d * m`, set `iidReps = m`.
 #' }
 #'
 #' @examples
-#' # Suppose cgf is dimension=3, and we want 5 blocks => dimension=15
-#' #   aggregator <- iidReplicatesCGF(cgf, iidReps=5)
+#' ## Base CGF: univariate Poisson with lambda(theta) = theta[1]
+#' pois <- PoissonModelCGF(lambda = function(th) th[1], iidReps = "any")
+#' theta <- c(2)  # rate
+#'
+#' ## iidReps = "any", block_size = NULL
+#' pass <- iidReplicatesCGF(pois, iidReps = "any", block_size = NULL)
+#' identical(pass, pois)  # TRUE
+#' pass$K1(0, theta)  # same as pois$K1(0, theta)
+#'
+#' ## block_size only
+#' tvec <- c(0.1, -0.2, 0.0, 0.3)    # N = 4
+#' agg_b <- iidReplicatesCGF(pois, block_size = 2)  # 2 blocks each of length 2
+#' k1_b  <- agg_b$K1(tvec, theta)
+#' k1_ref <- c(pois$K1(tvec[1:2], theta), pois$K1(tvec[3:4], theta))
+#' all.equal(k1_b, k1_ref) # TRUE
+#'
+#' ## iidReps only: split tvec into exactly iidReps blocks (block size inferred)
+#' t6 <- c(0.1, -0.2, 0.0, 0.3, 0.2, -0.1)  # N = 6
+#' agg_m <- iidReplicatesCGF(pois, iidReps = 3)     # B = 3, d = N/B = 2
+#' K2_m  <- agg_m$K2(t6, theta)
+#' # Off-block covariances are zero (block diagonal)
+#' is_zero <- function(M) max(abs(M)) < 1e-12
+#' is_zero(K2_m[1:2, 3:4]) && is_zero(K2_m[1:2, 5:6]) && is_zero(K2_m[3:4, 5:6])
+#'
+#' Both iidReps and block_size: require N == d * B
+#' agg_fix <- iidReplicatesCGF(pois, iidReps = 3, block_size = 2)  # N must be 6 here
+#' all.equal(agg_fix$K1(t6, theta), agg_m$K1(t6, theta))  # same objects agg_fix/agg_m
+#' \dontrun{
+#'   # Mismatch example (errors at evaluation, not at construction):
+#'   bad <- iidReplicatesCGF(pois, iidReps = 3, block_size = 4)
+#'   bad$K1(t6, theta)  # length(t6) = 6 != 3 * 4  ==> error
+#' }
+#'
+#'
+#' ## Here the inner Poisson builder requires EXACTLY 2 inner replicates.
+#' inner2 <- PoissonModelCGF(lambda = adaptor(indices = 1), iidReps = 2)
+#' t6 <- c(0.1, -0.2, 0.0, 0.3, 0.2, -0.1)  # N = 6
+#' # With block_size = 2, each outer block (length d = 2) satisfies the inner rule.
+#' outer <- iidReplicatesCGF(inner2, block_size = 2)  # B = 3 blocks; d = 2 per block
+#' outer$K1(t6, theta)  # valid; each block passes inner iidReps = 2 check
+#'
+#' ## Non-identical setup
+#' ## lambda(theta) returns a vector of length 2; inner builder set to "any".
+#' nonid <- PoissonModelCGF(lambda = function(th) c(th[1], 3*th[1]), iidReps = "any")
+#' t12 <- rep(c(0.05, -0.10, 0.00, 0.20), 3)  # N = 12
+#' # With iidReps = 3 (outer), we have 3 blocks each of size 4.
+#' # The inner builder sees d = 4 with 2 inner replicates per block.
+#' agg_nonid <- iidReplicatesCGF(nonid, iidReps = 3)
+#' agg_nonid$K1(t12, theta)
 #'
 #' @export
-iidReplicatesCGF <- function(cgf, iidReps = NULL, block_size = NULL) {
-  if (!inherits(cgf, "CGF")) stop("'cgf' must be a CGF object.")
-  if (is.null(iidReps) && is.null(block_size)) stop("At least one of 'iidReps' or 'block_size' must be non-NULL.")
-  if (!is.null(iidReps)) {
-    if (!is.numeric(iidReps) || length(iidReps) != 1 || iidReps < 1) {
-      stop("'iidReps' must be a positive integer.")
-    }
-  }
-  if (!is.null(block_size)) {
-    if (!is.numeric(block_size) || length(block_size) != 1 || block_size < 1) {
-      stop("'block_size' must be a positive integer.")
-    }
-  }
-  
-  
+iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
+  if (!inherits(cgf, "CGF")) stop("'cgf' must be an object of class 'CGF'.")
+
+  .check_iidReps(iidReps); .check_block_size(block_size)
+
+
+  # If there's no replication to enforce
+  if (identical(iidReps, "any") && is.null(block_size)) return(cgf)
+  if (is.numeric(iidReps) && iidReps == 1L) return(cgf)
+
+
   .iidReplicatesCGF_internal(
-    cgf        = cgf, 
+    cgf        = cgf,
     iidReps    = iidReps,
     block_size = block_size
   )
