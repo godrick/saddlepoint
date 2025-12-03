@@ -103,7 +103,7 @@ VectorizedFunctionsCGF <- R6::R6Class(
         K3K3operatorABCABC_func <- function(tvec, p, Q1, Q2, Q3) {
           k3_vals <- private$K3_vectorized_func(tvec, p)
           mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
-          sum(mat_k3_vals %*% (Q1 %*% Q2 %*% Q3) %*% mat_k3_vals)
+          sum(mat_k3_vals %*% (Q1 * Q2 * Q3) %*% mat_k3_vals)
         }
       }
       
