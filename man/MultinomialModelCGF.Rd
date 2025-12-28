@@ -41,7 +41,10 @@ If \eqn{prob_vec} sums to 1, it is treated as a probability vector; otherwise, i
 \strong{I.I.D. Replicates}:
 By setting \code{iidReps} to a positive integer \eqn{m}, you declare that the input vector \eqn{tvec} will be split
 into \eqn{m} blocks of equal size, each corresponding to one i.i.d. multinomial sample.
-If \code{iidReps} is \code{"any"}, no length restriction is enforced on \eqn{tvec}, allowing flexible usage.
+If \code{iidReps} is \code{"any"}, the number of blocks is inferred from the input.
+It requires \eqn{\mathrm{length}(tvec)} to be a multiple of
+\eqn{d = \mathrm{length}(prob\_vec(\theta))} (the category dimension),
+and then sets \eqn{m = \mathrm{length}(tvec)/d}.
 }
 \examples{
 # Suppose we want n = 10, and probabilities = c(0.2, 0.3, 0.5).

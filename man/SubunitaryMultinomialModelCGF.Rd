@@ -2,27 +2,29 @@
 % Please edit documentation in R/C-SubunitaryMultinomialCGF.R
 \name{SubunitaryMultinomialModelCGF}
 \alias{SubunitaryMultinomialModelCGF}
-\title{Subunitary Multinomial CGF}
+\title{Create a Parametric Subunitary Multinomial CGF Object}
 \usage{
-SubunitaryMultinomialModelCGF(n, prob_vec, ...)
+SubunitaryMultinomialModelCGF(n, prob_vec, iidReps = "any", ...)
 }
 \arguments{
-\item{n}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric}, returning the number of trials in the multinomial distribution.}
+\item{n}{A function (or adaptor) mapping theta to the multinomial total count N.}
 
-\item{prob_vec}{An \code{adaptor} or a function of the form \code{function(theta) -> numeric},
-returning the multinomial probabilities for the \eqn{d} active categories.
-The sum of these probabilities should be strictly less than one to account for
-the excluded category.}
+\item{prob_vec}{A function (or adaptor) mapping theta to the active-category
+probability vector pi (length d). These entries should be non-negative and
+sum(pi) should be <= 1.}
 
-\item{...}{Additional named arguments passed to \code{\link{createCGF}}, such as method overrides or operator definitions.}
+\item{iidReps}{Either "any" or a positive integer specifying how many i.i.d.
+blocks are expected.}
+
+\item{...}{Additional named arguments passed to CGF creating functions.}
 }
 \value{
-A \code{CGF} object.
+A CGF object.
 }
 \description{
-Constructs the CGF object for a multinomial distribution
-in which one of the categories is \emph{known} to have zero counts, leaving
-the remaining \eqn{d} categories with a total probability less than one.
+Creates a CGF object for the subunitary multinomial distribution with
+total count N = n(theta) and active-category probabilities pi = prob_vec(theta),
+where sum(pi) <= 1.
 }
 \details{
 Let \eqn{Y \sim \mathrm{Multinomial}(N,\pi_1,\dots,\pi_d,\pi_{d+1})} with
@@ -33,12 +35,13 @@ Let \eqn{Y \sim \mathrm{Multinomial}(N,\pi_1,\dots,\pi_d,\pi_{d+1})} with
 }
 
 \strong{The CGF:}
+
 From the perspective of restricting to \eqn{\{Y_{d+1}=0\}}, one effectively sets
 \eqn{t_{d+1}=-\infty} in the multinomial CGF. This yields the \emph{subunitary} CGF:
 \deqn{
-  K_{\mathrm{subunitary}}(t_1,\dots,t_d) 
+  K_{\mathrm{subunitary}}(t_1,\dots,t_d)
   = \log\bigl\{\Pr(Y_{d+1}=0)\bigr\}
-  \;+\; 
+  \;+\;
   K_{W}(t_1,\dots,t_d)\,,
 }
 where \eqn{\Pr(Y_{d+1}=0) = N \log\left(\!\sum_{i=1}^d \pi_i\right)} and
@@ -49,6 +52,28 @@ are effectively impossible based on observed data, so they can be merged into
 a single "impossible" category with zero count. The probabilities of the
 \eqn{d} active categories then sum to less than one.
 }
-\seealso{
-\code{\link{MultinomialModelCGF}}
+\examples{
+\dontrun{
+set.seed(1)
+d <- 3
+N <- 10
+pi_vec <- c(0.2, 0.3, 0.1)  # sum < 1
+theta <- c(N, pi_vec)
+
+# Build a theta-mapped CGF: theta -> (N, pi_1,...,pi_d)
+cgf <- SubunitaryMultinomialModelCGF(
+  n        = function(th) th[1],
+  prob_vec = function(th) th[2:(d + 1)],
+  iidReps  = 2
+)
+
+# With iidReps = 2, tvec must be length 2*d:
+t_block <- rnorm(d)
+tvec <- c(t_block, t_block)
+
+# Evaluate K and K1 at theta:
+cgf$K(tvec, theta)
+cgf$K1(tvec, theta)
+}
+
 }

@@ -216,6 +216,25 @@
   }
 
 
+
+  # ------------------------------------------------------------------
+  # Optional simulator: if X ~ cgf and Y = A X then Y_sim = A %*% X_sim
+  # ------------------------------------------------------------------
+  simulate_fun <- NULL
+  if (isTRUE(cgf$has_simulate())) {
+    simulate_fun <- function(iidReps, parameter_vector, drop = TRUE, ...) {
+      A_current <- get_sparse_A(parameter_vector)
+      X_sim <- cgf$rsim(iidReps = iidReps, parameter_vector = parameter_vector, drop = FALSE, ...)
+      if (nrow(X_sim) != ncol(A_current)) {
+        stop("linearlyMapped simulate: dimension mismatch. nrow(X_sim)=", nrow(X_sim),
+             " but ncol(A)=", ncol(A_current), ".")
+      }
+      Y_sim <- as.matrix(A_current %*% X_sim)
+      if (drop && nrow(Y_sim) == 1L) return(as.numeric(Y_sim))
+      Y_sim
+    }
+  }
+
   # ------------------------------------------------------------------
   # # Build the new mapped CGF using createCGF
   # ------------------------------------------------------------------
@@ -230,6 +249,7 @@
     tilting_exponent = tiltingfun,
     # neg_ll = negllfun,
     func_T = func_Tfun,
+    rsim = simulate_fun,
     K4operatorAABB = K4operatorAABBfun,
     K3K3operatorAABBCC = K3K3operatorAABBCCfun,
     K3K3operatorABCABC = K3K3operatorABCABCfun,
@@ -387,7 +407,7 @@ linearlyMappedCGF <- function(cgf, matrix_A, iidReps = "any", ...) {
       A_ <- matrix_A(param)
       as.integer(nrow(A_))
     }
-    # only for printing, never evaluated
+    # only for printing
     attr(bs_fun, "label") <- "nrow(A(theta))" # cosmetic: used only for informative printing
     bs_fun
   } else {

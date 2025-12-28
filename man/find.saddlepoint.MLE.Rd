@@ -10,14 +10,16 @@ find.saddlepoint.MLE(
   starting.theta,
   lb.theta = rep(-Inf, times = length(starting.theta)),
   ub.theta = rep(Inf, times = length(starting.theta)),
-  starting.tvec = rep(0, times = length(observed.data)),
-  lb.tvec = rep(-Inf, times = length(observed.data)),
-  ub.tvec = rep(Inf, times = length(observed.data)),
+  starting.tvec = rep(0, times = length(as.numeric(observed.data))),
+  lb.tvec = rep(-Inf, times = length(as.numeric(observed.data))),
+  ub.tvec = rep(Inf, times = length(as.numeric(observed.data))),
   std.error = FALSE,
   discrepancy = FALSE,
   user.ineq.constraint.function = NULL,
   opts.user = list(ftol_abs = 0, maxeval = 10000, xtol_rel = 1e-07, print_level = 0),
-  zeroth.order = FALSE
+  zeroth.order = FALSE,
+  method = c("constrained", "two_step"),
+  control.nlminb = NULL
 )
 }
 \arguments{
@@ -31,59 +33,90 @@ find.saddlepoint.MLE(
 
 \item{ub.theta}{A numeric vector of upper bounds for \code{theta}. Defaults to \code{Inf}.}
 
-\item{starting.tvec}{A numeric vector of starting values for the saddlepoint \eqn{t}. Defaults to \code{0}.}
+\item{starting.tvec}{A numeric vector of starting values for the saddlepoint \eqn{t}.
+Defaults to \code{rep(0, length(observed.data))}.}
 
-\item{lb.tvec}{A numeric vector, vector of lower bounds for saddlepoint parameters, defaults to -Inf for all parameters.}
+\item{lb.tvec}{Lower bounds for \eqn{t}. Defaults to \code{-Inf}.}
 
-\item{ub.tvec}{A numeric vector, vector of upper bounds for saddlepoint parameters, defaults to Inf for all parameters.}
+\item{ub.tvec}{Upper bounds for \eqn{t}. Defaults to \code{Inf}.}
 
-\item{std.error}{Logical. If \code{TRUE}, standard errors of the MLEs are computed. Defaults to \code{FALSE}.}
+\item{std.error}{Logical. If \code{TRUE}, compute standard errors of the MLEs. Defaults to \code{FALSE}.}
 
-\item{discrepancy}{Logical. If \code{TRUE}, compute a discrepancy measure that approximates
-how different the saddlepoint approximation-based estimates are from the unknown true MLEs. Defaults to \code{FALSE}.}
+\item{discrepancy}{Logical. If \code{TRUE}, compute the discrepancy approximation. Defaults to \code{FALSE}.}
 
-\item{user.ineq.constraint.function}{Optional user-defined inequality constraints. Defaults to \code{NULL}.}
+\item{user.ineq.constraint.function}{Optional user-defined inequality constraints on \eqn{\theta}.
+Must return a list with elements \code{constraints} and \code{jacobian}, with feasibility
+defined by \code{constraints <= 0}.}
 
-\item{opts.user}{A named list of options for the \code{\link{nloptr}} optimizer. This
-should be a subset of the following elements: ftol_abs (> 0),
-maxeval (a positive integer), xtol_rel (> 0), print_level (0, 1, 2, or 3).
-See the \code{\link{nloptr}} package documentation for more details about these options.
-By default, ftol_abs = 0, maxeval = 1e4, xtol_rel = 1.0e-7, print_level = 0.
-Note: The algorithm option is fixed to "NLOPT_LD_SLSQP" and cannot be changed by the user.}
+\item{opts.user}{A named list of options for the \pkg{nloptr} optimizer.
+By default: \code{ftol_abs = 0}, \code{maxeval = 1e4}, \code{xtol_rel = 1e-7}, \code{print_level = 0}.
+The algorithm is fixed to \code{"NLOPT_LD_SLSQP"}.}
 
-\item{zeroth.order}{A logical value indicating whether to use the zeroth-order saddlepoint likelihood. Defaults to FALSE, using the standard saddlepoint likelihood.}
+\item{zeroth.order}{Logical; if \code{TRUE} use the zeroth-order SPA objective. Defaults to \code{FALSE}.}
+
+\item{method}{Optimisation strategy: \code{"constrained"} (default; backward compatible)
+or \code{"two_step"}.}
+
+\item{control.nlminb}{Optional control list passed to \code{nlminb(..., control=...)} when
+\code{method="two_step"} and there are no user inequality constraints. If \code{NULL},
+defaults are \code{eval.max=200}, \code{iter.max=150}, \code{rel.tol=1e-10}.}
 }
 \value{
-A list containing:
+A list containing (at least):
 \itemize{
-\item \code{MLEs.tvec, MLEs.theta}: The estimated saddlepoint \eqn{\hat{t}} and parameter vector \eqn{\hat{\theta}}.
-\item \code{std.error}, \code{inverse.hessian}: If \code{std.error=TRUE}, these hold the standard errors and the inverse Hessian.
-\item \code{discrepancy}: If \code{discrepancy=TRUE}, this is the approximated discrepancy between the resulting saddlepoint approximation-based MLEs and the unknown true MLEs.
-\item \code{solution, status, message}: The raw output from \code{\link{nloptr}}.
+\item \code{MLEs.tvec, MLEs.theta}: the estimated saddlepoint \eqn{\hat{t}} and parameter vector \eqn{\hat{\theta}}.
+\item \code{std.error}, \code{inverse.hessian}: if \code{std.error=TRUE}.
+\item \code{discrepancy}: if \code{discrepancy=TRUE}.
+\item \code{solution, status, message}: raw optimiser output (structure depends on optimiser).
 }
 }
 \description{
-This function uses the \code{\link{nloptr}} package for optimization to find the maximum likelihood estimates (MLEs).
-It takes a CGF object along with various parameters related to the optimization procedure.
-An alternative zeroth-order method can be enabled by setting the \code{zeroth.order} parameter to \code{TRUE}.
+This function finds maximum likelihood estimates (MLEs) under a saddlepoint
+approximation, using constrained or two-step optimization.
+
+By default (\code{method="constrained"}) it performs the joint
+constrained optimisation over \eqn{(t,\theta)}:
+\deqn{ \hat t, \hat\theta = \arg\min_{(t,\theta)} \; \mathrm{NLL}_{\mathrm{SPA}}(t,\theta)
+\quad \text{s.t.}\quad K_1(t;\theta) = y, }
+using \code{NLOPT_LD_SLSQP}.
+
+Optionally, you may set \code{method="two_step"} to optimise over \eqn{\theta}
+only, where \eqn{\hat t(\theta)} is computed internally for each \eqn{\theta}
+using the RTMB/Newton pathway already implemented in \code{compute.spa.negll}.
+This typically reduces the outer problem dimension and MAY be much faster.
 }
 \details{
 \itemize{
-\item \strong{Observed Data}: \code{observed.data} can be a numeric vector or a matrix/data frame.
+\item Observed Data: \code{observed.data} can be a numeric vector or a matrix/data frame.
 If it's a matrix/data frame, columns are treated as i.i.d. replicate blocks.
-\item \strong{Zeroth-order}: The \code{zeroth.order} argument allows toggling between the standard and zeroth-order saddlepoint likelihoods.
-When \code{zeroth.order} is set to TRUE, the objective function is modified to the zeroth-order saddlepoint approximation to the negative log-likelihood
-\deqn{\hat{t} y - K_Y (\hat{t}; \theta).}
-The estimates of \eqn{\theta} are calculated based on observations \eqn{y},
-where \eqn{K_Y(t; \theta)} is the CGF of the underlying random variable, and \eqn{\hat{t}} is the solution
-to the saddlepoint equation. When FALSE, the standard saddlepoint likelihood is used.
+\item Zeroth-order: If \code{zeroth.order = TRUE}, the objective omits the
+saddlepoint correction term and uses the zeroth-order approximation.
+\item Inequality constraints:
+\itemize{
+\item Constraints from \code{cgf$ineq_constraint(tvec,theta)} are enforced in
+\code{method="constrained"}.
+\item In \code{method="two_step"}, \code{cgf$ineq_constraint} is enforced implicitly
+by the internal \eqn{\hat t(\theta)} solver; candidates where no feasible
+\eqn{\hat t(\theta)} can be found are penalized.
+\item \code{user.ineq.constraint.function}, if supplied, is interpreted as a
+constraint on \eqn{\theta} only. It must have signature
+\code{function(theta) -> list(constraints, jacobian)} with feasibility defined by
+\code{constraints <= 0} (NLOPT convention).
+}
 }
 }
 \examples{
 \dontrun{
-set.seed(1); x = rgamma(50, shape = 10, rate = 0.5)
-res <- find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF, starting.theta = c(1,1), std.error=TRUE)
+set.seed(1); x <- rgamma(50, shape = 10, rate = 0.5)
+res <- find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF,
+                            starting.theta = c(1,1), std.error=TRUE)
 res$MLEs.theta
 res$std.error
+
+## Two-step optimization:
+res2 <- find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF,
+                             starting.theta = c(1,1), method="two_step", std.error=TRUE)
+res2$MLEs.theta
+res2$std.error
 }
 }

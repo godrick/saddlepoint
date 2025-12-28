@@ -49,12 +49,12 @@ K_Y2 <- PoissonModelCGF(lambda = adaptor(indices = 2))   # For Y2: lambda2 => th
 sum_cgf <- sumOfIndependentCGF(cgf_list = list(K_Y1, K_Y2))
 
 # adaptor that converts 'theta' to c(lambda1, lambda2)
-mapThetaToDistParams <- function(theta) c(theta, 2*theta) 
+mapThetaToDistParams <- function(theta) c(theta, 2*theta)
 
 # Now adapt sum_cgf so it only needs a single 'theta':
 adapted_cgf <- adaptCGF(cgf = sum_cgf, adaptor = mapThetaToDistParams)
 theta0 <- 5
-adapted_cgf$K1(0, theta0)  
+adapted_cgf$K1(0, theta0)
 # OR sum_cgf$K1(0, c(theta0, 2*theta0))
 # OR PoissonCGF$K1(0, 3*theta0)
 }

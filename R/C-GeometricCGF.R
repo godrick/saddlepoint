@@ -26,21 +26,53 @@
   .make_univariate_model_cgf_matrix(
     K_elem      = function(tvec, pm) log(pm[,1]) - log(1 - exp(tvec) + pm[,1]*exp(tvec)),
     K1_elem     = function(tvec, pm) (exp(tvec) - pm[,1]*exp(tvec)) / (1 - exp(tvec) + pm[,1]*exp(tvec)),
+    # K2_elem     = function(tvec, pm) {
+    #   tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
+    #   (exp(tvec) - pm[,1]*exp(tvec)) / tmp^2
+    # },
     K2_elem     = function(tvec, pm) {
       tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
-      (exp(tvec) - pm[,1]*exp(tvec)) / tmp^2
+      tmp2 <- tmp * tmp
+      (exp(tvec) - pm[,1]*exp(tvec)) / tmp2
     },
+    # K3_elem     = function(tvec, pm) {
+    #   tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
+    #   (exp(tvec) - pm[,1]*exp(tvec)) * (1 + exp(tvec) - pm[,1]*exp(tvec)) / tmp^3
+    # },
     K3_elem     = function(tvec, pm) {
       tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
-      (exp(tvec) - pm[,1]*exp(tvec)) * (1 + exp(tvec) - pm[,1]*exp(tvec)) / tmp^3
+      tmp2 <- tmp * tmp
+      tmp3 <- tmp2 * tmp
+      (exp(tvec) - pm[,1]*exp(tvec)) * (1 + exp(tvec) - pm[,1]*exp(tvec)) / tmp3
     },
+    # K4_elem     = function(tvec, pm) {
+    #   tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
+    #   (exp(tvec) - pm[,1]*exp(tvec)) * (1 + exp(2*tvec) + 4*exp(tvec)
+    #     - 2*pm[,1]*exp(2*tvec) - 4*pm[,1]*exp(tvec) + pm[,1]^2*exp(2*tvec)) / tmp^4
+    # },
     K4_elem     = function(tvec, pm) {
       tmp <- 1 - exp(tvec) + pm[,1]*exp(tvec)
+      tmp2 <- tmp * tmp
+      tmp4 <- tmp2 * tmp2
+      p2 <- pm[,1] * pm[,1]
       (exp(tvec) - pm[,1]*exp(tvec)) * (1 + exp(2*tvec) + 4*exp(tvec)
-        - 2*pm[,1]*exp(2*tvec) - 4*pm[,1]*exp(tvec) + pm[,1]^2*exp(2*tvec)) / tmp^4
+                                        - 2*pm[,1]*exp(2*tvec) - 4*pm[,1]*exp(tvec) + p2*exp(2*tvec)) / tmp4
     },
     t_hat_elem  = function(x, pm) log(x) - log(1 + x - pm[,1] - pm[,1]*x),
     split_param_to_mat = function(param) matrix(param, ncol = 1L),
+    simulate_func = function(iidReps, parameter_vector, ...) {
+      p <- as.numeric(parameter_vector)
+
+      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) stop("GeometricCGF$rsim: 'p' must be finite and in (0, 1].")
+
+
+      d <- length(p)
+      out <- stats::rgeom(
+        n    = d * iidReps,
+        prob = rep.int(p, times = iidReps)
+      )
+      matrix(out, nrow = d, ncol = iidReps)
+    },
     iidReps = iidReps,
     op_name = op_name,
     ineq_elem = function(tvec, pm) (1 - pm[,1]) * exp(tvec) - 1,

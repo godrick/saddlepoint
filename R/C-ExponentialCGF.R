@@ -29,16 +29,60 @@
 ## Internal factory – build Exponential CGF via univariate utilities
 .exponential_base_cgf <- function(iidReps, op_name, ...) {
   .make_univariate_model_cgf_matrix(
-    K_elem      = function(tvec, pm) -log(pm[,1] - tvec) + log(pm[,1]),
-    K1_elem     = function(tvec, pm)  1 / (pm[,1] - tvec),
-    K2_elem     = function(tvec, pm)  1 / (pm[,1] - tvec)^2,
-    K3_elem     = function(tvec, pm)  2 / (pm[,1] - tvec)^3,
-    K4_elem     = function(tvec, pm)  6 / (pm[,1] - tvec)^4,
-    t_hat_elem  = function(x, pm) pm[,1] - 1 / x,
-    split_param_to_mat = function(param) matrix(param, ncol = 1L),
+    K_elem = function(tvec, pm) {
+      -log(pm[,1] - tvec) + log(pm[,1])
+    },
+    K1_elem     = function(tvec, pm) {
+      # print(class(pm))
+      # print(class(tvec))
+      1/(pm[,1] - tvec)
+    },
+    # K2_elem     = function(tvec, pm)  1 / (pm[,1] - tvec)^2,
+    K2_elem     = function(tvec, pm)  {
+      denom <- pm[,1] - tvec
+      denom2 <- denom * denom
+      1 / denom2
+    },
+    # K3_elem     = function(tvec, pm)  2 / (pm[,1] - tvec)^3,
+    K3_elem     = function(tvec, pm)  {
+      denom <- pm[,1] - tvec
+      denom2 <- denom * denom
+      denom3 <- denom2 * denom
+      2 / denom3
+    },
+    # K4_elem     = function(tvec, pm)  6 / (pm[,1] - tvec)^4,
+    K4_elem     = function(tvec, pm)  {
+      denom <- pm[,1] - tvec
+      denom2 <- denom * denom
+      denom4 <- denom2 * denom2
+      6 / denom4
+    },
+    t_hat_elem  = function(x, pm) pm[,1] - 1/x,
+    ineq_elem = function(tvec, pm) {
+      # print(class(tvec))
+      # print(class(pm))
+      tvec - pm[,1]
+    },
+    split_param_to_mat = function(param) {
+      cbind(param)
+      # matrix(param, ncol = 1L)
+    },
+    simulate_func = function(iidReps, parameter_vector, ...) {
+      rate <- as.numeric(parameter_vector)
+
+      if (any(!is.finite(rate)) || any(rate <= 0)) stop("ExponentialCGF$rsim: 'rate' must be finite and > 0.")
+
+
+      d <- length(rate)
+      out <- stats::rexp(
+        n    = d * iidReps,
+        rate = rep.int(rate, times = iidReps)
+      )
+      matrix(out, nrow = d, ncol = iidReps)
+    },
+
     iidReps = iidReps,
     op_name = op_name,
-    ineq_elem = function(tvec, pm) tvec - pm[,1],
     ...
   )
 }

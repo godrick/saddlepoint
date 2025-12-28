@@ -96,9 +96,10 @@ choose_spa_function <- function(spa_method, cgf) {
   }
 
   function(tvec, theta) {
-      K2_val <- cgf$K2(tvec, theta)
+      # K2_val <- cgf$K2(tvec, theta)
       # -0.5 * determinant(K2_val, logarithm = TRUE)$modulus
-      -0.5 * my_logdet(as.matrix(K2_val))
+      # # -0.5 * my_logdet(as.matrix(K2_val))
+    -0.5 * cgf$logdetK2(tvec, theta)
   }
 }
 
@@ -173,7 +174,6 @@ create_spa_taped_fun <- function(param_vec,
       y           = observed.data,
       theta_init  = param_vec,
       t_init      = newton_t_init
-      # barrier defaults managed inside builder
     )
     local_fn <- function(par) {
       tvec_hat_vals <- G_theta_to_t(par)  # evaluated inside tape for grad_theta
@@ -211,7 +211,7 @@ create_spa_taped_fun <- function(param_vec,
     if (hessian) jacfun_obj <- tape_obj$jacfun()
     return(function(theta) {
       list(
-        vals     = tape_obj(theta),
+        vals     = local_fn(theta),
         gradient = if (gradient) as.vector(tape_obj$jacobian(theta)) else NULL,
         hessian  = if (hessian) jacfun_obj$jacobian(theta) else NULL
       )

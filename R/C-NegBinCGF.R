@@ -35,29 +35,71 @@
       denom <- 1 - (1 - pm[,2]) * exp(tvec)
       pm[,1] * num / denom
     },
+    # K2_elem     = function(tvec, pm) {
+    #   num <- (1 - pm[,2]) * exp(tvec)
+    #   denom <- 1 - (1 - pm[,2]) * exp(tvec)
+    #   pm[,1] * num / denom^2
+    # },
     K2_elem     = function(tvec, pm) {
       num <- (1 - pm[,2]) * exp(tvec)
       denom <- 1 - (1 - pm[,2]) * exp(tvec)
-      pm[,1] * num / denom^2
+      denom2 <- denom * denom
+      pm[,1] * num / denom2
     },
+    # K3_elem     = function(tvec, pm) {
+    #   num <- (1 - pm[,2]) * exp(tvec) * (1 + (1 - pm[,2]) * exp(tvec))
+    #   denom <- 1 - (1 - pm[,2]) * exp(tvec)
+    #   pm[,1] * num / denom^3
+    # },
     K3_elem     = function(tvec, pm) {
       num <- (1 - pm[,2]) * exp(tvec) * (1 + (1 - pm[,2]) * exp(tvec))
       denom <- 1 - (1 - pm[,2]) * exp(tvec)
-      pm[,1] * num / denom^3
+      denom2 <- denom * denom
+      denom3 <- denom2 * denom
+      pm[,1] * num / denom3
     },
+    # K4_elem     = function(tvec, pm) {
+    #   e_t <- exp(tvec)
+    #   e_2t <- exp(2 * tvec)
+    #   alpha <- 1 - (1 - pm[,2]) * e_t
+    #   bracket <- 1 + e_2t + 4 * e_t - 2 * pm[,2] * e_2t - 4 * pm[,2] * e_t + pm[,2]^2 * e_2t
+    #   num <- (1 - pm[,2]) * e_t * bracket
+    #   pm[,1] * num / (alpha^4)
+    # },
     K4_elem     = function(tvec, pm) {
       e_t <- exp(tvec)
       e_2t <- exp(2 * tvec)
       alpha <- 1 - (1 - pm[,2]) * e_t
-      bracket <- 1 + e_2t + 4 * e_t - 2 * pm[,2] * e_2t - 4 * pm[,2] * e_t + pm[,2]^2 * e_2t
+      alpha2 <- alpha * alpha
+      alpha4 <- alpha2 * alpha2
+      p2 <- pm[,2] * pm[,2]
+      bracket <- 1 + e_2t + 4 * e_t - 2 * pm[,2] * e_2t - 4 * pm[,2] * e_t + p2 * e_2t
       num <- (1 - pm[,2]) * e_t * bracket
-      pm[,1] * num / (alpha^4)
+      pm[,1] * num / alpha4
     },
     t_hat_elem  = function(x, pm) {
       q <- 1 - pm[,2]
       log(x) - log(q * (pm[,1] + x))
     },
     split_param_to_mat = split_rp,
+    simulate_func = function(iidReps, parameter_vector, ...) {
+      pm <- split_rp(parameter_vector)
+      r <- as.numeric(pm[, 1])  # "size"
+      p <- as.numeric(pm[, 2])  # "prob"
+
+      if (any(!is.finite(r)) || any(r <= 0)) stop("NegBinCGF$rsim: 'r' (size) must be finite and > 0.")
+
+      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) stop("NegBinCGF$rsim: 'p' must be finite and in (0, 1].")
+
+
+      d <- length(r)
+      out <- stats::rnbinom(
+        n    = d * iidReps,
+        size = rep.int(r, times = iidReps),
+        prob = rep.int(p, times = iidReps)
+      )
+      matrix(out, nrow = d, ncol = iidReps)
+    },
     iidReps = iidReps,
     op_name = op_name,
     ineq_elem = function(tvec, pm) (1 - pm[,2]) * exp(tvec) - 1,

@@ -4,13 +4,29 @@
 # Internal factory: build Poisson CGF once using univariate utilities
 .poisson_base_cgf <- function(iidReps, op_name, ...) {
   .make_univariate_model_cgf_matrix(
-    K_elem  = function(tvec, pm) pm[,1] * (exp(tvec) - 1),
+    K_elem  = function(tvec, pm){ pm[,1] * (exp(tvec) - 1) },
     K1_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     K2_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     K3_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     K4_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     t_hat_elem = function(x, pm) log(x / pm[,1]),
-    split_param_to_mat = function(param) matrix(param, ncol = 1L),
+    split_param_to_mat = function(param) { cbind(param) },
+    simulate_func = function(iidReps, parameter_vector, drop = TRUE, ...) {
+      lambda <- as.numeric(parameter_vector)
+      if (length(lambda) < 1L) stop("Poisson rsim: 'lambda' has length 0.")
+      if (any(!is.finite(lambda)) || any(lambda < 0)) {
+        stop("Poisson rsim: all 'lambda' entries must be finite and >= 0.")
+      }
+      if (length(iidReps) != 1L || !is.finite(iidReps) || iidReps < 1L || iidReps != as.integer(iidReps)) {
+        stop("Poisson rsim: 'iidReps' must be a positive integer.")
+      }
+      iidReps <- as.integer(iidReps)
+      n <- length(lambda)*iidReps
+      out <- matrix(stats::rpois(n = n, lambda = rep.int(lambda, times = iidReps)),
+                    nrow = length(lambda), ncol = iidReps)
+      # if (drop && nrow(out) == 1L) return(as.numeric(out))
+      out
+    },
     iidReps = iidReps,
     op_name = op_name,
     ...

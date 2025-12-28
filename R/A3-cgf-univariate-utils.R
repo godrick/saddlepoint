@@ -71,7 +71,7 @@
 
   # Helper that prepares the expanded parameter matrix for a given vector 'vec'
   prep_par <- function(vec, param) {
-    base_mat <- split_param_to_mat(param)
+    base_mat <- unname(split_param_to_mat(param))
     .broadcast_univariate_matrix(vec, base_mat, iidReps)
   }
 
@@ -81,7 +81,10 @@
       K_elem(tvec, pm)
     },
     K1_vectorized_func = function(tvec, param) {
+      # print(class(tvec))
+      # print(class(param))
       pm <- prep_par(tvec, param)
+      # print(class(pm))
       K1_elem(tvec, pm)
     },
     K2_vectorized_func = function(tvec, param) {

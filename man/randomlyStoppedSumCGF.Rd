@@ -2,7 +2,7 @@
 % Please edit documentation in R/D-RandomlyStoppedSumCGF.R
 \name{randomlyStoppedSumCGF}
 \alias{randomlyStoppedSumCGF}
-\title{CGF Object for a Randomly-Stopped Sum}
+\title{CGF for a randomly-stopped sum}
 \usage{
 randomlyStoppedSumCGF(
   count_cgf,
@@ -13,65 +13,79 @@ randomlyStoppedSumCGF(
 )
 }
 \arguments{
-\item{count_cgf}{A \code{CGF} object corresponding to the distribution of \eqn{N}
-in the sum \eqn{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}.}
+\item{count_cgf}{A \code{CGF} object for the (scalar) count variable \eqn{N}.}
 
-\item{summand_cgf}{A \code{CGF} object corresponding to the summand random variables
-\eqn{\tilde{X}_i} in the sum.}
+\item{summand_cgf}{A \code{CGF} object for the summand \eqn{X}.}
 
-\item{block_size}{(Optional) A positive integer specifying the size of each
-block i.i.d. replication; or \code{NULL} (the default) to skip block-size replication.}
+\item{block_size}{Optional. The dimension \eqn{d} of one observation of \eqn{Y} (and hence of \eqn{X}).
+This can be a positive integer (fixed \eqn{d}) or \code{NULL}}
 
-\item{iidReps}{(Optional) A positive integer specifying how many i.i.d. blocks
-to expect; or \code{NULL} (the default) to skip i.i.d. replication.}
+\item{iidReps}{Optional. Replication count \eqn{B} for i.i.d. observations \eqn{Y_1,\ldots,Y_B}.
+May be a positive integer, \code{"any"}, or \code{NULL}.}
 
-\item{...}{Additional named arguments passed to CGF creation functions.}
+\item{...}{Additional named arguments passed to CGF creation.}
 }
 \value{
-A \code{CGF} object for the distribution of \eqn{\sum_{i=1}^N \tilde{X}_i}.
+A \code{CGF} object.
 }
 \description{
-Constructs the CGF for a randomly stopped sum
-\eqn{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}{Y = sum(X[1], X[2], ..., X[N])},
-where \eqn{N} is a non-negative integer-valued random variable with CGF object
-specified by \code{count_cgf}, and each \eqn{\tilde{X}_i} is an i.i.d. random
-vector with CGF specified by \code{summand_cgf}.
-\eqn{N} is independent of \eqn{\tilde{X}_i}.
-
-Optionally, the resulting CGF object can be replicated in i.i.d. blocks if
-\code{iidReps} or \code{block_size} (or both) are specified.
+Builds a CGF object for the random vector
+\deqn{Y = \sum_{i=1}^{N} X_i,}
+where:
+\itemize{
+\item \eqn{N} is a non-negative integer-valued scalar random variable with CGF \code{count_cgf},
+\item \eqn{X_i} are i.i.d. copies of a (possibly vector-valued) summand with CGF \code{summand_cgf},
+\item \eqn{N} is independent of all \eqn{X_i}.
+}
 }
 \details{
-\strong{Setup}:
-\deqn{{\tilde{Y} = \sum_{i=1}^{N} \tilde{X}_i}}
-The random variable \eqn{\tilde{Y}} is computed as the sum of \eqn{N} i.i.d copies of the random vector \eqn{\tilde{X}_i}. Each \eqn{\tilde{X}_i} is a random vector of arbitrary dimension \eqn{d}.
-For example, when \eqn{d=3}:
-\deqn{ \tilde{X_1} = (X_{11}, X_{12}, X_{13}) }
-\deqn{ \tilde{X_2} = (X_{21}, X_{22}, X_{23}) }
-\deqn{ ... }
-\deqn{ \tilde{X_N} = (X_{N1}, X_{N2}, X_{N3}) }
-Here, \eqn{X_{i1}, X_{i2}, X_{i3}} are scalars but the vectors \eqn{\tilde{X_i}} are i.i.d copies.
+\strong{What do \code{block_size} and \code{iidReps} mean for RSS models?}
 
-\strong{Optional Replication}:
-If \code{block_size} or \code{iidReps} (or both) are specified, the function
-automatically calls \code{\link{iidReplicatesCGF}} on the resulting CGF.
-You may specify:
-\enumerate{
-\item \code{iidReps} only,
-\item \code{block_size} only,
-\item \strong{both} \code{iidReps} and \code{block_size}.
+The replication arguments refer to i.i.d. replication of the variable \eqn{Y},
+not replication of summands inside the random sum.
+
+If you have \eqn{B} independent observations,
+\deqn{Y_b = \sum_{i=1}^{N_b} X_{b,i}, \qquad b=1,\ldots,B,}
+then:
+\itemize{
+\item \code{block_size} is the dimension of one \eqn{Y_b} (which equals the dimension of one \eqn{X_{b,i}}).
+\item \code{iidReps} is the number of independent observations \eqn{B}.
 }
-If both are provided, the input dimension of the final CGF must be
-\code{block_size * iidReps}.
+
+\strong{Why do we require \code{block_size} and/or \code{iidReps}?}
+
+Many summand CGFs in this package are vectorized: if you accidentally feed a long vector \code{tvec}
+into an 'untagged' RSS CGF, the summand CGF may interpret that as a higher-dimensional summand \eqn{X}
+(or multiple i.i.d. summands inside one \eqn{X}), which silently changes the model.
+
+To prevent this, \code{randomlyStoppedSumCGF()} requires at least one of \code{block_size} or \code{iidReps}.
+
+The semantics are:
+\itemize{
+\item If \code{iidReps} is \code{NULL} (default), then \code{block_size} must be provided and we set \code{iidReps="any"}.
+This means the number of observations is inferred at evaluation time as \code{B = length(tvec)/block_size}.
+\item If \code{iidReps} is \code{"any"}, then \code{block_size} must be provided.
+\item If \code{iidReps} is a positive integer, then \code{block_size} may be \code{NULL} (it will be inferred as
+\code{length(tvec)/iidReps}), but providing \code{block_size} explicitly is encouraged.
+}
 }
 \examples{
 \dontrun{
-# For example, let count_cgf be the CGF of N ~ Poisson(lambdaN),
-# and summand_cgf be the CGF of X ~ Gamma(shape, rate).
-# Then Y = sum_{i=1..N} X_i is a compound Poisson-Gamma distribution.
+## Scalar RSS, B observations:
+K.N <- GeometricModelCGF(prob = adaptor(fixed_param = 0.4))
+K.X <- BinomialModelCGF(n = adaptor(fixed_param = 1), p = adaptor(indices = 1))
 
-cgf_Y <- randomlyStoppedSumCGF(count_cgf = PoissonCGF, summand_cgf = GammaCGF)
+# Either specify B explicitly...
+K.U1 <- randomlyStoppedSumCGF(K.N, K.X, iidReps = 40)      # block_size inferred as length(tvec)/40
 
+# ...or specify the scalar block size and let B be inferred from length(tvec):
+K.U2 <- randomlyStoppedSumCGF(K.N, K.X, block_size = 1)    # iidReps defaults to "any"
 
+## Vector RSS: summand is d-dimensional
+d <- 3
+K.Xv <- MultinomialModelCGF(n = adaptor(fixed_param = 1),
+                            prob_vec = adaptor(indices = 1:d))
+K.Y  <- randomlyStoppedSumCGF(PoissonCGF, K.Xv, block_size = d, iidReps = "any")
 }
+
 }

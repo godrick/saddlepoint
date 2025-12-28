@@ -2,47 +2,123 @@
 % Please edit documentation in R/D-ConcatenationCGF.R
 \name{concatenationCGF}
 \alias{concatenationCGF}
-\title{Concatenation of CGF objects.}
+\title{Concatenation of CGF objects}
 \usage{
-concatenationCGF(
-  cgf_list,
-  component_dims = 1,
-  block_size = NULL,
-  iidReps = NULL,
-  ...
-)
+concatenationCGF(cgf_list, component_dims = 1L, iidReps = "any", ...)
 }
 \arguments{
 \item{cgf_list}{A non-empty list of \code{CGF} objects.}
 
-\item{component_dims}{An integer vector (same length as \code{cgf_list}) specifying the length of \code{tvec} compatible with each \code{CGF}. Defaults to 1 for each \code{CGF}.}
+\item{component_dims}{An integer vector of length \code{length(cgf_list)} giving the
+dimension of each component. If a single integer is supplied, it is recycled.}
 
-\item{block_size}{Optional integer specifying the block size for i.i.d. replication of the resulting \code{CGF}. Defaults to \code{NULL}.}
+\item{iidReps}{Either \code{"any"} (default) or a positive integer. See Details.}
 
-\item{iidReps}{Optional integer specifying the number of i.i.d. blocks that will be expected the resulting \code{CGF}. Defaults to \code{NULL}.}
-
-\item{...}{Additional arguments passed to the \code{CGF} creation function.}
+\item{...}{Additional arguments passed to \code{createCGF()} (advanced use).}
 }
 \value{
 A \code{CGF} object.
 }
 \description{
-Constructs a CGF object for a concatenated vector of independent random variables,
-with each represented by its respective CGF object and a corresponding dimension.
-This means CGF \code{cgf_list[[i]]} sees \code{component_dims[i]} consecutive components of \code{tvec}.
-It facilitates the modeling of a concatenated random vector,
-where each segment of the vector is specified by its CGF object and a corresponding dimension.
-}
-\details{
-\itemize{
-\item The dimension of \code{tvec} is \code{sum(component_dims)}.
-\item If \code{iidReps} or \code{block_size} is specified, the result is automatically wrapped
-via \code{iidReplicatesCGF()}.
-}
+Constructs a \code{CGF} object for a concatenated random vector whose components are
+independent and each specified by its own \code{CGF} object.
+
+If \code{cgf_list = list(C1, ..., CL)} and \code{component_dims = (d1,...,dL)},
+then \code{tvec} is partitioned as
+\deqn{tvec = (t^{(1)}, ..., t^{(L)}) \quad\text{with}\quad length(t^{(i)}) = d_i,}
+and the resulting CGF satisfies
+\deqn{K(tvec;\theta) = \sum_{i=1}^L K_i(t^{(i)};\theta).}
 }
 \examples{
-\dontrun{
-# 
+## univariate + univariate (Poisson + Gamma)
+# Use adaptors so both components share a single global parameter vector:
+#   theta = c(lambda, shape, rate)
+cg_pois <- PoissonModelCGF(lambda = adaptor(indices = 1), iidReps = 1)
+cg_gam  <- GammaModelCGF(shape = adaptor(indices = 2),
+                         rate  = adaptor(indices = 3),
+                         iidReps = 1)
+
+# component_dims can be a scalar (recycled) or a vector:
+cg <- concatenationCGF(list(cg_pois, cg_gam),
+                       component_dims = 1L,
+                       iidReps = "any")
+
+theta <- c(lambda = 2, shape = 5, rate = 3)
+
+# Two iid blocks; each block is (Poisson, Gamma) so block_size = 2.
+tvec <- c(0.05, 0.10,
+         -0.02, 0.20)
+
+# K is additive across blocks and across components:
+K_manual <- cg_pois$K(tvec[1], theta) + cg_gam$K(tvec[2], theta) +
+            cg_pois$K(tvec[3], theta) + cg_gam$K(tvec[4], theta)
+stopifnot(all.equal(cg$K(tvec, theta), K_manual))
+
+# K1 is blockwise concatenation:
+K1_manual <- c(cg_pois$K1(tvec[1], theta), cg_gam$K1(tvec[2], theta),
+               cg_pois$K1(tvec[3], theta), cg_gam$K1(tvec[4], theta))
+stopifnot(all.equal(as.numeric(cg$K1(tvec, theta)),
+                    as.numeric(K1_manual)))
+
+# Analytic t-hat is available if all children have it:
+if (isTRUE(cg$has_analytic_tvec_hat())) {
+  x <- c(12, 5, 8, 7)  # observed data (same layout as tvec)
+  t_hat <- cg$analytic_tvec_hat(x, theta)
+  t_hat_manual <- c(cg_pois$analytic_tvec_hat(x[1], theta),
+                    cg_gam$analytic_tvec_hat(x[2], theta),
+                    cg_pois$analytic_tvec_hat(x[3], theta),
+                    cg_gam$analytic_tvec_hat(x[4], theta))
+  stopifnot(all.equal(as.numeric(t_hat), as.numeric(t_hat_manual)))
+}
+
+## Multivariate + univariate (Multinomial + Poisson)
+# Multinomial dimension d = 3; concatenate with a Poisson scalar -> block_size = 4.
+cg_mult <- MultinomialModelCGF(
+  n        = adaptor(fixed_param = 10),
+  prob_vec = adaptor(indices = 2:4),
+  iidReps  = 1
+)
+cg_pois2 <- PoissonModelCGF(lambda = adaptor(indices = 1), iidReps = 1)
+
+cg2 <- concatenationCGF(list(cg_mult, cg_pois2),
+                        component_dims = c(3L, 1L),
+                        iidReps = "any")
+
+theta2 <- c(lambda = 4, p1 = 0.2, p2 = 0.3, p3 = 0.5)
+
+# Two iid blocks, each of length 4:
+tvec2 <- c(0.02, -0.01, 0.03,  0.10,
+          -0.02,  0.00, 0.01, -0.05)
+
+# Shape checks:
+stopifnot(length(cg2$K1(tvec2, theta2)) == length(tvec2))
+K2_full <- cg2$K2(tvec2, theta2)
+stopifnot(all(dim(K2_full) == c(length(tvec2), length(tvec2))))
+
+
+## find.saddlepoint.MLE on a concatenation model
+\donttest{
+set.seed(123)
+B <- 30
+lambda_true <- c(5, 15)
+Y <- rbind(rpois(B, lambda_true[1]),
+           rpois(B, lambda_true[2]))
+
+cg_1 <- PoissonModelCGF(lambda = adaptor(indices = 1), iidReps = 1)
+cg_2 <- PoissonModelCGF(lambda = adaptor(indices = 2), iidReps = 1)
+cg_pp <- concatenationCGF(list(cg_1, cg_2),
+                          component_dims = 1L,
+                          iidReps = "any")
+
+fit <- find.saddlepoint.MLE(
+  observed.data  = Y, # 2 x B matrix -> columns are iid blocks
+  cgf            = cg_pp,
+  starting.theta = c(0.1, 0.9),
+  lb.theta       = c(0.001, 0.1),
+  method         = "two_step"
+)
+
+stopifnot(max(abs(fit$MLEs.theta - rowMeans(Y))) < 1e-5)
 }
 }
 \seealso{

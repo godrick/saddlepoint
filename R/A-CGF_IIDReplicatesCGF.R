@@ -202,24 +202,31 @@
   }
 
 
-  # K2operatorAK2AT => block-diagonal
+
   K2operatorAK2ATfun <- function(tvec, param, Bmat) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
-    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
-    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+    lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
+    if (ncol(Bmat) != N) {
+      stop("K2operatorAK2AT: Bmat must have ncol == length(tvec). ",
+           "Got ncol(Bmat)=", ncol(Bmat), ", length(tvec)=", N, ".")
+    }
 
-    out <- matrix(0, nrow = N, ncol = N) * param[1]
+    r <- nrow(Bmat)
+    out <- matrix(0, nrow = r, ncol = r) * param[1]  # keep AD type if needed
+
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      subBmat <- Bmat[idx, idx, drop = FALSE]
-      out[idx, idx] <- as.matrix(cgf$K2operatorAK2AT(tvec[idx], param, subBmat))
+      out <- out + cgf$K2operatorAK2AT(
+        tvec[idx], param,
+        Bmat[, idx, drop = FALSE]
+      )
     }
     out
   }
+
 
   # K3operator => sum
   K3operatorfun <- function(tvec, param, v1, v2, v3) {
@@ -392,6 +399,66 @@
 
 
 
+
+
+  K2_solve_fun <- function(tvec, param, rhs) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    # vector RHS
+    if (is.null(dim(rhs))) {
+      if (length(rhs) != N) stop("K2_solve: rhs length mismatch.")
+      out <- numeric(N) * param[1]   # RTMB tape-safe pattern you already use
+      for (i in seq_len(B)) {
+        idx <- chunkIndices(i, d)
+        out[idx] <- cgf$K2_solve(tvec[idx], param, rhs[idx])
+      }
+      return(out)
+    }
+
+    # matrix RHS
+    if (nrow(rhs) != N) stop("K2_solve: rhs nrow mismatch.")
+    k <- ncol(rhs)
+    out <- matrix(0, nrow = N, ncol = k) * param[1]
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      out[idx, ] <- cgf$K2_solve(tvec[idx], param, rhs[idx, , drop = FALSE])
+    }
+    out
+  }
+
+
+  logdetK2_fun <- function(tvec, param) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    total <- 0
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      total <- total + cgf$logdetK2(tvec[idx], param)
+    }
+    total
+  }
+
+  # ------------------------------------------------------------------
+  # Optional simulator: forward if the base CGF can simulate.
+  # iidReplicatesCGF only changes how long tvec vectors are interpreted (block sums),
+  # so simulation can be forwarded directly.
+  # ------------------------------------------------------------------
+  simulate_fun <- NULL
+  if (isTRUE(cgf$has_simulate())) {
+    simulate_fun <- function(iidReps, parameter_vector, drop = TRUE, ...) {
+      cgf$rsim(iidReps = iidReps, parameter_vector = parameter_vector, drop = drop, ...)
+    }
+  }
+
+
+
+
   # ------------------------------------------------------------------
   # Build the new CGF object
   # ------------------------------------------------------------------
@@ -412,6 +479,10 @@
     # K4operatorAABB_factored = K4operatorAABB_factoredfun,
     # K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factoredfun,
     # K3K3operatorABCABC_factored = K3K3operatorABCABC_factoredfun,
+    K2_solve = K2_solve_fun,
+    logdetK2 = logdetK2_fun,
+    rsim = simulate_fun,
+
     K2operator = K2operatorfun,
     K2operatorAK2AT = K2operatorAK2ATfun,
     op_name = c(cgf$call_history, op_label)

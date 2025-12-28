@@ -13,23 +13,67 @@
   .make_univariate_model_cgf_matrix(
     K_elem = function(tvec, pm) { pm[,1] * log(1 - pm[,2] + pm[,2]*exp(tvec))},
     K1_elem = function(tvec, pm) { pm[,1] * pm[,2] * exp(tvec) / (1 - pm[,2] + pm[,2]*exp(tvec)) },
-    K2_elem = function(tvec, pm) { pm[,1] * pm[,2]*(1 - pm[,2]) * exp(tvec) / (1 - pm[,2] + pm[,2]*exp(tvec))^2 },
+    # NOTE (AD / Hessian safety):
+    # we avoid "x^k" on quantities that may be negative under AD (higher-order derivatives can produce NaN in RTMB).
+    K2_elem = function(tvec, pm) {
+      denom <- 1 - pm[,2] + pm[,2] * exp(tvec)
+      denom2 <- denom * denom
+      pm[,1] * pm[,2] * (1 - pm[,2]) * exp(tvec) / denom2
+    },
+
+    # K4_elem = function(tvec, pm) {
+    #   n <- pm[, 1]; p <- pm[, 2]
+    #   tmp0 <- p * exp(tvec)
+    #   tmp1 <- 1 - p
+    #   tmp2 <- tmp1 + tmp0
+    #   n * tmp1 * tmp0 * (4 * p * tmp0 + tmp0^2 - 4 * tmp0 + tmp1^2) / (tmp2^4)
+    # },
+
     K3_elem = function(tvec, pm) {
       n <- pm[, 1]; p <- pm[, 2]
       tmp <- 1 - p + p * exp(tvec)
-      n * (1 - p) * p * exp(tvec) * (1 - p - p * exp(tvec)) / tmp^3
+      tmp2 <- tmp * tmp
+      tmp3 <- tmp2 * tmp
+      n * (1 - p) * p * exp(tvec) * (1 - p - p * exp(tvec)) / tmp3
     },
     K4_elem = function(tvec, pm) {
       n <- pm[, 1]; p <- pm[, 2]
       tmp0 <- p * exp(tvec)
       tmp1 <- 1 - p
       tmp2 <- tmp1 + tmp0
-      n * tmp1 * tmp0 * (4 * p * tmp0 + tmp0^2 - 4 * tmp0 + tmp1^2) / (tmp2^4)
+      tmp0sq <- tmp0 * tmp0
+      tmp1sq <- tmp1 * tmp1
+      tmp2sq <- tmp2 * tmp2
+      tmp2four <- tmp2sq * tmp2sq
+      n * tmp1 * tmp0 * (4 * p * tmp0 + tmp0sq - 4 * tmp0 + tmp1sq) / tmp2four
     },
+
     t_hat_elem = function(x, pm) {
       log(x * (1 - pm[,2])) - log(pm[,2] * (pm[,1] - x))
     },
     split_param_to_mat = split_np,
+    simulate_func = function(iidReps, parameter_vector, ...) {
+      pm <- split_np(parameter_vector)
+      n <- as.numeric(pm[, 1])
+      p <- as.numeric(pm[, 2])
+
+      if (any(!is.finite(n)) || any(n < 0)) {
+        stop("BinomialCGF$rsim: 'n' must be finite and >= 0.")
+      }
+      # For simulation, n must be integer-ish
+      if (any(abs(n - round(n)) > 1e-8)) stop("BinomialCGF$rsim: 'n' must be an integer to simulate.")
+      n <- as.integer(round(n))
+      if (any(!is.finite(p)) || any(p < 0 | p > 1)) stop("BinomialCGF$rsim: 'p' must be finite and in [0, 1].")
+
+      d <- length(n)
+      out <- stats::rbinom(
+        n    = d * iidReps,
+        size = rep.int(n, times = iidReps),
+        prob = rep.int(p, times = iidReps)
+      )
+      matrix(out, nrow = d, ncol = iidReps)
+    },
+
     iidReps = iidReps,
     op_name = op_name,
     ...

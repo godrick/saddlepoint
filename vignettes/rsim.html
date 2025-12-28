@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Random simulation with CGF objects: cgf$rsim(…)</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Random simulation with CGF objects:
+cgf$rsim(…)</h1>
+
+
+
+<p>This vignette documents how <code>rsim(...)</code> works across CGF
+objects and wrappers in this codebase. We will keep extending it as new
+CGFs gain simulation support.</p>
+<blockquote>
+<p><strong>Conventions used here</strong></p>
+<ul>
+<li><code>iidReps</code> always means “how many independent draws to
+simulate”.</li>
+<li>For a <code>d</code>-dimensional random vector, simulation returns a
+<code>d x (iidReps)</code> matrix where each <strong>column</strong> is
+one draw.</li>
+<li>If <code>d == 1</code> and <code>drop = TRUE</code> (default),
+simulation returns a numeric vector of length <code>iidReps</code>.</li>
+</ul>
+</blockquote>
+<div id="what-block_size-is-and-when-you-need-to-think-about-it" class="section level2">
+<h2>What <code>block_size</code> is, and when you need to think about
+it</h2>
+<p>A lot of CGFs in this <code>saddlepoint</code> package are
+<em>vectorized</em>. That means a long <code>tvec</code> could mean
+either:</p>
+<ul>
+<li><strong>one</strong> high-dimensional random vector, or</li>
+<li><strong>B</strong> independent “blocks” of a smaller random vector
+(i.i.d. replication).</li>
+</ul>
+<p>The wrapper <code>iidReplicatesCGF()</code> disambiguates those
+interpretations. It uses:</p>
+<ul>
+<li><code>block_size</code> = dimension of one observation (one block),
+and</li>
+<li><code>iidReps</code> (inside the wrapper) = how many blocks to
+expect (or <code>&quot;any&quot;</code> to infer it from
+<code>length(tvec)</code>).</li>
+</ul>
+<div id="does-block_size-matter-for-rsim" class="section level3">
+<h3>Does <code>block_size</code> matter for <code>rsim()</code>?</h3>
+<p>Usually, <strong>no</strong>. <code>rsim(iidReps = B, ...)</code> is
+unambiguous: you asked for <code>B</code> draws, and simulation can
+determine the dimension <code>d</code> from the model parameters.</p>
+<p>You mainly need <code>block_size</code> when <em>constructing</em> a
+CGF (e.g., RSS models) so that evaluation methods (<code>K</code>,
+<code>K1</code>, <code>K2</code>, etc.) cannot silently reinterpret a
+long <code>tvec</code> as “a different statistical model”.</p>
+<p>Wrappers like <code>linearlyMappedCGF()</code> can usually infer
+<code>block_size</code> internally (e.g., <code>nrow(A)</code>), so you
+rarely worry about it there.</p>
+</div>
+</div>
+<div id="quick-checklist-for-rsim-support" class="section level2">
+<h2>Quick checklist for <code>rsim()</code> support</h2>
+<p>A CGF supports simulation if:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># cgf$has_simulate()</span></span></code></pre></div>
+<p>returns <code>TRUE</code>.</p>
+<p>When it does, the canonical call is:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>Y <span class="ot">&lt;-</span> cgf<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">10</span>, <span class="at">parameter_vector =</span> theta)</span></code></pre></div>
+</div>
+<div id="example-1a-poissoncgf-scalar-and-vector" class="section level2">
+<h2>Example 1a: PoissonCGF (scalar and vector)</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Scalar Poisson (d = 1)</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>x <span class="ot">&lt;-</span> PoissonCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">10</span>, <span class="at">parameter_vector =</span> lambda)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>x</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;  [1] 1 1 2 4 1 4 4 2 2 0</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co"># Vector Poisson (d = 2) interpreted as independent components</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>lambda2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>X <span class="ot">&lt;-</span> PoissonCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">5</span>, <span class="at">parameter_vector =</span> lambda2, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>X</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; [1,]    1    3    3    3    1</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; [2,]    1    2    3    8    4</span></span></code></pre></div>
+</div>
+<div id="example-1b-normalcgf-vectorized-independent-normals" class="section level2">
+<h2>Example 1b: NormalCGF (vectorized independent normals)</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># Two independent normals packed into one CGF parameter vector:</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co"># parameter_vector = c(mu1, mu2, sigma1, sigma2)</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>param <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>X <span class="ot">&lt;-</span> NormalCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">5</span>, <span class="at">parameter_vector =</span> param, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>X</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;            [,1]       [,2]      [,3]      [,4]      [,5]</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [1,] -0.6264538 -0.8356286 0.3295078 0.4874291 0.5757814</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; [2,]  5.3672866  8.1905616 3.3590632 6.4766494 4.3892232</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="fu">dim</span>(X)  <span class="co"># 2 x 5</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; [1] 2 5</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="fu">rowMeans</span>(X)  <span class="co"># ~ c(0, 5)</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [1] -0.01387285  5.55655682</span></span></code></pre></div>
+</div>
+<div id="example-1c-binomialcgf-vectorized" class="section level2">
+<h2>Example 1c: BinomialCGF (vectorized)</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># Two independent binomials:</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># parameter_vector = c(n1, n2, p1, p2)</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>param <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">20</span>, <span class="fl">0.2</span>, <span class="fl">0.6</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>X <span class="ot">&lt;-</span> BinomialCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">6</span>, <span class="at">parameter_vector =</span> param, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>X</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; [1,]    1    2    1    4    2    1</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; [2,]   13    9    9   11   15   14</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="fu">rowMeans</span>(X)              <span class="co"># ~ c(2, 12)</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt; [1]  1.833333 11.833333</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="fu">rowMeans</span>(X) <span class="sc">/</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">20</span>)  <span class="co"># ~ c(0.2, 0.6)</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; [1] 0.1833333 0.5916667</span></span></code></pre></div>
+</div>
+<div id="example-2-linearlymappedcgf-simulation-sum-of-independent-poissons" class="section level2">
+<h2>Example 2: linearlyMappedCGF simulation (sum of independent
+Poissons)</h2>
+<p>Let <code>X = (X1, X2)</code> with <code>X1 ~ Pois(2)</code>,
+<code>X2 ~ Pois(3)</code> independent, and define
+<code>Y = X1 + X2</code>. This is implemented as a linear map with
+<code>A = [1 1]</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>cg_vec <span class="ot">&lt;-</span> PoissonCGF</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>), <span class="at">nrow =</span> <span class="dv">1</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>cg_sum <span class="ot">&lt;-</span> <span class="fu">linearlyMappedCGF</span>(cg_vec, A)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>Y <span class="ot">&lt;-</span> cg_sum<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">10000</span>, <span class="at">parameter_vector =</span> lambda)</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="fu">mean</span>(Y)         <span class="co"># should be ~ 5</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; [1] 5.0059</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="fu">var</span>(Y)          <span class="co"># should be ~ 5</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; [1] 4.958761</span></span></code></pre></div>
+</div>
+<div id="example-3-parameter-mapping-with-adaptors-avoiding-wrong-dimension-mistakes" class="section level2">
+<h2>Example 3: Parameter mapping with adaptors (avoiding “wrong
+dimension” mistakes)</h2>
+<p>A common pitfall is passing a combined parameter vector to a
+component CGF that expects only one number. For example, if
+<code>count_cgf</code> is <code>PoissonCGF</code> and you pass
+<code>theta = c(lambdaN, lambdaX)</code>, then <code>PoissonCGF</code>
+interprets this as a <strong>2-dimensional</strong> Poisson parameter,
+not a scalar.</p>
+<p>The fix is to <em>adapt</em> each sub-CGF so it receives only the
+piece of <code>theta</code> it needs.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co"># theta = c(lambdaN, lambdaX)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">lambdaN =</span> <span class="dv">2</span>, <span class="at">lambdaX =</span> <span class="dv">3</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>count_cgf   <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">1</span>))</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>summand_cgf <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">2</span>))</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>rss <span class="ot">&lt;-</span> <span class="fu">randomlyStoppedSumCGF</span>(count_cgf, summand_cgf, <span class="at">block_size =</span> <span class="dv">1</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>Y <span class="ot">&lt;-</span> rss<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">10000</span>, <span class="at">parameter_vector =</span> theta)</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="fu">mean</span>(Y)  <span class="co"># for compound Poisson, E[Y] = E[N] * E[X] = lambdaN * lambdaX = 6</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; [1] 5.9946</span></span></code></pre></div>
+</div>
+<div id="example-4-rss-with-vector-summands-poisson-thinning-check" class="section level2">
+<h2>Example 4: RSS with vector summands (Poisson thinning check)</h2>
+<p>Let <code>N ~ Poisson(lambda)</code> and
+<code>X_i ~ Multinomial(1, p)</code> a one-hot vector (categorical
+draw). Then <code>Y = sum_{i=1}^N X_i</code> should have independent
+Poisson components with means <code>lambda * p</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="dv">10</span>, <span class="at">p =</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">0.5</span>))</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>count_cgf <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">1</span>))</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>summand_cgf <span class="ot">&lt;-</span> <span class="fu">MultinomialModelCGF</span>(</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="at">n        =</span> <span class="fu">adaptor</span>(<span class="at">fixed_param =</span> <span class="dv">1</span>),</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>  <span class="at">prob_vec =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">2</span><span class="sc">:</span>(d <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>)</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>rss_vec <span class="ot">&lt;-</span> <span class="fu">randomlyStoppedSumCGF</span>(count_cgf, summand_cgf, <span class="at">block_size =</span> d)</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>Y <span class="ot">&lt;-</span> rss_vec<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">20000</span>, <span class="at">parameter_vector =</span> theta, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="fu">rowMeans</span>(Y)  <span class="co"># should be ~ lambda * p = (2, 3, 5)</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; [1] 2.00410 3.00845 5.01905</span></span></code></pre></div>
+</div>
+<div id="example-5-multinomialcgf-simulation-odds-vs-probabilities" class="section level2">
+<h2>Example 5: MultinomialCGF simulation (odds vs probabilities)</h2>
+<p><code>MultinomialCGF</code> expects
+<code>parameter_vector = c(N, x_1, ..., x_d)</code>. The <code>x</code>
+vector is treated as odds (or as probabilities if it already sums to
+1).</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>odds <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">5</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>param_odds <span class="ot">&lt;-</span> <span class="fu">c</span>(N, odds)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>X <span class="ot">&lt;-</span> MultinomialCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">6</span>, <span class="at">parameter_vector =</span> param_odds, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>X</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; [1,]    1    2    1    4    2    1</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; [2,]    3    5    5    3    1    2</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; [3,]    6    3    4    3    7    7</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">colSums</span>(X)  <span class="co"># should all equal N</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co"># Same distribution if you pass probabilities instead of odds</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>p <span class="ot">&lt;-</span> odds <span class="sc">/</span> <span class="fu">sum</span>(odds)</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>param_p <span class="ot">&lt;-</span> <span class="fu">c</span>(N, p)</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>Xp <span class="ot">&lt;-</span> MultinomialCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">6</span>, <span class="at">parameter_vector =</span> param_p, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="fu">colSums</span>(Xp)</span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span></code></pre></div>
+</div>
+<div id="example-6-multinomialmodelcgf-theta-mapped-multinomial" class="section level2">
+<h2>Example 6: MultinomialModelCGF (theta-mapped multinomial)</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">N =</span> <span class="dv">12</span>, <span class="at">p =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.7</span>))</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>cgf <span class="ot">&lt;-</span> <span class="fu">MultinomialModelCGF</span>(</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="at">n        =</span> <span class="cf">function</span>(th) th[<span class="dv">1</span>],</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>  <span class="at">prob_vec =</span> <span class="cf">function</span>(th) th[<span class="dv">2</span><span class="sc">:</span>(d <span class="sc">+</span> <span class="dv">1</span>)],</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>  <span class="at">iidReps  =</span> <span class="st">&quot;any&quot;</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>)</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>X <span class="ot">&lt;-</span> cgf<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">5</span>, <span class="at">parameter_vector =</span> theta, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>X</span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; [1,]    0    1    0    3    1</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; [2,]    2    4    5    2    0</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; [3,]   10    7    7    7   11</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="fu">colSums</span>(X)</span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; [1] 12 12 12 12 12</span></span></code></pre></div>
+</div>
+<div id="example-7-subunitarymultinomialcgf" class="section level2">
+<h2>Example 7: SubunitaryMultinomialCGF</h2>
+<p><code>SubunitaryMultinomialCGF</code> uses parameters
+<code>c(N, pi_1,...,pi_d)</code> where <code>sum(pi) &lt;= 1</code> and
+conceptually corresponds to a (d+1)-category multinomial
+<strong>conditioned</strong> on the last category being zero.</p>
+<p>Simulation returns the <code>d</code> active-category counts and
+still sums to <code>N</code>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">0.1</span>)  <span class="co"># sum &lt; 1 (subunitary)</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>param <span class="ot">&lt;-</span> <span class="fu">c</span>(N, pi)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>W <span class="ot">&lt;-</span> SubunitaryMultinomialCGF<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">6</span>, <span class="at">parameter_vector =</span> param, <span class="at">drop =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>W</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; [1,]    2    4    2    6    4    2</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; [2,]    6    3    4    3    6    7</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; [3,]    2    3    4    1    0    1</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="fu">colSums</span>(W)</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span></code></pre></div>
+</div>
+<div id="example-8-sumofiidcgf-sum-of-i.i.d.-poissons" class="section level2">
+<h2>Example 8: sumOfiidCGF (sum of i.i.d. Poissons)</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>base <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">1</span>))</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>sum10 <span class="ot">&lt;-</span> <span class="fu">sumOfiidCGF</span>(base, <span class="at">n =</span> <span class="dv">10</span>, <span class="at">block_size =</span> <span class="dv">1</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="dv">2</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>Y <span class="ot">&lt;-</span> sum10<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">20000</span>, <span class="at">parameter_vector =</span> theta)</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="fu">mean</span>(Y)  <span class="co"># should be ~ 20</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; [1] 19.99555</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="fu">var</span>(Y)   <span class="co"># should be ~ 20</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; [1] 19.69872</span></span></code></pre></div>
+</div>
+<div id="example-sumofindependentcgf-sum-of-independent-not-necessarily-identical-terms" class="section level2">
+<h2>Example: sumOfIndependentCGF (sum of independent,
+not-necessarily-identical terms)</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">lambda1 =</span> <span class="dv">2</span>, <span class="at">lambda2 =</span> <span class="dv">3</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>cg1 <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">1</span>))</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>cg2 <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">2</span>))</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>cg_sum <span class="ot">&lt;-</span> <span class="fu">sumOfIndependentCGF</span>(<span class="fu">list</span>(cg1, cg2), <span class="at">block_size =</span> <span class="dv">1</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>Y <span class="ot">&lt;-</span> cg_sum<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">20000</span>, <span class="at">parameter_vector =</span> theta)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="fu">mean</span>(Y)  <span class="co"># should be ~ 5</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt; [1] 4.9943</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="fu">var</span>(Y)   <span class="co"># should be ~ 5</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt; [1] 4.993817</span></span></code></pre></div>
+</div>
+<div id="other-issues" class="section level2">
+<h2>Other issues</h2>
+<div id="rss-count_cgf-must-be-scalar" class="section level3">
+<h3>1) RSS: <code>count_cgf</code> must be scalar</h3>
+<p>In RSS models, <code>count_cgf</code> represents a <em>scalar</em>
+count <code>N</code>, so simulation requires a scalar draw per
+replicate. If your count CGF is vectorized (like
+<code>PoissonCGF</code>) and you accidentally pass a vector parameter,
+you’ll get a “count must be scalar” error.</p>
+<p>The fix is to use parameter adaptors (as shown above) so the count
+CGF receives only the scalar parameter it needs.</p>
+</div>
+<div id="esscher-exponential-tilt-wrappers-typically-do-not-implement-rsim-and-what-you-can-do-instead" class="section level3">
+<h3>2) Esscher / exponential tilt wrappers typically do not implement
+<code>rsim()</code> (and what you can do instead)</h3>
+<p><code>EsscherTiltCGF()</code> defines the
+<strong>Esscher-tilted</strong> CGF <span class="math display">\[
+K_h(t) = K(t+h) - K(h),
+\]</span> which corresponds to a change-of-measure <span class="math display">\[
+\mathrm{d}\mathbb P_h(x) \;\propto\; e^{h^\top x}\,\mathrm{d}\mathbb
+P(x).
+\]</span></p>
+<p>This is not a deterministic transformation of draws from the base
+distribution. In general, <em>even though the CGF determines the law
+(when it exists in a neighborhood of 0)</em>, there is no universal,
+closed-form exact sampler that can be constructed from CGF evaluations
+alone.</p>
+<p>Therefore, <code>EsscherTiltCGF()</code> is an ‘analysis-only’ (for
+saddlepoint / likelihood work) and does not provide a generic exact
+<code>rsim()</code> implementation in this package.</p>
+<p>However, if you can simulate from the base model
+(i.e. <code>base_cgf$has_simulate() == TRUE</code>), then you can still
+simulate <strong>exactly/approximately</strong> from the tilted
+distribution <em>outside the package</em> using one of the following
+generic strategies:</p>
+<ul>
+<li><ol style="list-style-type: upper-alpha">
+<li>Importance sampling + resampling (IS-R)<br />
+Draw many proposals <span class="math inline">\(X^{(m)} \sim \mathbb
+P\)</span>, weight them by <span class="math inline">\(w_m \propto
+e^{h^\top X^{(m)}}\)</span>, and resample.</li>
+</ol></li>
+<li><ol start="2" style="list-style-type: upper-alpha">
+<li>Independence Metropolis–Hastings (IMH)<br />
+Use proposal <span class="math inline">\(q=\mathbb P\)</span> (simulate
+from the base), and accept with probability <span class="math display">\[
+\alpha(x\to x&#39;) = \min\{1,\exp(h^\top(x&#39; - x))\}.
+\]</span> This is attractive here because the unknown base density
+cancels in the MH ratio.</li>
+</ol></li>
+</ul>
+<p>Both methods depend only on: 1) being able to draw from the base
+model via <code>base_cgf$rsim()</code>, and<br />
+2) being able to compute <span class="math inline">\(h^\top x\)</span>
+for simulated draws.</p>
+<blockquote>
+<p><strong>Note</strong><br />
+These are approximate samplers: IS-R has Monte Carlo error and can
+suffer weight degeneracy (low ESS), and IMH is asymptotically exact but
+has MCMC error and autocorrelation (needs diagnostics).</p>
+</blockquote>
+<div id="helper-functions-copypaste" class="section level4">
+<h4>Helper functions (copy/paste)</h4>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Convert a draw to a d x B matrix (columns = draws)</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>.as_draw_matrix <span class="ot">&lt;-</span> <span class="cf">function</span>(X) {</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(<span class="fu">dim</span>(X))) {</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>    <span class="fu">matrix</span>(<span class="fu">as.numeric</span>(X), <span class="at">nrow =</span> <span class="dv">1</span><span class="dt">L</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>    X</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  }</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>}</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co"># Broadcast a scalar tilt to length d if needed (otherwise require exact match)</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>.broadcast_tilt <span class="ot">&lt;-</span> <span class="cf">function</span>(tilt, d) {</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.numeric</span>(tilt) <span class="sc">||</span> <span class="fu">length</span>(tilt) <span class="sc">&lt;</span> <span class="dv">1</span><span class="dt">L</span>) <span class="fu">stop</span>(<span class="st">&quot;&#39;tilt&#39; must be a numeric vector.&quot;</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.finite</span>(tilt))) <span class="fu">stop</span>(<span class="st">&quot;&#39;tilt&#39; must be finite.&quot;</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(tilt) <span class="sc">==</span> <span class="dv">1</span><span class="dt">L</span> <span class="sc">&amp;&amp;</span> d <span class="sc">&gt;</span> <span class="dv">1</span><span class="dt">L</span>) <span class="fu">return</span>(<span class="fu">rep</span>(tilt, d))</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(tilt) <span class="sc">!=</span> d) <span class="fu">stop</span>(<span class="st">&quot;tilt length mismatch: expected length &quot;</span>, d, <span class="st">&quot;, got &quot;</span>, <span class="fu">length</span>(tilt), <span class="st">&quot;.&quot;</span>)</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>  tilt</span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>}</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co"># Importance sampling + resampling</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>esscher_rsim_is_resample <span class="ot">&lt;-</span> <span class="cf">function</span>(base_cgf,</span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>                                     tilt,</span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>                                     iidReps,</span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>                                     parameter_vector,</span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a>                                     <span class="at">proposal_iidReps =</span> <span class="fu">max</span>(<span class="dv">2000</span><span class="dt">L</span>, <span class="dv">20</span><span class="dt">L</span> <span class="sc">*</span> iidReps),</span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a>                                     <span class="at">drop =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>                                     <span class="at">return_details =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a>                                     ...) {</span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">inherits</span>(base_cgf, <span class="st">&quot;CGF&quot;</span>)) <span class="fu">stop</span>(<span class="st">&quot;&#39;base_cgf&#39; must be a CGF.&quot;</span>)</span>
+<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(base_cgf<span class="sc">$</span><span class="fu">has_simulate</span>())) <span class="fu">stop</span>(<span class="st">&quot;Base CGF does not support simulation (has_simulate() is FALSE).&quot;</span>)</span>
+<span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.numeric</span>(iidReps) <span class="sc">||</span> <span class="fu">length</span>(iidReps) <span class="sc">!=</span> <span class="dv">1</span><span class="dt">L</span> <span class="sc">||</span> iidReps <span class="sc">&lt;</span> <span class="dv">1</span><span class="dt">L</span>) <span class="fu">stop</span>(<span class="st">&quot;&#39;iidReps&#39; must be a positive integer-ish.&quot;</span>)</span>
+<span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a>  iidReps <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(iidReps)</span>
+<span id="cb14-32"><a href="#cb14-32" tabindex="-1"></a>  proposal_iidReps <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(proposal_iidReps)</span>
+<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a></span>
+<span id="cb14-34"><a href="#cb14-34" tabindex="-1"></a>  Xprop <span class="ot">&lt;-</span> <span class="fu">.as_draw_matrix</span>(base_cgf<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> proposal_iidReps,</span>
+<span id="cb14-35"><a href="#cb14-35" tabindex="-1"></a>                                        <span class="at">parameter_vector =</span> parameter_vector,</span>
+<span id="cb14-36"><a href="#cb14-36" tabindex="-1"></a>                                        <span class="at">drop =</span> <span class="cn">FALSE</span>, ...))</span>
+<span id="cb14-37"><a href="#cb14-37" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">nrow</span>(Xprop)</span>
+<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a>  h <span class="ot">&lt;-</span> <span class="fu">.broadcast_tilt</span>(tilt, d)</span>
+<span id="cb14-39"><a href="#cb14-39" tabindex="-1"></a></span>
+<span id="cb14-40"><a href="#cb14-40" tabindex="-1"></a>  <span class="co"># log-weights: lw_m = h^T x_m</span></span>
+<span id="cb14-41"><a href="#cb14-41" tabindex="-1"></a>  lw <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">crossprod</span>(h, Xprop))</span>
+<span id="cb14-42"><a href="#cb14-42" tabindex="-1"></a>  mx <span class="ot">&lt;-</span> <span class="fu">max</span>(lw)</span>
+<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(mx)) <span class="fu">stop</span>(<span class="st">&quot;Non-finite tilt weights; try a smaller |tilt| or check your model.&quot;</span>)</span>
+<span id="cb14-44"><a href="#cb14-44" tabindex="-1"></a></span>
+<span id="cb14-45"><a href="#cb14-45" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">exp</span>(lw <span class="sc">-</span> mx)</span>
+<span id="cb14-46"><a href="#cb14-46" tabindex="-1"></a>  sw <span class="ot">&lt;-</span> <span class="fu">sum</span>(w)</span>
+<span id="cb14-47"><a href="#cb14-47" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(sw) <span class="sc">||</span> sw <span class="sc">&lt;=</span> <span class="dv">0</span>) <span class="fu">stop</span>(<span class="st">&quot;Degenerate importance weights; try more proposals or a smaller |tilt|.&quot;</span>)</span>
+<span id="cb14-48"><a href="#cb14-48" tabindex="-1"></a>  w <span class="ot">&lt;-</span> w <span class="sc">/</span> sw</span>
+<span id="cb14-49"><a href="#cb14-49" tabindex="-1"></a></span>
+<span id="cb14-50"><a href="#cb14-50" tabindex="-1"></a>  <span class="co"># Effective sample size (ESS) for diagnostics</span></span>
+<span id="cb14-51"><a href="#cb14-51" tabindex="-1"></a>  ess <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> <span class="fu">sum</span>(w<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb14-52"><a href="#cb14-52" tabindex="-1"></a></span>
+<span id="cb14-53"><a href="#cb14-53" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="fu">ncol</span>(Xprop), <span class="at">size =</span> iidReps, <span class="at">replace =</span> <span class="cn">TRUE</span>, <span class="at">prob =</span> w)</span>
+<span id="cb14-54"><a href="#cb14-54" tabindex="-1"></a>  out <span class="ot">&lt;-</span> Xprop[, idx, drop <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
+<span id="cb14-55"><a href="#cb14-55" tabindex="-1"></a></span>
+<span id="cb14-56"><a href="#cb14-56" tabindex="-1"></a>  <span class="cf">if</span> (drop <span class="sc">&amp;&amp;</span> d <span class="sc">==</span> <span class="dv">1</span><span class="dt">L</span>) out <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(out)</span>
+<span id="cb14-57"><a href="#cb14-57" tabindex="-1"></a></span>
+<span id="cb14-58"><a href="#cb14-58" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">isTRUE</span>(return_details)) {</span>
+<span id="cb14-59"><a href="#cb14-59" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">draws =</span> out, <span class="at">ess =</span> ess, <span class="at">weights =</span> w, <span class="at">logw =</span> lw))</span>
+<span id="cb14-60"><a href="#cb14-60" tabindex="-1"></a>  }</span>
+<span id="cb14-61"><a href="#cb14-61" tabindex="-1"></a>  out</span>
+<span id="cb14-62"><a href="#cb14-62" tabindex="-1"></a>}</span>
+<span id="cb14-63"><a href="#cb14-63" tabindex="-1"></a></span>
+<span id="cb14-64"><a href="#cb14-64" tabindex="-1"></a><span class="co"># Independence Metropolis–Hastings with proposal q = base distribution</span></span>
+<span id="cb14-65"><a href="#cb14-65" tabindex="-1"></a>esscher_rsim_imh <span class="ot">&lt;-</span> <span class="cf">function</span>(base_cgf,</span>
+<span id="cb14-66"><a href="#cb14-66" tabindex="-1"></a>                             tilt,</span>
+<span id="cb14-67"><a href="#cb14-67" tabindex="-1"></a>                             iidReps,</span>
+<span id="cb14-68"><a href="#cb14-68" tabindex="-1"></a>                             parameter_vector,</span>
+<span id="cb14-69"><a href="#cb14-69" tabindex="-1"></a>                             <span class="at">burnin =</span> <span class="dv">1000</span><span class="dt">L</span>,</span>
+<span id="cb14-70"><a href="#cb14-70" tabindex="-1"></a>                             <span class="at">thin =</span> <span class="dv">1</span><span class="dt">L</span>,</span>
+<span id="cb14-71"><a href="#cb14-71" tabindex="-1"></a>                             <span class="at">init =</span> <span class="cn">NULL</span>,</span>
+<span id="cb14-72"><a href="#cb14-72" tabindex="-1"></a>                             <span class="at">drop =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb14-73"><a href="#cb14-73" tabindex="-1"></a>                             <span class="at">return_details =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb14-74"><a href="#cb14-74" tabindex="-1"></a>                             ...) {</span>
+<span id="cb14-75"><a href="#cb14-75" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">inherits</span>(base_cgf, <span class="st">&quot;CGF&quot;</span>)) <span class="fu">stop</span>(<span class="st">&quot;&#39;base_cgf&#39; must be a CGF.&quot;</span>)</span>
+<span id="cb14-76"><a href="#cb14-76" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(base_cgf<span class="sc">$</span><span class="fu">has_simulate</span>())) <span class="fu">stop</span>(<span class="st">&quot;Base CGF does not support simulation (has_simulate() is FALSE).&quot;</span>)</span>
+<span id="cb14-77"><a href="#cb14-77" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.numeric</span>(iidReps) <span class="sc">||</span> <span class="fu">length</span>(iidReps) <span class="sc">!=</span> <span class="dv">1</span><span class="dt">L</span> <span class="sc">||</span> iidReps <span class="sc">&lt;</span> <span class="dv">1</span><span class="dt">L</span>) <span class="fu">stop</span>(<span class="st">&quot;&#39;iidReps&#39; must be a positive integer-ish.&quot;</span>)</span>
+<span id="cb14-78"><a href="#cb14-78" tabindex="-1"></a>  iidReps <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(iidReps)</span>
+<span id="cb14-79"><a href="#cb14-79" tabindex="-1"></a>  burnin <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(burnin)</span>
+<span id="cb14-80"><a href="#cb14-80" tabindex="-1"></a>  thin <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(thin)</span>
+<span id="cb14-81"><a href="#cb14-81" tabindex="-1"></a>  <span class="cf">if</span> (burnin <span class="sc">&lt;</span> <span class="dv">0</span><span class="dt">L</span>) <span class="fu">stop</span>(<span class="st">&quot;&#39;burnin&#39; must be &gt;= 0.&quot;</span>)</span>
+<span id="cb14-82"><a href="#cb14-82" tabindex="-1"></a>  <span class="cf">if</span> (thin <span class="sc">&lt;</span> <span class="dv">1</span><span class="dt">L</span>) <span class="fu">stop</span>(<span class="st">&quot;&#39;thin&#39; must be &gt;= 1.&quot;</span>)</span>
+<span id="cb14-83"><a href="#cb14-83" tabindex="-1"></a></span>
+<span id="cb14-84"><a href="#cb14-84" tabindex="-1"></a>  <span class="co"># Infer dimension d from one base draw</span></span>
+<span id="cb14-85"><a href="#cb14-85" tabindex="-1"></a>  x1 <span class="ot">&lt;-</span> <span class="fu">.as_draw_matrix</span>(base_cgf<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">1</span><span class="dt">L</span>, <span class="at">parameter_vector =</span> parameter_vector, <span class="at">drop =</span> <span class="cn">FALSE</span>, ...))</span>
+<span id="cb14-86"><a href="#cb14-86" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">nrow</span>(x1)</span>
+<span id="cb14-87"><a href="#cb14-87" tabindex="-1"></a>  h <span class="ot">&lt;-</span> <span class="fu">.broadcast_tilt</span>(tilt, d)</span>
+<span id="cb14-88"><a href="#cb14-88" tabindex="-1"></a></span>
+<span id="cb14-89"><a href="#cb14-89" tabindex="-1"></a>  <span class="co"># Initialize chain</span></span>
+<span id="cb14-90"><a href="#cb14-90" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(init)) {</span>
+<span id="cb14-91"><a href="#cb14-91" tabindex="-1"></a>    x_curr <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x1)</span>
+<span id="cb14-92"><a href="#cb14-92" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb14-93"><a href="#cb14-93" tabindex="-1"></a>    init <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(init)</span>
+<span id="cb14-94"><a href="#cb14-94" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(init) <span class="sc">!=</span> d) <span class="fu">stop</span>(<span class="st">&quot;&#39;init&#39; must have length d = &quot;</span>, d, <span class="st">&quot;.&quot;</span>)</span>
+<span id="cb14-95"><a href="#cb14-95" tabindex="-1"></a>    x_curr <span class="ot">&lt;-</span> init</span>
+<span id="cb14-96"><a href="#cb14-96" tabindex="-1"></a>  }</span>
+<span id="cb14-97"><a href="#cb14-97" tabindex="-1"></a></span>
+<span id="cb14-98"><a href="#cb14-98" tabindex="-1"></a>  n_iter <span class="ot">&lt;-</span> burnin <span class="sc">+</span> thin <span class="sc">*</span> iidReps</span>
+<span id="cb14-99"><a href="#cb14-99" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA_real_</span>, <span class="at">nrow =</span> d, <span class="at">ncol =</span> iidReps)</span>
+<span id="cb14-100"><a href="#cb14-100" tabindex="-1"></a></span>
+<span id="cb14-101"><a href="#cb14-101" tabindex="-1"></a>  n_acc <span class="ot">&lt;-</span> <span class="dv">0</span><span class="dt">L</span></span>
+<span id="cb14-102"><a href="#cb14-102" tabindex="-1"></a>  k <span class="ot">&lt;-</span> <span class="dv">0</span><span class="dt">L</span></span>
+<span id="cb14-103"><a href="#cb14-103" tabindex="-1"></a></span>
+<span id="cb14-104"><a href="#cb14-104" tabindex="-1"></a>  <span class="cf">for</span> (iter <span class="cf">in</span> <span class="fu">seq_len</span>(n_iter)) {</span>
+<span id="cb14-105"><a href="#cb14-105" tabindex="-1"></a>    x_prop <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">.as_draw_matrix</span>(</span>
+<span id="cb14-106"><a href="#cb14-106" tabindex="-1"></a>      base_cgf<span class="sc">$</span><span class="fu">rsim</span>(<span class="at">iidReps =</span> <span class="dv">1</span><span class="dt">L</span>, <span class="at">parameter_vector =</span> parameter_vector, <span class="at">drop =</span> <span class="cn">FALSE</span>, ...)</span>
+<span id="cb14-107"><a href="#cb14-107" tabindex="-1"></a>    ))</span>
+<span id="cb14-108"><a href="#cb14-108" tabindex="-1"></a></span>
+<span id="cb14-109"><a href="#cb14-109" tabindex="-1"></a>    <span class="co"># log acceptance ratio: h^T(x_prop - x_curr)</span></span>
+<span id="cb14-110"><a href="#cb14-110" tabindex="-1"></a>    log_alpha <span class="ot">&lt;-</span> <span class="fu">sum</span>(h <span class="sc">*</span> (x_prop <span class="sc">-</span> x_curr))</span>
+<span id="cb14-111"><a href="#cb14-111" tabindex="-1"></a></span>
+<span id="cb14-112"><a href="#cb14-112" tabindex="-1"></a>    <span class="co"># accept if log(U) &lt; min(0, log_alpha)</span></span>
+<span id="cb14-113"><a href="#cb14-113" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">log</span>(<span class="fu">runif</span>(<span class="dv">1</span>)) <span class="sc">&lt;</span> <span class="fu">min</span>(<span class="dv">0</span>, log_alpha)) {</span>
+<span id="cb14-114"><a href="#cb14-114" tabindex="-1"></a>      x_curr <span class="ot">&lt;-</span> x_prop</span>
+<span id="cb14-115"><a href="#cb14-115" tabindex="-1"></a>      n_acc <span class="ot">&lt;-</span> n_acc <span class="sc">+</span> <span class="dv">1</span><span class="dt">L</span></span>
+<span id="cb14-116"><a href="#cb14-116" tabindex="-1"></a>    }</span>
+<span id="cb14-117"><a href="#cb14-117" tabindex="-1"></a></span>
+<span id="cb14-118"><a href="#cb14-118" tabindex="-1"></a>    <span class="cf">if</span> (iter <span class="sc">&gt;</span> burnin <span class="sc">&amp;&amp;</span> ((iter <span class="sc">-</span> burnin) <span class="sc">%%</span> thin <span class="sc">==</span> <span class="dv">0</span><span class="dt">L</span>)) {</span>
+<span id="cb14-119"><a href="#cb14-119" tabindex="-1"></a>      k <span class="ot">&lt;-</span> k <span class="sc">+</span> <span class="dv">1</span><span class="dt">L</span></span>
+<span id="cb14-120"><a href="#cb14-120" tabindex="-1"></a>      out[, k] <span class="ot">&lt;-</span> x_curr</span>
+<span id="cb14-121"><a href="#cb14-121" tabindex="-1"></a>    }</span>
+<span id="cb14-122"><a href="#cb14-122" tabindex="-1"></a>  }</span>
+<span id="cb14-123"><a href="#cb14-123" tabindex="-1"></a></span>
+<span id="cb14-124"><a href="#cb14-124" tabindex="-1"></a>  acc_rate <span class="ot">&lt;-</span> n_acc <span class="sc">/</span> n_iter</span>
+<span id="cb14-125"><a href="#cb14-125" tabindex="-1"></a>  <span class="cf">if</span> (drop <span class="sc">&amp;&amp;</span> d <span class="sc">==</span> <span class="dv">1</span><span class="dt">L</span>) out <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(out)</span>
+<span id="cb14-126"><a href="#cb14-126" tabindex="-1"></a></span>
+<span id="cb14-127"><a href="#cb14-127" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">isTRUE</span>(return_details)) {</span>
+<span id="cb14-128"><a href="#cb14-128" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">draws =</span> out, <span class="at">accept_rate =</span> acc_rate))</span>
+<span id="cb14-129"><a href="#cb14-129" tabindex="-1"></a>  }</span>
+<span id="cb14-130"><a href="#cb14-130" tabindex="-1"></a>  out</span>
+<span id="cb14-131"><a href="#cb14-131" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="worked-example-approximate-tilted-simulation-saddlepoint-mle" class="section level4">
+<h4>Worked example: approximate tilted simulation + saddlepoint MLE</h4>
+<p>We use a <em>simple</em> base model (Poisson) with a known
+closed-form tilt. The exact tilted law is: if <span class="math inline">\(X \sim \mathrm{Pois}(\lambda)\)</span>, then under
+tilt <span class="math inline">\(\tau\)</span>, <span class="math inline">\(X^{(\tau)} \sim \mathrm{Pois}(\lambda
+e^\tau)\)</span>.</p>
+<p>Even though we could sample exactly here, the <em>same IS-R / IMH
+code</em> applies to more complex composite CGFs whenever
+<code>base_cgf$rsim()</code> exists.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co"># Base model: Poisson with theta = lambda</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>theta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="dv">10</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>tau <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>base <span class="ot">&lt;-</span> <span class="fu">PoissonModelCGF</span>(<span class="at">lambda =</span> <span class="fu">adaptor</span>(<span class="at">indices =</span> <span class="dv">1</span>))</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>tilted_cgf <span class="ot">&lt;-</span> <span class="fu">EsscherTiltCGF</span>(base, <span class="at">tilt =</span> tau)</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co"># Theory check: mean under the tilt is K&#39;_base(tau) = lambda * exp(tau)</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a>mean_theory <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(base<span class="sc">$</span><span class="fu">K1</span>(tau, theta_true))</span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co"># --- (A) Importance-resampling sampler ---</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a>sim_is <span class="ot">&lt;-</span> <span class="fu">esscher_rsim_is_resample</span>(</span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a>  <span class="at">base_cgf =</span> base,</span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a>  <span class="at">tilt =</span> tau,</span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a>  <span class="at">iidReps =</span> <span class="dv">2000</span>,</span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a>  <span class="at">parameter_vector =</span> theta_true,</span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a>  <span class="at">proposal_iidReps =</span> <span class="dv">20000</span>,</span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a>  <span class="at">return_details =</span> <span class="cn">TRUE</span></span>
+<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a>)</span>
+<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a><span class="fu">mean</span>(sim_is<span class="sc">$</span>draws)</span>
+<span id="cb15-24"><a href="#cb15-24" tabindex="-1"></a><span class="co">#&gt; [1] 15.1485</span></span>
+<span id="cb15-25"><a href="#cb15-25" tabindex="-1"></a>mean_theory</span>
+<span id="cb15-26"><a href="#cb15-26" tabindex="-1"></a><span class="co">#&gt; [1] 14.91825</span></span>
+<span id="cb15-27"><a href="#cb15-27" tabindex="-1"></a>sim_is<span class="sc">$</span>ess  <span class="co"># diagnostic; higher is better (&lt;= proposal_iidReps)</span></span>
+<span id="cb15-28"><a href="#cb15-28" tabindex="-1"></a><span class="co">#&gt; [1] 1606.499</span></span>
+<span id="cb15-29"><a href="#cb15-29" tabindex="-1"></a></span>
+<span id="cb15-30"><a href="#cb15-30" tabindex="-1"></a><span class="co"># --- (B) Independence MH sampler ---</span></span>
+<span id="cb15-31"><a href="#cb15-31" tabindex="-1"></a>sim_mh <span class="ot">&lt;-</span> <span class="fu">esscher_rsim_imh</span>(</span>
+<span id="cb15-32"><a href="#cb15-32" tabindex="-1"></a>  <span class="at">base_cgf =</span> base,</span>
+<span id="cb15-33"><a href="#cb15-33" tabindex="-1"></a>  <span class="at">tilt =</span> tau,</span>
+<span id="cb15-34"><a href="#cb15-34" tabindex="-1"></a>  <span class="at">iidReps =</span> <span class="dv">2000</span>,</span>
+<span id="cb15-35"><a href="#cb15-35" tabindex="-1"></a>  <span class="at">parameter_vector =</span> theta_true,</span>
+<span id="cb15-36"><a href="#cb15-36" tabindex="-1"></a>  <span class="at">burnin =</span> <span class="dv">2000</span>,</span>
+<span id="cb15-37"><a href="#cb15-37" tabindex="-1"></a>  <span class="at">thin =</span> <span class="dv">2</span>,</span>
+<span id="cb15-38"><a href="#cb15-38" tabindex="-1"></a>  <span class="at">return_details =</span> <span class="cn">TRUE</span></span>
+<span id="cb15-39"><a href="#cb15-39" tabindex="-1"></a>)</span>
+<span id="cb15-40"><a href="#cb15-40" tabindex="-1"></a></span>
+<span id="cb15-41"><a href="#cb15-41" tabindex="-1"></a><span class="fu">mean</span>(sim_mh<span class="sc">$</span>draws)</span>
+<span id="cb15-42"><a href="#cb15-42" tabindex="-1"></a><span class="co">#&gt; [1] 14.615</span></span>
+<span id="cb15-43"><a href="#cb15-43" tabindex="-1"></a>mean_theory</span>
+<span id="cb15-44"><a href="#cb15-44" tabindex="-1"></a><span class="co">#&gt; [1] 14.91825</span></span>
+<span id="cb15-45"><a href="#cb15-45" tabindex="-1"></a>sim_mh<span class="sc">$</span>accept_rate</span>
+<span id="cb15-46"><a href="#cb15-46" tabindex="-1"></a><span class="co">#&gt; [1] 0.3415</span></span></code></pre></div>
+<p>Now we fit <span class="math inline">\(\lambda\)</span> by
+saddlepoint MLE under the tilted model, using the simulated tilted
+sample as data.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Using the IS-R draws as &quot;observed data&quot; under the tilted model</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>y_obs <span class="ot">&lt;-</span> sim_is<span class="sc">$</span>draws</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">find.saddlepoint.MLE</span>(</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="at">observed.data  =</span> y_obs,</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="at">cgf            =</span> tilted_cgf,</span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>  <span class="at">starting.theta =</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="dv">1</span>),</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>  <span class="at">lb.theta       =</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="fl">1e-8</span>),</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>  <span class="at">ub.theta       =</span> <span class="fu">c</span>(<span class="at">lambda =</span> <span class="dv">100</span>),</span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>  <span class="at">method         =</span> <span class="st">&quot;two_step&quot;</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>  <span class="at">std.error      =</span> <span class="cn">FALSE</span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a>)</span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>fit<span class="sc">$</span>MLEs.theta</span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co">#&gt; [1] 10.15434</span></span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>theta_true</span>
+<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a><span class="co">#&gt; lambda </span></span>
+<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a><span class="co">#&gt;     10</span></span></code></pre></div>
+<blockquote>
+<p><strong>Notes</strong></p>
+<ul>
+<li>For high-dimensional <span class="math inline">\(X\)</span>, IS-R
+often degenerates unless the tilt is small or the proposal sample size
+is very large (check ESS).</li>
+<li>IMH should be more robust than IS-R when weights explode, but you
+must check mixing / autocorrelation (acceptance rate is only one
+diagnostic).</li>
+<li>If your base family has a closed-form tilted law (Normal / Poisson /
+Gamma / …), prefer that exact sampler. The generic IS-R / IMH methods
+are fallbacks.</li>
+</ul>
+</blockquote>
+<hr />
+</div>
+</div>
+</div>
+<div id="adding-a-new-rsim-implementation" class="section level2">
+<h2>Adding a new <code>rsim()</code> implementation</h2>
+<p>For any new base distribution, define a simulator and pass it to
+<code>createCGF(rsim = ...)</code>.</p>
+<p><strong>Contract expected by <code>CGF$rsim</code>:</strong></p>
+<ul>
+<li>simulator returns either:
+<ul>
+<li>a numeric vector of length <code>d * iidReps</code>, or</li>
+<li>a numeric <code>d x iidReps</code> matrix.</li>
+</ul></li>
+<li>each column corresponds to one simulated draw of the underlying
+random vector.</li>
+</ul>
+<p>Then wrappers can often be implemented in a small, compositional way:
+e.g. <code>linearlyMappedCGF</code> simulates <code>X</code> and returns
+<code>A %*% X</code>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

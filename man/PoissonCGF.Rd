@@ -5,7 +5,7 @@
 \alias{PoissonCGF}
 \title{Poisson CGF object}
 \format{
-An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 20.
+An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 24.
 }
 \usage{
 PoissonCGF

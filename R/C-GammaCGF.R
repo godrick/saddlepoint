@@ -14,11 +14,47 @@
   .make_univariate_model_cgf_matrix(
     K_elem      = function(tvec, pm) -pm[,1] * log1p(-tvec / pm[,2]),
     K1_elem     = function(tvec, pm)  pm[,1] / (pm[,2] - tvec),
-    K2_elem     = function(tvec, pm)  pm[,1] / (pm[,2] - tvec)^2,
-    K3_elem     = function(tvec, pm)  2 * pm[,1] / (pm[,2] - tvec)^3,
-    K4_elem     = function(tvec, pm)  6 * pm[,1] / (pm[,2] - tvec)^4,
+    # K2_elem     = function(tvec, pm)  pm[,1] / (pm[,2] - tvec)^2,
+    K2_elem     = function(tvec, pm)  {
+      denom <- pm[,2] - tvec
+      denom2 <- denom * denom
+      pm[,1] / denom2
+    },
+    # K3_elem     = function(tvec, pm)  2 * pm[,1] / (pm[,2] - tvec)^3,
+    K3_elem     = function(tvec, pm)  {
+      denom <- pm[,2] - tvec
+      denom2 <- denom * denom
+      denom3 <- denom2 * denom
+      2 * pm[,1] / denom3
+    },
+    # K4_elem     = function(tvec, pm)  6 * pm[,1] / (pm[,2] - tvec)^4,
+    K4_elem     = function(tvec, pm)  {
+      denom <- pm[,2] - tvec
+      denom2 <- denom * denom
+      denom4 <- denom2 * denom2
+      6 * pm[,1] / denom4
+    },
     t_hat_elem  = function(x, pm) pm[,2] - (pm[,1] / x),
     split_param_to_mat = split_ab,
+    simulate_func = function(iidReps, parameter_vector, ...) {
+      pm <- split_ab(parameter_vector)
+      shape <- as.numeric(pm[, 1])
+      rate  <- as.numeric(pm[, 2])
+
+      if (any(!is.finite(shape)) || any(shape <= 0)) stop("GammaCGF$rsim: 'shape' must be finite and > 0.")
+
+      if (any(!is.finite(rate)) || any(rate <= 0)) stop("GammaCGF$rsim: 'rate' must be finite and > 0.")
+
+
+      d <- length(shape)
+      out <- stats::rgamma(
+        n     = d * iidReps,
+        shape = rep.int(shape, times = iidReps),
+        rate  = rep.int(rate,  times = iidReps)
+      )
+      matrix(out, nrow = d, ncol = iidReps)
+    },
+
     iidReps = iidReps,
     op_name = op_name,
     ineq_elem = function(tvec, pm) tvec - pm[,2],

@@ -101,26 +101,42 @@ check_fun_sig <- function(fn, expected_args) {
 
 
 
-#------------------------------------------------------------------------
-### Preliminary helpers for logdet and inverse/solve
-### The issue is that Eigen's .inverse() seems more stable for near-singular matrices.
-### But, RTMB uses the solve() function in the reverse mode of determinant(..., log = T).
-### As a temporary workaround, we use a new atomic function via "ADjoint",
-### which computes the inverse using Eigen's .inverse() function.
-my_matinv <- function(x){
-  if (is(x, "advector")) {
-    return(matinv_TMBad(x)) # exported from atomic::matinv
-  }
-  matinv_double(x) # Eigen's .inverse()
-}
-my_logdet <- ADjoint(
-  function(x) determinant(x, log=TRUE)$modulus,
-  function(x, y, dy) {
-    my_matinv(x) * dy[1]
-  },
-  name = "my_logdet")
-#------------------------------------------------------------------------
+# #------------------------------------------------------------------------
+# ### Preliminary helpers for logdet and inverse/solve
+# ### The issue is that Eigen's .inverse() seems more stable for near-singular matrices.
+# ### But, RTMB uses the solve() function in the reverse mode of determinant(..., log = T).
+# ### As a temporary workaround, we use a new atomic function via "ADjoint",
+# ### which computes the inverse using Eigen's .inverse() function.
+# my_matinv <- function(x){
+#   if (is(x, "advector")) {
+#     return(matinv_TMBad(x)) # exported from atomic::matinv
+#   }
+#   matinv_double(x) # Eigen's .inverse()
+# }
+# my_logdet <- ADjoint(
+#   function(x) determinant(x, log=TRUE)$modulus,
+#   function(x, y, dy) {
+#     my_matinv(x) * dy[1]
+#   },
+#   name = "my_logdet")
+# #------------------------------------------------------------------------
 
+
+
+#------------------------------------------------------------------------
+# NOTE (log-determinants under RTMB):
+# Earlier versions included an ADjoint-based `my_logdet()` helper to customize
+# reverse-mode behaviour for log|det(K2)|. We have abandoned that
+# approach and rely on determinant() instead.
+#
+# The recommended pattern  is now:
+#   * use cgf$logdetK2(t, theta) whenever you need log|det(K2(t,theta))|
+#   * use cgf$K2_solve(t, theta, rhs) whenever you need (K2)^{-1} rhs
+#
+# These have defaults based on determinant(cgf$K2(...), logarithm=TRUE) and
+# solve(cgf$K2(...), rhs), but wrapper CGFs (iidReplicates / concatenation /
+# multinomial, etc.) can override them to avoid ever materialising a huge global K2.
+#------------------------------------------------------------------------
 
 
 
@@ -144,6 +160,7 @@ CGF <- R6::R6Class(
     # --- OPTIONAL user-supplied method pointers ---
     ineq_constraint_func = NULL,
     analytic_tvec_hat_func = NULL,
+    simulate_func = NULL,
 
 
     # "Hidden" or private-labeled methods:
@@ -182,6 +199,14 @@ CGF <- R6::R6Class(
     has_analytic_tvec_hat = NULL,
     analytic_tvec_hat = NULL,
 
+    # Simulation (optional)
+    has_simulate = NULL,
+    rsim = NULL,
+
+    # Optional computational helpers (can be overridden for efficiency)
+    K2_solve = NULL,
+    logdetK2 = NULL,
+
     # -----------------------------------------------------------------------
     # CONSTRUCTOR
     # -----------------------------------------------------------------------
@@ -192,6 +217,11 @@ CGF <- R6::R6Class(
                           tilting_exponent_func = NULL,
                           neg_ll_func = NULL,
                           func_T_func = NULL,
+                          ##
+                          K2_solve_func = NULL,
+                          logdetK2_func = NULL,
+                          simulate_func = NULL,
+                          ##
                           K4operatorAABB_func = NULL,
                           K3K3operatorAABBCC_func = NULL,
                           K3K3operatorABCABC_func = NULL,
@@ -214,6 +244,10 @@ CGF <- R6::R6Class(
       # --- Store optional user-supplied methods ---
       private$ineq_constraint_func <- ineq_constraint_func
       private$analytic_tvec_hat_func <- analytic_tvec_hat_func
+      if (!is.null(simulate_func) && !is.function(simulate_func)) {
+        stop("'simulate_func' must be NULL or a function.")
+      }
+      private$simulate_func <- simulate_func
       private$K2operator_func <- K2operator_func
       private$K2operatorAK2AT_func <- K2operatorAK2AT_func
       private$K4operatorAABB_func <- K4operatorAABB_func
@@ -299,14 +333,43 @@ CGF <- R6::R6Class(
         }
       }
 
+# ---------------------------------------------------------------------
+# Optional computational helpers:
+#   - K2_solve(t,theta,rhs) : linear solve against K2 without necessarily building K2
+#   - logdetK2(t,theta)     : log|det(K2)| without necessarily building K2
+#
+# Defaults use solve()/determinant() on self$K2(). Wrapper CGFs can override
+# these to exploit structure (block-diagonal, low-rank, etc.).
+# ---------------------------------------------------------------------
+if (!is.null(K2_solve_func)) {
+  self$K2_solve <- function(tvec, parameter_vector, rhs) {
+    K2_solve_func(tvec, parameter_vector, rhs)
+  }
+} else {
+  self$K2_solve <- function(tvec, parameter_vector, rhs) {
+    solve(self$K2(tvec, parameter_vector), rhs)
+  }
+}
+
+if (!is.null(logdetK2_func)) {
+  self$logdetK2 <- function(tvec, parameter_vector) {
+    logdetK2_func(tvec, parameter_vector)
+  }
+} else {
+  self$logdetK2 <- function(tvec, parameter_vector) {
+    determinant(self$K2(tvec, parameter_vector), logarithm = TRUE)$modulus
+  }
+}
+
       if (!is.null(neg_ll_func)) {
         private$neg_ll <- function(tvec, parameter_vector) neg_ll_func(tvec, parameter_vector)
       } else {
         private$neg_ll <- function(tvec, parameter_vector) {
           te <- private$tilting_exponent(tvec, parameter_vector)
-          K2_val <- self$K2(tvec, parameter_vector)
-          val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
-          # val_logdet <- my_logdet(as.matrix(K2_val))
+            # K2_val <- self$K2(tvec, parameter_vector)
+            # val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
+            # # val_logdet <- my_logdet(as.matrix(K2_val))
+          val_logdet <- self$logdetK2(tvec, parameter_vector)
           0.5 * val_logdet + 0.5 * length(tvec)*log(2*pi) - te
         }
       }
@@ -319,7 +382,7 @@ CGF <- R6::R6Class(
           K2_inv <- solve(K2_val)
           chol_K2_inv <- chol(K2_inv)
           diag_K2_inv <- diag(chol_K2_inv)
-          d <- diag_K2_inv^2
+          d <- diag_K2_inv*diag_K2_inv
           A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
 
           K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
@@ -377,7 +440,7 @@ CGF <- R6::R6Class(
         self$K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
           chol_Q1 <- chol(Q1)
           diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1^2
+          d1 <- diag_Q1 * diag_Q1
           A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
           private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1)
         }
@@ -392,7 +455,7 @@ CGF <- R6::R6Class(
         self$K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
           chol_Q1 <- chol(Q1)
           diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1^2
+          d1 <- diag_Q1 * diag_Q1
           A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
           private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
         }
@@ -407,7 +470,7 @@ CGF <- R6::R6Class(
         self$K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
           chol_Q1 <- chol(Q1)
           diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1^2
+          d1 <- diag_Q1*diag_Q1
           A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
           private$K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
         }
@@ -430,12 +493,39 @@ CGF <- R6::R6Class(
       }
       if(self$has_analytic_tvec_hat()) {
         self$analytic_tvec_hat <- function(x, parameter_vector) {
-          stopifnot(is.numeric(x), !any(x <= 0))
           private$analytic_tvec_hat_func(x, parameter_vector)
         }
       } else {
         self$analytic_tvec_hat <- NULL
       }
+
+  # has_simulate / rsim
+  self$has_simulate <- function() {
+    !is.null(private$simulate_func)
+  }
+  self$rsim <- function(iidReps, parameter_vector, drop = TRUE, ...) {
+    if (!self$has_simulate()) {
+      stop("This CGF does not implement simulation (no 'simulate_func').", call. = FALSE)
+    }
+    if (length(iidReps) != 1L || !is.finite(iidReps) || iidReps < 1L || iidReps != as.integer(iidReps)) {
+      stop("'iidReps' must be a positive integer.", call. = FALSE)
+    }
+    iidReps <- as.integer(iidReps)
+
+    out <- private$simulate_func(iidReps = iidReps, parameter_vector = parameter_vector, ...)
+
+
+    if (is.null(dim(out))) {
+      if (!is.numeric(out)) stop("simulate_func must return a numeric vector or matrix.", call. = FALSE)
+      if (length(out) %% iidReps != 0L) {
+        stop("simulate_func returned a vector whose length is not divisible by iidReps.", call. = FALSE)
+      }
+      d <- length(out) %/% iidReps
+      out <- matrix(out, nrow = d, ncol = iidReps)
+    }
+    if (drop && nrow(out) == 1) return(as.numeric(out))
+    out
+  }
 
     },
 
@@ -530,7 +620,7 @@ CGF <- R6::R6Class(
         tvec.hat         = tvec.hat,
         gradient         = gradient,
         hessian          = hessian,
-        spa_method       = "standard",
+        spa_method       = spa_method,
         ...
       )
     }
@@ -580,6 +670,11 @@ createCGF <- function(K, K1, K2, K3operator, K4operator,
                       tilting_exponent = NULL,
                       neg_ll = NULL,
                       func_T = NULL,
+                      ##
+                          K2_solve = NULL,
+                          logdetK2 = NULL,
+                          rsim = NULL,
+                      ##
                       K4operatorAABB = NULL,
                       K3K3operatorAABBCC = NULL,
                       K3K3operatorABCABC = NULL,
@@ -595,6 +690,11 @@ createCGF <- function(K, K1, K2, K3operator, K4operator,
     tilting_exponent_func          = tilting_exponent,
     neg_ll_func                    = neg_ll,
     func_T_func                    = func_T,
+    ##
+        K2_solve_func = K2_solve,
+        logdetK2_func = logdetK2,
+        simulate_func = rsim,
+    ##
     K4operatorAABB_func           = K4operatorAABB,
     K3K3operatorAABBCC_func       = K3K3operatorAABBCC,
     K3K3operatorABCABC_func       = K3K3operatorABCABC,

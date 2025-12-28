@@ -1,0 +1,560 @@
+---
+title: "Random simulation with CGF objects: cgf$rsim(...)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Random simulation with CGF objects: cgf$rsim(...)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  message  = FALSE,
+  warning  = TRUE
+)
+```
+
+This vignette documents how `rsim(...)` works across CGF objects and wrappers in this codebase.
+We will keep extending it as new CGFs gain simulation support.
+
+> **Conventions used here**
+>
+> - `iidReps` always means “how many independent draws to simulate”.
+> - For a `d`-dimensional random vector, simulation returns a `d x (iidReps)` matrix where each **column** is one draw.
+> - If `d == 1` and `drop = TRUE` (default), simulation returns a numeric vector of length `iidReps`.
+
+
+## What `block_size` is, and when you need to think about it
+
+A lot of CGFs in this `saddlepoint` package are *vectorized*. That means a long `tvec` could mean either:
+
+- **one** high-dimensional random vector, or
+- **B** independent “blocks” of a smaller random vector (i.i.d. replication).
+
+The wrapper `iidReplicatesCGF()` disambiguates those interpretations. It uses:
+
+- `block_size` = dimension of one observation (one block), and
+- `iidReps` (inside the wrapper) = how many blocks to expect (or `"any"` to infer it from `length(tvec)`).
+
+### Does `block_size` matter for `rsim()`?
+
+Usually, **no**. `rsim(iidReps = B, ...)` is unambiguous: you asked for `B` draws, and simulation can determine the dimension `d` from the model parameters.
+
+You mainly need `block_size` when *constructing* a CGF (e.g., RSS models) so that evaluation methods (`K`, `K1`, `K2`, etc.) cannot silently reinterpret a long `tvec` as “a different statistical model”.
+
+Wrappers like `linearlyMappedCGF()` can usually infer `block_size` internally (e.g., `nrow(A)`), so you rarely worry about it there.
+
+## Quick checklist for `rsim()` support
+
+A CGF supports simulation if:
+
+```{r}
+# cgf$has_simulate()
+```
+
+returns `TRUE`.
+
+When it does, the canonical call is:
+
+```r
+Y <- cgf$rsim(iidReps = 10, parameter_vector = theta)
+```
+
+## Example 1a: PoissonCGF (scalar and vector)
+
+```{r}
+set.seed(1)
+
+# Scalar Poisson (d = 1)
+lambda <- 2
+x <- PoissonCGF$rsim(iidReps = 10, parameter_vector = lambda)
+x
+
+# Vector Poisson (d = 2) interpreted as independent components
+lambda2 <- c(2, 3)
+X <- PoissonCGF$rsim(iidReps = 5, parameter_vector = lambda2, drop = FALSE)
+X
+```
+
+## Example 1b: NormalCGF (vectorized independent normals)
+
+```{r}
+set.seed(1)
+
+# Two independent normals packed into one CGF parameter vector:
+# parameter_vector = c(mu1, mu2, sigma1, sigma2)
+param <- c(0, 5, 1, 2)
+
+X <- NormalCGF$rsim(iidReps = 5, parameter_vector = param, drop = FALSE)
+X
+dim(X)  # 2 x 5
+rowMeans(X)  # ~ c(0, 5)
+```
+
+## Example 1c: BinomialCGF (vectorized)
+
+```{r}
+set.seed(1)
+
+# Two independent binomials:
+# parameter_vector = c(n1, n2, p1, p2)
+param <- c(10, 20, 0.2, 0.6)
+
+X <- BinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
+X
+rowMeans(X)              # ~ c(2, 12)
+rowMeans(X) / c(10, 20)  # ~ c(0.2, 0.6)
+```
+
+## Example 2: linearlyMappedCGF simulation (sum of independent Poissons)
+
+Let `X = (X1, X2)` with `X1 ~ Pois(2)`, `X2 ~ Pois(3)` independent, and define `Y = X1 + X2`.
+This is implemented as a linear map with `A = [1 1]`.
+
+```{r}
+set.seed(1)
+
+cg_vec <- PoissonCGF
+A <- matrix(c(1, 1), nrow = 1)
+
+cg_sum <- linearlyMappedCGF(cg_vec, A)
+
+lambda <- c(2, 3)
+Y <- cg_sum$rsim(iidReps = 10000, parameter_vector = lambda)
+
+mean(Y)         # should be ~ 5
+var(Y)          # should be ~ 5
+```
+
+## Example 3: Parameter mapping with adaptors (avoiding “wrong dimension” mistakes)
+
+A common pitfall is passing a combined parameter vector to a component CGF that expects only one number.
+For example, if `count_cgf` is `PoissonCGF` and you pass `theta = c(lambdaN, lambdaX)`,
+then `PoissonCGF` interprets this as a **2-dimensional** Poisson parameter, not a scalar.
+
+The fix is to *adapt* each sub-CGF so it receives only the piece of `theta` it needs.
+
+```{r}
+set.seed(1)
+
+# theta = c(lambdaN, lambdaX)
+theta <- c(lambdaN = 2, lambdaX = 3)
+
+count_cgf   <- PoissonModelCGF(lambda = adaptor(indices = 1))
+summand_cgf <- PoissonModelCGF(lambda = adaptor(indices = 2))
+
+rss <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = 1)
+
+Y <- rss$rsim(iidReps = 10000, parameter_vector = theta)
+mean(Y)  # for compound Poisson, E[Y] = E[N] * E[X] = lambdaN * lambdaX = 6
+```
+
+## Example 4: RSS with vector summands (Poisson thinning check)
+
+Let `N ~ Poisson(lambda)` and `X_i ~ Multinomial(1, p)` a one-hot vector (categorical draw).
+Then `Y = sum_{i=1}^N X_i` should have independent Poisson components with means `lambda * p`.
+
+```{r}
+set.seed(1)
+
+d <- 3
+theta <- c(lambda = 10, p = c(0.2, 0.3, 0.5))
+
+count_cgf <- PoissonModelCGF(lambda = adaptor(indices = 1))
+summand_cgf <- MultinomialModelCGF(
+  n        = adaptor(fixed_param = 1),
+  prob_vec = adaptor(indices = 2:(d + 1))
+)
+
+rss_vec <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = d)
+
+Y <- rss_vec$rsim(iidReps = 20000, parameter_vector = theta, drop = FALSE)
+
+rowMeans(Y)  # should be ~ lambda * p = (2, 3, 5)
+```
+
+## Example 5: MultinomialCGF simulation (odds vs probabilities)
+
+`MultinomialCGF` expects `parameter_vector = c(N, x_1, ..., x_d)`.
+The `x` vector is treated as odds (or as probabilities if it already sums to 1).
+
+```{r}
+set.seed(1)
+
+N <- 10
+odds <- c(2, 3, 5)
+param_odds <- c(N, odds)
+
+X <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_odds, drop = FALSE)
+X
+colSums(X)  # should all equal N
+
+# Same distribution if you pass probabilities instead of odds
+p <- odds / sum(odds)
+param_p <- c(N, p)
+
+Xp <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_p, drop = FALSE)
+colSums(Xp)
+```
+
+## Example 6: MultinomialModelCGF (theta-mapped multinomial)
+
+```{r}
+set.seed(1)
+
+d <- 3
+theta <- c(N = 12, p = c(0.1, 0.2, 0.7))
+
+cgf <- MultinomialModelCGF(
+  n        = function(th) th[1],
+  prob_vec = function(th) th[2:(d + 1)],
+  iidReps  = "any"
+)
+
+X <- cgf$rsim(iidReps = 5, parameter_vector = theta, drop = FALSE)
+X
+colSums(X)
+```
+
+## Example 7: SubunitaryMultinomialCGF
+
+`SubunitaryMultinomialCGF` uses parameters `c(N, pi_1,...,pi_d)` where `sum(pi) <= 1`
+and conceptually corresponds to a (d+1)-category multinomial **conditioned** on the last category being zero.
+
+Simulation returns the `d` active-category counts and still sums to `N`.
+
+```{r}
+set.seed(1)
+
+N <- 10
+pi <- c(0.2, 0.3, 0.1)  # sum < 1 (subunitary)
+param <- c(N, pi)
+
+W <- SubunitaryMultinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
+W
+colSums(W)
+```
+
+## Example 8: sumOfiidCGF (sum of i.i.d. Poissons)
+
+```{r}
+set.seed(1)
+
+base <- PoissonModelCGF(lambda = adaptor(indices = 1))
+sum10 <- sumOfiidCGF(base, n = 10, block_size = 1)
+
+theta <- c(lambda = 2)
+Y <- sum10$rsim(iidReps = 20000, parameter_vector = theta)
+
+mean(Y)  # should be ~ 20
+var(Y)   # should be ~ 20
+```
+
+
+
+## Example: sumOfIndependentCGF (sum of independent, not-necessarily-identical terms)
+
+```{r}
+set.seed(1)
+
+theta <- c(lambda1 = 2, lambda2 = 3)
+
+cg1 <- PoissonModelCGF(lambda = adaptor(indices = 1))
+cg2 <- PoissonModelCGF(lambda = adaptor(indices = 2))
+
+cg_sum <- sumOfIndependentCGF(list(cg1, cg2), block_size = 1)
+
+Y <- cg_sum$rsim(iidReps = 20000, parameter_vector = theta)
+
+mean(Y)  # should be ~ 5
+var(Y)   # should be ~ 5
+```
+
+
+
+## Other issues
+
+### 1) RSS: `count_cgf` must be scalar
+
+In RSS models, `count_cgf` represents a *scalar* count `N`, so simulation requires a scalar draw per replicate.
+If your count CGF is vectorized (like `PoissonCGF`) and you accidentally pass a vector parameter,
+you’ll get a “count must be scalar” error.
+
+The fix is to use parameter adaptors (as shown above) so the count CGF receives only the scalar parameter it needs.
+
+### 2) Esscher / exponential tilt wrappers typically do not implement `rsim()` (and what you can do instead)
+
+`EsscherTiltCGF()` defines the **Esscher-tilted** CGF
+\[
+K_h(t) = K(t+h) - K(h),
+\]
+which corresponds to a change-of-measure
+\[
+\mathrm{d}\mathbb P_h(x) \;\propto\; e^{h^\top x}\,\mathrm{d}\mathbb P(x).
+\]
+
+This is not a deterministic transformation of draws from the base distribution.
+In general, *even though the CGF determines the law (when it exists in a neighborhood of 0)*,
+there is no universal, closed-form exact sampler that can be constructed from CGF evaluations alone.
+
+Therefore, `EsscherTiltCGF()` is an 'analysis-only' (for saddlepoint / likelihood work) and
+does not provide a generic exact `rsim()` implementation in this package. 
+
+However, if you can simulate from the base model (i.e. `base_cgf$has_simulate() == TRUE`),
+then you can still simulate **exactly/approximately** from the tilted distribution *outside the package*
+using one of the following generic strategies:
+
+- (A) Importance sampling + resampling (IS-R)  
+  Draw many proposals \(X^{(m)} \sim \mathbb P\), weight them by \(w_m \propto e^{h^\top X^{(m)}}\),
+  and resample.
+- (B) Independence Metropolis–Hastings (IMH)  
+  Use proposal \(q=\mathbb P\) (simulate from the base), and accept with probability
+  \[
+  \alpha(x\to x') = \min\{1,\exp(h^\top(x' - x))\}.
+  \]
+  This is attractive here because the unknown base density cancels in the MH ratio.
+
+Both methods depend only on:
+1) being able to draw from the base model via `base_cgf$rsim()`, and  
+2) being able to compute \(h^\top x\) for simulated draws.
+
+> **Note**  
+> These are approximate samplers:
+> IS-R has Monte Carlo error and can suffer weight degeneracy (low ESS), and
+> IMH is asymptotically exact but has MCMC error and autocorrelation (needs diagnostics).
+
+#### Helper functions (copy/paste)
+
+```{r}
+# Convert a draw to a d x B matrix (columns = draws)
+.as_draw_matrix <- function(X) {
+  if (is.null(dim(X))) {
+    matrix(as.numeric(X), nrow = 1L)
+  } else {
+    X
+  }
+}
+
+# Broadcast a scalar tilt to length d if needed (otherwise require exact match)
+.broadcast_tilt <- function(tilt, d) {
+  if (!is.numeric(tilt) || length(tilt) < 1L) stop("'tilt' must be a numeric vector.")
+  if (any(!is.finite(tilt))) stop("'tilt' must be finite.")
+  if (length(tilt) == 1L && d > 1L) return(rep(tilt, d))
+  if (length(tilt) != d) stop("tilt length mismatch: expected length ", d, ", got ", length(tilt), ".")
+  tilt
+}
+
+# Importance sampling + resampling
+esscher_rsim_is_resample <- function(base_cgf,
+                                     tilt,
+                                     iidReps,
+                                     parameter_vector,
+                                     proposal_iidReps = max(2000L, 20L * iidReps),
+                                     drop = TRUE,
+                                     return_details = FALSE,
+                                     ...) {
+  if (!inherits(base_cgf, "CGF")) stop("'base_cgf' must be a CGF.")
+  if (!isTRUE(base_cgf$has_simulate())) stop("Base CGF does not support simulation (has_simulate() is FALSE).")
+  if (!is.numeric(iidReps) || length(iidReps) != 1L || iidReps < 1L) stop("'iidReps' must be a positive integer-ish.")
+  iidReps <- as.integer(iidReps)
+  proposal_iidReps <- as.integer(proposal_iidReps)
+
+  Xprop <- .as_draw_matrix(base_cgf$rsim(iidReps = proposal_iidReps,
+                                        parameter_vector = parameter_vector,
+                                        drop = FALSE, ...))
+  d <- nrow(Xprop)
+  h <- .broadcast_tilt(tilt, d)
+
+  # log-weights: lw_m = h^T x_m
+  lw <- as.numeric(crossprod(h, Xprop))
+  mx <- max(lw)
+  if (!is.finite(mx)) stop("Non-finite tilt weights; try a smaller |tilt| or check your model.")
+
+  w <- exp(lw - mx)
+  sw <- sum(w)
+  if (!is.finite(sw) || sw <= 0) stop("Degenerate importance weights; try more proposals or a smaller |tilt|.")
+  w <- w / sw
+
+  # Effective sample size (ESS) for diagnostics
+  ess <- 1 / sum(w^2)
+
+  idx <- sample.int(ncol(Xprop), size = iidReps, replace = TRUE, prob = w)
+  out <- Xprop[, idx, drop = FALSE]
+
+  if (drop && d == 1L) out <- as.numeric(out)
+
+  if (isTRUE(return_details)) {
+    return(list(draws = out, ess = ess, weights = w, logw = lw))
+  }
+  out
+}
+
+# Independence Metropolis–Hastings with proposal q = base distribution
+esscher_rsim_imh <- function(base_cgf,
+                             tilt,
+                             iidReps,
+                             parameter_vector,
+                             burnin = 1000L,
+                             thin = 1L,
+                             init = NULL,
+                             drop = TRUE,
+                             return_details = FALSE,
+                             ...) {
+  if (!inherits(base_cgf, "CGF")) stop("'base_cgf' must be a CGF.")
+  if (!isTRUE(base_cgf$has_simulate())) stop("Base CGF does not support simulation (has_simulate() is FALSE).")
+  if (!is.numeric(iidReps) || length(iidReps) != 1L || iidReps < 1L) stop("'iidReps' must be a positive integer-ish.")
+  iidReps <- as.integer(iidReps)
+  burnin <- as.integer(burnin)
+  thin <- as.integer(thin)
+  if (burnin < 0L) stop("'burnin' must be >= 0.")
+  if (thin < 1L) stop("'thin' must be >= 1.")
+
+  # Infer dimension d from one base draw
+  x1 <- .as_draw_matrix(base_cgf$rsim(iidReps = 1L, parameter_vector = parameter_vector, drop = FALSE, ...))
+  d <- nrow(x1)
+  h <- .broadcast_tilt(tilt, d)
+
+  # Initialize chain
+  if (is.null(init)) {
+    x_curr <- as.numeric(x1)
+  } else {
+    init <- as.numeric(init)
+    if (length(init) != d) stop("'init' must have length d = ", d, ".")
+    x_curr <- init
+  }
+
+  n_iter <- burnin + thin * iidReps
+  out <- matrix(NA_real_, nrow = d, ncol = iidReps)
+
+  n_acc <- 0L
+  k <- 0L
+
+  for (iter in seq_len(n_iter)) {
+    x_prop <- as.numeric(.as_draw_matrix(
+      base_cgf$rsim(iidReps = 1L, parameter_vector = parameter_vector, drop = FALSE, ...)
+    ))
+
+    # log acceptance ratio: h^T(x_prop - x_curr)
+    log_alpha <- sum(h * (x_prop - x_curr))
+
+    # accept if log(U) < min(0, log_alpha)
+    if (log(runif(1)) < min(0, log_alpha)) {
+      x_curr <- x_prop
+      n_acc <- n_acc + 1L
+    }
+
+    if (iter > burnin && ((iter - burnin) %% thin == 0L)) {
+      k <- k + 1L
+      out[, k] <- x_curr
+    }
+  }
+
+  acc_rate <- n_acc / n_iter
+  if (drop && d == 1L) out <- as.numeric(out)
+
+  if (isTRUE(return_details)) {
+    return(list(draws = out, accept_rate = acc_rate))
+  }
+  out
+}
+```
+
+#### Worked example: approximate tilted simulation + saddlepoint MLE
+
+We use a *simple* base model (Poisson) with a known closed-form tilt.
+The exact tilted law is:
+if \(X \sim \mathrm{Pois}(\lambda)\), then under tilt \(\tau\),
+\(X^{(\tau)} \sim \mathrm{Pois}(\lambda e^\tau)\).
+
+Even though we could sample exactly here, the *same IS-R / IMH code* applies
+to more complex composite CGFs whenever `base_cgf$rsim()` exists.
+
+```{r}
+set.seed(1)
+
+# Base model: Poisson with theta = lambda
+theta_true <- c(lambda = 10)
+tau <- 0.4
+
+base <- PoissonModelCGF(lambda = adaptor(indices = 1))
+tilted_cgf <- EsscherTiltCGF(base, tilt = tau)
+
+# Theory check: mean under the tilt is K'_base(tau) = lambda * exp(tau)
+mean_theory <- as.numeric(base$K1(tau, theta_true))
+
+# --- (A) Importance-resampling sampler ---
+sim_is <- esscher_rsim_is_resample(
+  base_cgf = base,
+  tilt = tau,
+  iidReps = 2000,
+  parameter_vector = theta_true,
+  proposal_iidReps = 20000,
+  return_details = TRUE
+)
+
+mean(sim_is$draws)
+mean_theory
+sim_is$ess  # diagnostic; higher is better (<= proposal_iidReps)
+
+# --- (B) Independence MH sampler ---
+sim_mh <- esscher_rsim_imh(
+  base_cgf = base,
+  tilt = tau,
+  iidReps = 2000,
+  parameter_vector = theta_true,
+  burnin = 2000,
+  thin = 2,
+  return_details = TRUE
+)
+
+mean(sim_mh$draws)
+mean_theory
+sim_mh$accept_rate
+```
+
+Now we fit \(\lambda\) by saddlepoint MLE under the tilted model,
+using the simulated tilted sample as data.
+
+```{r}
+# Using the IS-R draws as "observed data" under the tilted model
+y_obs <- sim_is$draws
+
+fit <- find.saddlepoint.MLE(
+  observed.data  = y_obs,
+  cgf            = tilted_cgf,
+  starting.theta = c(lambda = 1),
+  lb.theta       = c(lambda = 1e-8),
+  ub.theta       = c(lambda = 100),
+  method         = "two_step",
+  std.error      = FALSE
+)
+
+fit$MLEs.theta
+theta_true
+```
+
+> **Notes**
+>
+> - For high-dimensional \(X\), IS-R often degenerates unless the tilt is small or the proposal sample size is very large (check ESS).
+> - IMH should be more robust than IS-R when weights explode, but you must check mixing / autocorrelation (acceptance rate is only one diagnostic).
+> - If your base family has a closed-form tilted law (Normal / Poisson / Gamma / ...), prefer that exact sampler. The generic IS-R / IMH methods are fallbacks.
+
+
+---
+
+## Adding a new `rsim()` implementation
+
+For any new base distribution, define a simulator and pass it to `createCGF(rsim = ...)`.
+
+**Contract expected by `CGF$rsim`:**
+
+- simulator returns either:
+  - a numeric vector of length `d * iidReps`, or
+  - a numeric `d x iidReps` matrix.
+- each column corresponds to one simulated draw of the underlying random vector.
+
+Then wrappers can often be implemented in a small, compositional way:
+e.g. `linearlyMappedCGF` simulates `X` and returns `A %*% X`.
+
