@@ -10,7 +10,7 @@ linearlyMappedCGF(cgf, matrix_A, iidReps = "any", ...)
 \item{cgf}{An object of class \code{CGF} for the base distribution \eqn{X}.}
 
 \item{matrix_A}{Either a numeric matrix (dense or \code{Matrix} sparse), or a function
-\code{function(\theta) -> A(\theta)} returning one of: numeric dense matrix,
+\code{function(theta) -> A(theta)} returning one of: numeric dense matrix,
 \code{Matrix} sparse matrix, RTMB AD‑dense (an \code{advector} with a \code{dim})
 or RTMB \code{adsparse}.}
 
@@ -45,7 +45,7 @@ at construction to a sparse \code{Matrix}.
 \item a \code{Matrix} sparse matrix (preferred for large problems);
 \item an RTMB::AD-dense matrix (RTMB \code{advector} with a \code{dim} attribute);
 \item an RTMB::AD-sparse matrix (RTMB \code{adsparse}), created e.g. via
-\code{A <- RTMB::AD(Matrix::sparseMatrix(...)); A@x[] <- ...}.
+\code{A = RTMB::AD(Matrix::sparseMatrix(...)); A@x[] = ...}.
 }
 }
 }
@@ -104,7 +104,7 @@ A_theta_sparse <- function(theta) {
                      x = c(1, 0, 1),
                      dims = c(2L, 2L))
   A  <- RTMB::AD(A0)
-  A@x[] <- c(1, 0.5*theta[1], 1)
+  A@x[] = c(1, 0.5*theta[1], 1)
   A
 }
 

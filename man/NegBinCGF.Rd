@@ -14,12 +14,8 @@ NegBinCGF
 \description{
 A ready-to-use CGF object for the Negative Binomial distribution with
 number of successes \eqn{r} and success probability \eqn{p}.
-The \code{parameter_vector} is \eqn{c(r, p)}.
-}
-\details{
-CGF: \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
-The inequality constraint \code{(1-p)\,e^t - 1 \le 0} is enforced via
-\code{ineq_constraint_func}.
+The \code{parameter_vector} is \eqn{c(r, p)}, and the actual
+CGF is \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
 }
 \examples{
 NegBinCGF$K1(0, c(10, 0.25))  # E[X] = r(1-p)/p = 10 * 0.75 / 0.25 = 30

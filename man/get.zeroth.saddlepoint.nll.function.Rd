@@ -21,7 +21,7 @@ This function creates and returns a function of the form \code{function(a) \{...
 }
 \examples{
 \dontrun{
-  TO DO: write a working example
+  # TO DO: write a working example
 }
 
 }

@@ -1,0 +1,20 @@
+url: https://godrick.github.io/experiment-spa/
+
+template:
+  bootstrap: 5
+  includes:
+    in_header: pkgdown/in_header.html
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [github]
+  components:
+    github:
+      icon: fa-github
+      aria-label: GitHub
+      href: https://github.com/godrick/experiment-spa
+
+home:
+  title: "saddlepoint"
+  description: "Saddlepoint approximations via composable CGF objects"

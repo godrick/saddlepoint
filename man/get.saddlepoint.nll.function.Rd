@@ -21,8 +21,8 @@ This function creates and returns a function of the form \code{function(a) \{...
 }
 \examples{
 \dontrun{
-  TO DO: write a working example
-  f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
-  f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
+  #...TO DO: write a working example
+  # f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
+  # f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
 }
 }

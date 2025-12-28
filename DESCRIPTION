@@ -3,10 +3,10 @@ Title: Saddlepoint methods with CGF operations
 Version: 0.9.0
 Date: 2025-08-27
 Authors@R: c(
-    person("Godrick", "Oketch", role = c("aut", "cre"), email = "goke316@aucklanduni.ac.nz"),
+    person("Godrick", "Oketch", role = c("aut", "cre"), email = "godrick@berkeley.edu"),
     person("Jesse", "Goodman", role = c("aut")),
     person("Rachel", "Fewster", role = c("aut")))
-Maintainer: Godrick Oketch <goke316@aucklanduni.ac.nz>
+Maintainer: Godrick Oketch <godrick@berkeley.edu>
 Author: Godrick Oketch [aut, cre],
     Jesse Goodman [aut],
     Rachel Fewster [aut]
@@ -37,5 +37,6 @@ Suggests:
     rmarkdown,
     pkgdown,
     testthat (>= 3.0.0)
+URL: https://godrick.github.io/experiment-spa/, https://github.com/godrick/experiment-spa
 VignetteBuilder: knitr
 Config/testthat/edition: 3

@@ -26,8 +26,8 @@ In this set up, the expression of the saddlepoint equation is defined by \eqn{K'
 }
 \examples{
 \dontrun{
-TO DO: write a working example
-  f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
-  f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
+# TO DO: write a working example
+ # f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
+ # f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
 }
 }

@@ -66,6 +66,9 @@ src/saddlepointMethods.o
 .Rproj.user/
 ..Rcheck
 
+docs/
+*.tar.gz
+
 
 
 

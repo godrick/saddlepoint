@@ -60,7 +60,7 @@ K2_m  <- agg_m$K2(t6, theta)
 is_zero <- function(M) max(abs(M)) < 1e-12
 is_zero(K2_m[1:2, 3:4]) && is_zero(K2_m[1:2, 5:6]) && is_zero(K2_m[3:4, 5:6])
 
-Both iidReps and block_size: require N == d * B
+# Both iidReps and block_size: require N == d * B
 agg_fix <- iidReplicatesCGF(pois, iidReps = 3, block_size = 2)  # N must be 6 here
 all.equal(agg_fix$K1(t6, theta), agg_m$K1(t6, theta))  # same objects agg_fix/agg_m
 \dontrun{

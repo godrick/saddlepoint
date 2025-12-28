@@ -6,7 +6,7 @@
 \alias{saddlepoint-package}
 \title{saddlepoint: Saddlepoint methods with CGF operations}
 \description{
-This package provides a comprehensive framework for performing operations on Cumulant Generating Functions (CGF) and efficiently computing saddlepoint approximation-related functions for statistical modeling. It enables users to manage various operations on random variables through their CGFs and to compute saddlepoint-based maximum likelihood estimates.
+Implements saddlepoint approximations based on cumulant generating functions (CGFs). Distributions are represented as CGF objects that provide derivatives needed for saddlepoint approximation methods and can be combined using compositional operators (e.g., i.i.d. replication, linear maps, and sums). Includes routines for solving saddlepoint equations and for maximum likelihood estimation, with optional automatic differentiation support via RTMB.
 }
 \section{Package development}{
 
@@ -14,8 +14,16 @@ The package is still in development and there may still be bugs and errors.
 While we do not expect major changes to the general user interface, there may be changes to the internal workings of the package as well as new additions and functionality.
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://godrick.github.io/experiment-spa/}
+  \item \url{https://github.com/godrick/experiment-spa}
+}
+
+}
 \author{
-\strong{Maintainer}: Godrick Oketch \email{goke316@aucklanduni.ac.nz}
+\strong{Maintainer}: Godrick Oketch \email{godrick@berkeley.edu}
 
 Authors:
 \itemize{

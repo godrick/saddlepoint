@@ -15,9 +15,9 @@
 #'
 #' @examples
 #' \dontrun{
-#'   TO DO: write a working example
-#'   f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
-#'   f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
+#'   #...TO DO: write a working example
+#'   # f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
+#'   # f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
 #' }
 #' @export
 get.saddlepoint.nll.function <- function(tvec, theta, cgf
@@ -60,7 +60,7 @@ get.saddlepoint.nll.function <- function(tvec, theta, cgf
 #'
 #' @examples
 #' \dontrun{
-#'   TO DO: write a working example
+#'   # TO DO: write a working example
 #' }
 #'
 #' @export
@@ -110,9 +110,9 @@ get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf) {
 #' @return A function that accepts a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to this function, it generates a list containing 'constraints' and 'jacobian'. 'constraints' are computed as \eqn{K'(t;\theta) - y}, and 'jacobian' represents the gradient of these constraints with respect to both \code{tvec} and \code{theta}.
 #' @examples
 #' \dontrun{
-#' TO DO: write a working example
-#'   f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
-#'   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
+#' # TO DO: write a working example
+#'  # f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
+#'  # f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
 #' }
 #' @export
 get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, cgf){
@@ -150,9 +150,9 @@ get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, c
 #' @return A function that takes a vector `a` as an argument. This function returns either NULL or a list with 'constraints' and 'jacobian'.
 #' @examples
 #' \dontrun{
-#' TO DO: Add a working example
-#'   f <- get.ineq_constraint.function(tvec, theta, cgf)
-#'   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
+#' # TO DO: Add a working example
+#' #  f <- get.ineq_constraint.function(tvec, theta, cgf)
+#' #   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
 #' }
 #' @export
 get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.function = NULL){

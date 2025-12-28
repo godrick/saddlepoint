@@ -1,0 +1,54 @@
+/* --- Saddlepoint pkgdown theme tweaks --- */
+
+:root{
+  --sp-navy: #0b1f3a;
+  --sp-navy2:#0f2a4d;
+  --sp-blue: #1f4e79;
+  --sp-accent: #60a5fa;  /* light blue accent */
+  --sp-ink: #0f172a;
+}
+
+/* Navbar: simple, dark bluish, slightly unique gradient */
+.navbar {
+  background: linear-gradient(90deg, var(--sp-navy), var(--sp-navy2), var(--sp-blue)) !important;
+}
+
+/* Navbar text */
+.navbar .navbar-brand,
+.navbar .navbar-nav .nav-link {
+  color: rgba(255,255,255,0.92) !important;
+}
+
+.navbar .navbar-nav .nav-link:hover,
+.navbar .navbar-brand:hover {
+  color: #ffffff !important;
+}
+
+/* Active link highlight */
+.navbar .navbar-nav .active > .nav-link,
+.navbar .navbar-nav .nav-link.active {
+  color: var(--sp-accent) !important;
+}
+
+/* Links */
+a {
+  color: var(--sp-blue);
+}
+a:hover {
+  color: #163a5c;
+}
+
+/* Headings: slightly tighter + “mathy” feel */
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+/* Code blocks: keep readable, just a touch more “technical” */
+pre, code {
+  border-radius: 8px;
+}
+
+/* Optional: subtle top border under navbar */
+.navbar + .container, .navbar + .container-fluid {
+  border-top: 3px solid rgba(96,165,250,0.35);
+}

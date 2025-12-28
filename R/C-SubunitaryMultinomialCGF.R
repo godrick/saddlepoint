@@ -90,7 +90,7 @@
 #' param <- c(N, pi_vec)
 #'
 #' # K1 (and all higher t-derivatives) match the standard multinomial family
-#' SubunitaryMultinomialCGF$K1(tt, param),
+#' SubunitaryMultinomialCGF$K1(tt, param)
 #' MultinomialCGF$K1(tt, param)
 #'
 #'

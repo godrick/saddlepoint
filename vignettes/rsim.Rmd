@@ -1,8 +1,8 @@
 ---
-title: "Random simulation with CGF objects: cgf$rsim(...)"
+title: "Random simulation with CGF objects: rsim"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Random simulation with CGF objects: cgf$rsim(...)}
+  %\VignetteIndexEntry{Random simulation with CGF objects: rsim}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
   message  = FALSE,
   warning  = TRUE
 )
+
+library(saddlepoint)
 ```
 
 This vignette documents how `rsim(...)` works across CGF objects and wrappers in this codebase.

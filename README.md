@@ -1,25 +1,62 @@
 # saddlepoint
 
-## Overview
+Composable cumulant generating function (CGF) objects and operators for saddlepoint approximations in R.
 
-The `saddlepoint` package (v0.9.0) provides tools for working with Cumulant Generating Functions (CGF) in statistical modeling, focusing on saddlepoint approximation methods. It's designed to automate computation of CGFs, even composite random variables. For parameter estimations using saddlepoint likelihood, automatic differentiation tool is used for accurate gradient-based optimizations.
+## What this package is for
 
-**Notice:** This version is under active development. Significant changes to features and functionality are expected.
+`saddlepoint` provides:
+
+- A CGF interface (K, K1, K2, …) for common distributions
+- Operators to compose CGFs (i.i.d. replication, linear maps, sums of independent components, randomly stopped sums, …)
+- Saddlepoint-based likelihood tools (e.g., MLE workflows) built on top of these CGFs
+
+The pkgdown website contains the full reference and articles:
+- https://godrick.github.io/saddlepoint/
 
 ## Installation
 
-```R
-# Install the development version from GitHub:
-# install.packages("devtools")
-devtools::install_github("godrick/saddlepoint")
+```r
+# install.packages("pak")
+pak::pak("godrick/saddlepoint")
 ```
 
+### Quick start
+```r
+library(saddlepoint)
 
-### Basic Usage Example with Gamma Distribution
+# Base scalar CGF example
+lambda <- 3
+PoissonCGF$K(tvec = 0.2, parameter_vector = lambda)
+PoissonCGF$K1(tvec = 0.2, parameter_vector = lambda)
+PoissonCGF$K2(tvec = 0.2, parameter_vector = lambda)
 
-This example demonstrates using the `saddlepoint` package to calculate the CGF, its first and second derivatives, and obtaining MLEs using the saddlepoint likelihood for a Gamma distribution.
+# CGF operators (examples)
 
-#### CGF, derivatives and saddlepoint MLE
+set.seed(1)
+cg_vec <- PoissonCGF
+A <- matrix(c(1, 1), nrow = 1)
+cg_sum <- linearlyMappedCGF(cg_vec, A)
+
+lambda <- c(2, 3)
+Y <- cg_sum$rsim(iidReps = 10000, parameter_vector = lambda)
+mean(Y)  # ~ 5
+
+# Randomly stopped sum (compound model)
+
+set.seed(1)
+
+theta <- c(lambdaN = 2, lambdaX = 3)
+
+count_cgf   <- PoissonModelCGF(lambda = adaptor(indices = 1))
+summand_cgf <- PoissonModelCGF(lambda = adaptor(indices = 2))
+
+rss <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = 1)
+
+Y <- rss$rsim(iidReps = 10000, parameter_vector = theta)
+mean(Y)  # E[Y] = E[N]*E[X]
+```
+
+### CGF, derivatives and saddlepoint MLE
 ```R
 # CGF at t = 0, shape = 10, rate = 0.5
 GammaCGF$K(tvec = 0, parameter_vector = c(10, 0.5))
@@ -35,5 +72,7 @@ set.seed(1); x = rgamma(50, shape = 10, rate = 0.5)
 
 # MLE using saddlepoint likelihood
 find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF, starting.theta = c(1,1))$MLEs.theta
+
+
 
 

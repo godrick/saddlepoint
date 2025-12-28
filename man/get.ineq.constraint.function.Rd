@@ -34,8 +34,8 @@ includes an inherent inequality constraint.
 }
 \examples{
 \dontrun{
-TO DO: Add a working example
-  f <- get.ineq_constraint.function(tvec, theta, cgf)
-  f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
+# TO DO: Add a working example
+#  f <- get.ineq_constraint.function(tvec, theta, cgf)
+#   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
 }
 }

@@ -112,12 +112,9 @@
 #'
 #' A ready-to-use CGF object for the Negative Binomial distribution with
 #' number of successes \eqn{r} and success probability \eqn{p}.
-#' The \code{parameter_vector} is \eqn{c(r, p)}.
+#' The \code{parameter_vector} is \eqn{c(r, p)}, and the actual
+#' CGF is \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
 #'
-#' @details
-#' CGF: \deqn{K(t) = r\,[\log p - \log(1 - (1-p)\,e^t)], \quad t < -\log(1-p).}
-#' The inequality constraint \code{(1-p)\,e^t - 1 \le 0} is enforced via
-#' \code{ineq_constraint_func}.
 #'
 #' @format An object of class \code{CGF} (R6) with methods \code{K}, \code{K1},
 #' \code{K2}, \code{K3operator}, \code{K4operator}, etc.
