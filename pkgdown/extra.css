@@ -52,3 +52,26 @@ pre, code {
 .navbar + .container, .navbar + .container-fluid {
   border-top: 3px solid rgba(96,165,250,0.35);
 }
+
+/* --- Homepage hero block --- */
+.sp-hero{
+  background: linear-gradient(90deg, var(--sp-navy), var(--sp-navy2), var(--sp-blue));
+  color: rgba(255,255,255,0.92);
+  padding: 2.25rem 0 1.5rem 0;
+  margin: -1rem 0 1.5rem 0; /* pulls up slightly under navbar */
+}
+
+.sp-hero h1, .sp-hero h2, .sp-hero h3,
+.sp-hero .h1, .sp-hero .h2, .sp-hero .h3{
+  color: #ffffff !important;
+}
+
+.sp-hero a { color: #ffffff; text-decoration: underline; }
+.sp-hero a:hover { color: #ffffff; opacity: 0.95; }
+
+.sp-hero code{
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.92);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}
