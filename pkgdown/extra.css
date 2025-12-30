@@ -1,77 +1,206 @@
 /* --- Saddlepoint pkgdown theme tweaks --- */
 
+/* Theme variables */
 :root{
-  --sp-navy: #0b1f3a;
-  --sp-navy2:#0f2a4d;
-  --sp-blue: #1f4e79;
-  --sp-accent: #60a5fa;  /* light blue accent */
-  --sp-ink: #0f172a;
+  /* background art: COLORED EVERYWHERE */
+  --sp-bg-image: url("transport_map_preview.png");
+  --sp-bg-overlay: rgba(248,250,252,0.80);
+  --sp-bg-color: #f8fafc;
+
+  /* placement + size (bottom-right watermark) */
+  --sp-bg-x: 98%;
+  --sp-bg-y: 80px;
+  --sp-bg-size: 560px;
+
+
+  /* palette */
+  --sp-navy:  #0b1f3a;
+  --sp-navy2: #0f2a4d;
+  --sp-blue:  #1f4e79;
+  --sp-accent:#60a5fa;
+  --sp-ink:   #0f172a;
+
+  --sp-font-sans: system-ui, -apple-system, BlinkMacSystemFont,
+                "SF Pro Text", "SF Pro Display",
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sp-font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas,
+                  "Liberation Mono", "DejaVu Sans Mono", monospace;
+
+  --sp-sidebar-w: 310px;
 }
 
-/* Navbar: simple, dark bluish, slightly unique gradient */
-.navbar {
+/* Dark mode (optional): keep colored art but change overlay + base color */
+html[data-bs-theme="dark"]{
+  --sp-bg-overlay: rgba(11,31,58,0.86);
+  --sp-bg-color: #0b1f3a;
+}
+
+
+
+body{
+  background-color: var(--sp-bg-color);
+  background-image:
+    linear-gradient(var(--sp-bg-overlay), var(--sp-bg-overlay)),
+    url("saddlebg.svg"),
+    var(--sp-bg-image);
+  background-repeat:
+    no-repeat,   /* overlay */
+    repeat,      /* saddlebg texture */
+    no-repeat;   /* main watermark */
+
+  background-position:
+    0 0,                         /* overlay */
+    center top,                  /* saddlebg texture */
+    var(--sp-bg-x) var(--sp-bg-y); /* watermark */
+
+  /* sizing for each layer */
+  background-size:
+    auto,                        /* overlay */
+    1100px 650px,                /* saddlebg tile size (tune this) */
+    var(--sp-bg-size) auto;      /* watermark size */
+
+  background-attachment: fixed;
+
+  font-family: var(--sp-font-sans);
+  font-size: 0.98rem;
+  line-height: 1.45;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+
+
+
+
+
+
+
+/* Headings: slightly tighter */
+h1, h2, h3, h4, h5, h6{
+  font-family: var(--sp-font-sans);
+}
+
+/* Code (inline + blocks) */
+code, kbd, samp{
+  font-family: var(--sp-font-mono);
+  font-size: 0.92em;
+}
+
+
+pre, pre code{
+  font-family: var(--sp-font-mono);
+  font-size: 0.92em;
+  line-height: 1.3;
+  padding: 0.95rem 1rem;
+}
+
+
+/* Responsive: reduce dominance on smaller screens */
+@media (max-width: 1200px){
+  :root{ --sp-bg-size: 560px; }
+}
+@media (max-width: 900px){
+  :root{ --sp-bg-size: 420px; }
+}
+@media (max-width: 700px){
+  :root{ --sp-bg-size: 0px; } /* hide on phones */
+}
+
+/* Navbar */
+.navbar{
   background: linear-gradient(90deg, var(--sp-navy), var(--sp-navy2), var(--sp-blue)) !important;
 }
 
-/* Navbar text */
 .navbar .navbar-brand,
-.navbar .navbar-nav .nav-link {
+.navbar .navbar-nav .nav-link{
   color: rgba(255,255,255,0.92) !important;
 }
 
 .navbar .navbar-nav .nav-link:hover,
-.navbar .navbar-brand:hover {
+.navbar .navbar-brand:hover{
   color: #ffffff !important;
 }
 
-/* Active link highlight */
 .navbar .navbar-nav .active > .nav-link,
-.navbar .navbar-nav .nav-link.active {
+.navbar .navbar-nav .nav-link.active{
   color: var(--sp-accent) !important;
 }
 
 /* Links */
-a {
-  color: var(--sp-blue);
-}
-a:hover {
-  color: #163a5c;
-}
+a{ color: var(--sp-blue); }
+a:hover{ color: #163a5c; }
 
-/* Headings: slightly tighter + “mathy” feel */
-h1, h2, h3 {
-  letter-spacing: -0.01em;
-}
+/* Headings */
+h1, h2, h3{ letter-spacing: -0.01em; }
 
-/* Code blocks: keep readable, just a touch more “technical” */
-pre, code {
-  border-radius: 8px;
-}
+/* Code */
+pre, code{ border-radius: 8px; }
 
-/* Optional: subtle top border under navbar */
-.navbar + .container, .navbar + .container-fluid {
+/* Subtle divider under navbar */
+.navbar + .container,
+.navbar + .container-fluid{
   border-top: 3px solid rgba(96,165,250,0.35);
 }
 
-/* --- Homepage hero block --- */
+/* Hero */
 .sp-hero{
-  background: linear-gradient(90deg, var(--sp-navy), var(--sp-navy2), var(--sp-blue));
-  color: rgba(255,255,255,0.92);
-  padding: 2.25rem 0 1.5rem 0;
-  margin: -1rem 0 1.5rem 0; /* pulls up slightly under navbar */
+  padding: 2.0rem 0 1.25rem 0;
+  margin: 0 0 1.25rem 0;
 }
 
-.sp-hero h1, .sp-hero h2, .sp-hero h3,
-.sp-hero .h1, .sp-hero .h2, .sp-hero .h3{
-  color: #ffffff !important;
+.sp-hero h1{ margin-bottom: 0.75rem; }
+
+.sp-hero p{
+  max-width: 78ch;
+  line-height: 1.55;
 }
 
-.sp-hero a { color: #ffffff; text-decoration: underline; }
-.sp-hero a:hover { color: #ffffff; opacity: 0.95; }
-
-.sp-hero code{
-  background: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.92);
-  padding: 0.1rem 0.35rem;
-  border-radius: 6px;
+.sp-hero .katex-display{
+  margin: 0.75rem 0 0.75rem 0;
 }
+
+
+
+
+
+@media (min-width: 992px){
+  .container.template-home .row,
+  .container.template-reference .row,
+  .container.template-article .row{
+    flex-wrap: nowrap;
+  }
+
+  .container.template-home aside.col-md-3,
+  .container.template-reference aside.col-md-3,
+  .container.template-article aside.col-md-3{
+    flex: 0 0 var(--sp-sidebar-w);
+    max-width: var(--sp-sidebar-w);
+  }
+
+  .container.template-home main.col-md-9,
+  .container.template-reference main.col-md-9,
+  .container.template-article main.col-md-9{
+    flex: 1 1 auto;
+    max-width: calc(100% - var(--sp-sidebar-w));
+  }
+}
+
+
+
+
+/* Make pkgdown pages use more of the viewport (does NOT affect navbar container) */
+@media (min-width: 992px){
+  .container.template-home,
+  .container.template-reference,
+  .container.template-article,
+  .container.template-news{
+    max-width: min(1600px, 96vw);
+  }
+}
+
+
+
+

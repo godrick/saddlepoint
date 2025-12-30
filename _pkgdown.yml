@@ -17,4 +17,14 @@ navbar:
 
 home:
   title: "saddlepoint"
-  description: "Saddlepoint approximations via composable CGF objects"
+  description: "A framework for saddlepoint approximation and inference based on composable CGFs."
+  sidebar:
+    structure: [links, citation]
+
+authors:
+  sidebar:
+    roles: [cre]
+  footer:
+    roles: [cre]
+    text: "Developed by"
+

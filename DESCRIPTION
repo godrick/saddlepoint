@@ -1,5 +1,5 @@
 Package: saddlepoint
-Title: Saddlepoint methods with CGF operations
+Title: A framework for the saddlepoint approximation with CGF operations
 Version: 0.9.0
 Date: 2025-08-27
 Authors@R: c(

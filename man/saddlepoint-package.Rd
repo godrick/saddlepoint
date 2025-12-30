@@ -4,9 +4,9 @@
 \name{saddlepoint-package}
 \alias{saddlepoint}
 \alias{saddlepoint-package}
-\title{saddlepoint: Saddlepoint methods with CGF operations}
+\title{saddlepoint: A framework for the saddlepoint approximation with CGF operations}
 \description{
-Implements saddlepoint approximations based on cumulant generating functions (CGFs). Distributions are represented as CGF objects that provide derivatives needed for saddlepoint approximation methods and can be combined using compositional operators (e.g., i.i.d. replication, linear maps, and sums). Includes routines for solving saddlepoint equations and for maximum likelihood estimation, with optional automatic differentiation support via RTMB.
+Tools for saddlepoint approximations built around composable cumulant generating function (CGF) objects. Provides CGFs for common distributions, operators to combine CGFs (i.i.d. replication, sums, linear maps, random sums and tilts), and routines for saddlepoint likelihood inference including maximum likelihood estimation. Uses RTMB for automatic differentiation where derivatives are required.
 }
 \section{Package development}{
 

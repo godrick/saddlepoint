@@ -303,7 +303,7 @@ configure.opts <- function(opts.user) {
     }
     r <- tryCatch(taped_spa(theta), error = function(e) NULL)
     if (is.null(r) || length(r$vals) != 1 || !is.finite(r$vals)) {
-      r <- list(vals = 1e100, gradient = rep(0, length(theta)))
+      r <- list(vals = 1e100, gradient = rep(1e-06, length(theta)))
     }
     cache_$theta <- theta
     cache_$res <- r
