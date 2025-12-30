@@ -51,7 +51,7 @@ In the current implementation, if the CGF imposes a non-trivial domain/inequalit
 - Use `method = "two_step"` when:
   - `tvec` is unconstrained (or an analytic $\hat t(\theta)$ exists) 
   
-## Important arguments (usage-focused)
+## Other arguments 
 
 - Model parameters:
   - `starting.theta`, `lb.theta`, `ub.theta` control the outer optimisation in $\theta$.
@@ -179,13 +179,9 @@ Most constraints can be handled using `lb.theta` / `ub.theta`.
 Imagine you track daily event counts for three ordered risk groups (low / medium / high) over `B` days.
 
 Let the per-day rates be
-$
-\theta = (\lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}}),
-$
+$\theta = (\lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}}), $
 and suppose domain knowledge suggests a monotone trend:
-$
-\lambda_{\text{low}} \le \lambda_{\text{med}} \le \lambda_{\text{high}}.
-$
+$\lambda_{\text{low}} \le \lambda_{\text{med}} \le \lambda_{\text{high}}.$
 
 These may be enforced via custom reparameterization, but `user.ineq.constraint.function()` lets you state them directly while keeping the natural parameters.
 
@@ -238,7 +234,7 @@ user_ineq <- function(theta){
 fit <- find.saddlepoint.MLE(
   observed.data = as.numeric(y),
   cgf           = cgf,
-  starting.theta = theta_start,
+  starting.theta = c(1,2,3),
   lb.theta       = rep(1e-10, 3),
   ub.theta       = rep(Inf,   3),
   method         = "two_step",
@@ -298,7 +294,7 @@ When you request derivatives (`gradient = TRUE` and/or `hessian = TRUE`), `compu
 
 If you need to evaluate the same SPA objective many times (e.g., inside your own optimisation loop), it is more efficient to build the tape once and reuse it. The package currently uses an internal helper for this:
 
-- `saddlepoint:::create_spa_taped_fun()` *(internal; may change without notice)*
+- `saddlepoint:::create_spa_taped_fun()` *(internal function; may change without notice)*
 
 A minimal pattern is:
 
@@ -320,7 +316,7 @@ taped_nll(c(mu = 0.5, sigma = 1.2))$vals
 ```
 
 
-## Notes on control arguments
+## Control arguments
 
 - `opts.user` controls the `nloptr` optimiser (SLSQP). Common options include:
   - `maxeval`, `xtol_rel`, `ftol_abs`, `print_level`
