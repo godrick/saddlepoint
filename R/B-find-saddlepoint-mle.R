@@ -233,7 +233,15 @@ configure.opts <- function(opts.user) {
   # domain; we default to the constrained numeric solver wrapped as an atomic.
   ineq_try <- tryCatch(cgf$ineq_constraint(starting.tvec, starting.theta),
                        error = function(e) e)
-  has_cgf_ineq <- if (inherits(ineq_try, "error")) TRUE else (length(ineq_try) > 0L)
+  if (inherits(ineq_try, "error")) {
+    stop(
+      "Unable to evaluate cgf$ineq_constraint(starting.tvec, starting.theta). ",
+      "Maybe a dimension mismatch (block_size/iidReps) ??? .\n",
+      "Original error: ", conditionMessage(ineq_try)
+    )
+  }
+
+  has_cgf_ineq <- (length(ineq_try) > 0L)
   has_analytic_t_hat <- isTRUE(cgf$has_analytic_tvec_hat())
   # If an analytic t-hat exists, keep the fast auto/analytic pathway.
   # Otherwise, if the CGF is constrained, fall back to the constrained numeric solver.
