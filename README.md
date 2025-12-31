@@ -1,4 +1,4 @@
-# `saddlepoint`
+### `saddlepoint`
 
 This package provides a saddlepoint approximation framework where distributions and model components are defined through cumulant generating functions (CGFs) and their derivatives. You can build new models by combining CGFs, and it supports likelihood-based inference via maximum likelihood estimation.
 
@@ -30,7 +30,7 @@ PoissonCGF$K1(tvec = 0.2, parameter_vector = lambda)
 PoissonCGF$K2(tvec = 0.2, parameter_vector = lambda)
 
 
-# CGF operators (examples)
+# CGF objects
 set.seed(1)
 cg_vec <- PoissonCGF
 A <- matrix(c(1, 1), nrow = 1)

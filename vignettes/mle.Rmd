@@ -132,7 +132,6 @@ p_true <- 0.08
 
 # Latent sessions/day
 N <- rpois(B, lambda)
-
 # Observed daily totals
 Y <- rbinom(B, size = N * m, prob = p_true)
 
@@ -152,8 +151,12 @@ summand_cgf <- BinomialModelCGF(
 cgf_Y <- randomlyStoppedSumCGF(
   count_cgf   = count_cgf,
   summand_cgf = summand_cgf,
-  iidReps     = B
+  # iidReps = B,
+  block_size = 1
 )
+
+# ## OR
+# Y <- cgf_Y$rsim(iidReps = B, parameter_vector = p_true)
 
 fit_p <- find.saddlepoint.MLE(
   observed.data  = Y,
@@ -168,6 +171,8 @@ fit_p <- find.saddlepoint.MLE(
 c(p_true = p_true, p_hat_spa = fit_p$MLEs.theta)
 fit_p$std.error
 ```
+
+
 
 
 ## Additional theta-only inequality constraints (non-box constraints)
@@ -313,6 +318,119 @@ taped_nll <- saddlepoint:::create_spa_taped_fun(
 # Now reuse without re-taping:
 taped_nll(theta0)$vals
 taped_nll(c(mu = 0.5, sigma = 1.2))$vals
+```
+
+### SPA vs true MLE in the random-sum Binomial example
+
+
+```{r, fig.alt="Exact and saddlepoint negative log-likelihood curves versus the parameter; minima indicate the two MLEs."}
+
+set.seed(5)
+B <- 40; lambda <- 10; m <- 20
+p_true <- 0.08
+
+count_cgf <- PoissonModelCGF(lambda  = adaptor(fixed_param = lambda) )
+summand_cgf <- BinomialModelCGF(
+  n = adaptor(fixed_param = m),
+  p = adaptor(indices = 1)
+)
+cgf_Y <- randomlyStoppedSumCGF(
+  count_cgf   = count_cgf,
+  summand_cgf = summand_cgf,
+  block_size = 1
+)
+Y <- cgf_Y$rsim(iidReps = B, parameter_vector = p_true)
+
+
+
+# Exact likelihood 
+.log_sum_exp <- function(v) {
+  mx <- max(v)
+  mx + log(sum(exp(v - mx)))
+}
+.log_pmf_compound_pois_binom <- function(y, p, lambda, m, n_max) {
+  if (!is.finite(p) || p <= 0 || p >= 1) return(-Inf)
+  n_min <- if (y == 0) 0L else as.integer(ceiling(y / m))
+  n <- n_min:n_max
+  log_terms <- dpois(n, lambda = lambda, log = TRUE) +
+    dbinom(y, size = n * m, prob = p, log = TRUE)
+  .log_sum_exp(log_terms)
+}
+.fit_exact_p <- function(Y, lambda, m) {
+  n_max <- qpois(1 - 1e-12, lambda) + 80L
+  nll <- function(p) {
+    lp <- vapply(
+      Y,
+      function(yy) .log_pmf_compound_pois_binom(yy, p, lambda, m, n_max),
+      numeric(1)
+    )
+    if (any(!is.finite(lp))) return(Inf)
+    -sum(lp)
+  }
+  opt <- optimize(nll, interval = c(1e-6, 1 - 1e-6))
+  list(p_hat = opt$minimum, nll = opt$objective, n_max = n_max)
+}
+
+
+# fit SPA 
+fit_spa <- find.saddlepoint.MLE(
+  observed.data  = Y,
+  cgf            = cgf_Y,
+  starting.theta = 0.05,
+  lb.theta       = 1e-6,
+  ub.theta       = 1 - 1e-6,
+  method         = "two_step",
+  std.error      = FALSE
+)
+p_spa <- as.numeric(fit_spa$MLEs.theta)
+
+# fit exact
+fit_ex <- .fit_exact_p(Y, lambda, m)
+p_ex <- fit_ex$p_hat
+
+# profile curves on a grid
+p_grid <- seq(0.005, 0.25, length.out = 80)
+
+# exact nll curve
+nll_exact_grid <- vapply(p_grid, function(p) {
+  .fit_exact_p(Y, lambda, m)$nll  # (simple but repeats work)
+}, numeric(1))
+n_max <- fit_ex$n_max
+nll_exact_grid <- vapply(p_grid, function(p) {
+  -sum(vapply(Y, function(yy) .log_pmf_compound_pois_binom(yy, p, lambda, m, n_max), numeric(1)))
+}, numeric(1))
+
+
+# SPA nll curve 
+taped_nll <- saddlepoint:::create_spa_taped_fun(
+  param_vec     = p_true,
+  observed.data = Y,
+  cgf           = cgf_Y,
+  spa_method    = "negll_standard",
+  tvec_source   = "auto",
+  gradient      = FALSE
+)
+nll_spa_grid <- vapply(p_grid, function(p) { taped_nll(p)$vals}, numeric(1))
+
+
+# Plot: profile curves - shifted 
+y1 <- nll_exact_grid - min(nll_exact_grid, na.rm=TRUE)
+y2 <- nll_spa_grid   - min(nll_spa_grid,   na.rm=TRUE)
+
+plot(p_grid, y1, type="l", lwd=2, col="black",
+     xlab="p", ylab="NLL - min(NLL)")
+lines(p_grid, y2, lwd=2, lty=2, col="#2C7FB8")     
+points(p_grid, y2, pch=16, cex=.5, col="#6A51A3")  
+
+abline(v=p_true, lty=3, col="grey30")
+abline(v=p_ex,   lty=1, col="black")
+abline(v=p_spa,  lty=2, col="#2C7FB8")
+
+legend("topright",
+       legend=c("exact","spa","p_true","p_exact","p_spa"),
+       col=c("black","#2C7FB8","grey30","black","#2C7FB8"),
+       lty=c(1,2,3,1,2), lwd=c(2,2,1,1,1), bty="n")
+c(p_true = p_true, p_exact = p_ex, p_spa = p_spa)
 ```
 
 

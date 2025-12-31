@@ -4,7 +4,7 @@ title: saddlepoint
 
 ::: {.sp-hero}
 
-# saddlepoint
+# `saddlepoint`
 
 `saddlepoint` provides a general framework for saddlepoint approximation (SPA) where distributions and model components are represented by cumulant generating functions (CGFs) and their derivatives. It supports saddlepoint likelihood evaluation and parameter estimation for composite and high-dimensional constructions.
 
