@@ -1,8 +1,8 @@
 ---
-title: "Simulation under an EsscherTiltCGF"
+title: "Additional information on EsscherTiltCGF"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Simulation under an EsscherTiltCGF}
+  %\VignetteIndexEntry{Additional information on EsscherTiltCGF}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

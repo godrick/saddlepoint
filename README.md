@@ -1,22 +1,18 @@
-# saddlepoint
+# `saddlepoint`
 
-Saddlepoint methods in R, built from cumulant generating functions.
-
-A framework for saddlepoint approximation where distributions and model components are represented by CGFs with derivatives. New models are created by composing CGFs, enabling reusable saddlepoint likelihood and MLE workflows across many constructions.
-
-## What this package is for
+This package provides a saddlepoint approximation framework where distributions and model components are defined through cumulant generating functions (CGFs) and their derivatives. You can build new models by combining CGFs, and it supports likelihood-based inference via maximum likelihood estimation.
 
 `saddlepoint` provides:
 
 - A CGF interface (K, K1, K2, ...) for common distributions
 - Operators to compose CGFs (i.i.d. replication, linear maps, sums of independent components, randomly stopped sums, ...)
-- Saddlepoint-based likelihood tools (e.g., MLE workflows) built on top of these CGFs
+- Saddlepoint-based likelihood tools (e.g., MLE workflows)
 
 Examples and usage instructions are in the documentation and articles:
 - https://godrick.github.io/saddlepoint/
 
 
-## Installation
+### Installation
 
 ```r
 # install.packages("devtools")
