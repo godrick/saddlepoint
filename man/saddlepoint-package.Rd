@@ -17,8 +17,8 @@ While we do not expect major changes to the general user interface, there may be
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://godrick.github.io/experiment-spa/}
-  \item \url{https://github.com/godrick/experiment-spa}
+  \item \url{https://godrick.github.io/saddlepoint/}
+  \item \url{https://github.com/godrick/saddlepoint}
 }
 
 }

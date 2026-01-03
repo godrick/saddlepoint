@@ -1,4 +1,4 @@
-url: https://godrick.github.io/experiment-spa/
+url: https://godrick.github.io/saddlepoint/
 
 template:
   bootstrap: 5
@@ -13,7 +13,7 @@ navbar:
     github:
       icon: fa-github
       aria-label: GitHub
-      href: https://github.com/godrick/experiment-spa
+      href: https://github.com/godrick/saddlepoint
 
   # Optional: make the Articles dropdown ordered + numbered
   # (This controls the *navbar* order regardless of filename.)
@@ -84,4 +84,3 @@ authors:
 #       - sumOfIndependentCGF
 #       - randomlyStoppedSumCGF
 #       - EsscherTiltCGF
-

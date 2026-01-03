@@ -36,6 +36,6 @@ Suggests:
     numDeriv,
     pkgdown,
     testthat (>= 3.0.0)
-URL: https://godrick.github.io/experiment-spa/, https://github.com/godrick/experiment-spa
+URL: https://godrick.github.io/saddlepoint/, https://github.com/godrick/saddlepoint
 VignetteBuilder: knitr
 Config/testthat/edition: 3
