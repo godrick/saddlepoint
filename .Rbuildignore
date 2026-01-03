@@ -5,6 +5,11 @@
 ^\..Rcheck
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^.*\.DS_Store$
+^src/.*\.o$
+^src/.*\.so$
+^src/.*\.dll$
+^src/.*\.rds$
 
 
 ^_pkgdown\.yml$
@@ -15,4 +20,3 @@
 ^index\.md$
 ^doc$
 ^Meta$
-
