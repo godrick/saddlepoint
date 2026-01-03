@@ -32,7 +32,7 @@
     reps <- as.integer(iidReps)
     expected <- M * reps
     if (N != expected) {
-      stop(sprintf("'tvec' length %d != %d (= %d parameters × iidReps=%d).", N, expected, M, reps))
+      stop(sprintf("'tvec' length %d != %d (= %d parameters * iidReps=%d).", N, expected, M, reps))
     }
   }
 

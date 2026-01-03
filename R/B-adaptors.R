@@ -59,9 +59,10 @@ setClass("adaptor", slots = list(func = "function"))
 #'   # Create a CGF object for a binomial distribution with a fixed parameter `n = 10`.
 #'   # This configuration allows passing only the `prob` parameter in subsequent uses.
 #'   binom_cgf <- BinomialModelCGF(n = adaptor(fixed_param = 10), prob = adaptor(indices = 1))
-#'   # The object binom_cgf will expect only the `prob` parameter to be passed, since `n` is already set.
+#'   # The object binom_cgf will expect only `prob` to be passed,
+#'   # since `n` is already set.
 #'   binom_cgf$K1(tvec = 0, parameter_vector = 0.3)
-#'   
+#'
 #'   # Example 2: Function adaptor
 #'   # Dynamically compute probability parameter based on the input vector.
 #'   cgf <- BinomialModelCGF(n = adaptor(indices = 2), prob = function(y) y[1])
@@ -121,7 +122,7 @@ adaptor <- function(indices = NULL, fixed_param = NULL, r_func = NULL) {
 
 
 #' Validate an `adaptor` or an R function, returning a function
-#' 
+#'
 #' This helper function ensures that the provided object is either:
 #' \enumerate{
 #'   \item A user-defined function(\code{theta}) -> numeric,

@@ -23,18 +23,17 @@ RoxygenNote: 7.3.2
 Imports: 
     methods,
     Matrix,
-    Rcpp,
-    RcppEigen,
     nloptr,
     RTMB
 LinkingTo: 
-    Rcpp,
-    RcppEigen,
     RTMB,
-    TMB
+    TMB,
+    Rcpp,
+    RcppEigen
 Suggests:
     knitr,
     rmarkdown,
+    numDeriv,
     pkgdown,
     testthat (>= 3.0.0)
 URL: https://godrick.github.io/experiment-spa/, https://github.com/godrick/experiment-spa

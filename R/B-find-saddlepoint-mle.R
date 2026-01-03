@@ -205,6 +205,7 @@ configure.opts <- function(opts.user) {
 }
 
 
+
 #' @noRd
 .fit_saddlepoint_MLE_two_step <- function(observed.data,
                                          cgf,
@@ -326,7 +327,7 @@ configure.opts <- function(opts.user) {
     obj_fun  <- function(theta) as.numeric(.eval_cached(theta)$vals)
     grad_fun <- function(theta) as.numeric(.eval_cached(theta)$gradient)
 
-    res_theta <- nlminb(
+    res_theta <- stats::nlminb(
       start     = starting.theta,
       objective = obj_fun,
       gradient  = grad_fun,

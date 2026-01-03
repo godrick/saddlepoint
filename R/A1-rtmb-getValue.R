@@ -1,13 +1,30 @@
 
 
 
+# .rtmb_value_real <- function(x) {
+#   if (inherits(x, "advector")) x <- RTMB:::getValues(x)
+#   if (is.complex(x)) x <- Re(x)
+#   # if (is.complex(x)) stop("Unexpected complex value. Maybe AD context leakage ???....")
+#   x
+#   # as.numeric(x)
+# }
+
+#' Extract numeric values from RTMB AD objects (without RTMB:::)
+#' @keywords internal
 .rtmb_value_real <- function(x) {
-  if (inherits(x, "advector")) x <- RTMB:::getValues(x)
-  if (is.complex(x)) x <- Re(x)
-  # if (is.complex(x)) stop("Unexpected complex value. Maybe AD context leakage ???....")
+  if (inherits(x, "advector")) {
+    return(sp_getValues(x))
+  }
+
+  if (inherits(x, "adsparse")) {
+    y <- x
+    y@x <- sp_getValues(y@x)
+    return(methods::as(y, "dgCMatrix"))
+  }
+
   x
-  # as.numeric(x)
 }
+
 
 
 

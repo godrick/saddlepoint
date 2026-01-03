@@ -27,7 +27,7 @@
 
   if (length(K2_val) == 1) {
     # Scalar Hessian: force 1x1 matrix (helps downstream code that expects a matrix).
-    return(n %*% K2_val)
+    return(scalar_ %*% K2_val)
   }
 
   out <- K2_val * scalar_

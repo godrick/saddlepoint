@@ -15,6 +15,20 @@ navbar:
       aria-label: GitHub
       href: https://github.com/godrick/experiment-spa
 
+  # Optional: make the Articles dropdown ordered + numbered
+  # (This controls the *navbar* order regardless of filename.)
+  articles:
+    text: Articles
+    menu:
+      - text: "1. Simulation: rsim()"
+        href: articles/rsim.html
+      - text: "2. Inference: find.saddlepoint.MLE()"
+        href: articles/mle.html
+      - text: "3. Discrepancy diagnostic"
+        href: articles/discrepancy.html
+      - text: "4. Esscher tilt simulation"
+        href: articles/esscher-tilt-simulation.html
+
 home:
   title: "saddlepoint"
   description: "A framework for saddlepoint approximation and inference based on composable CGFs."
@@ -26,5 +40,48 @@ authors:
     roles: [cre]
   footer:
     roles: [cre]
-    text: "Developed by"
+    text: "By"
+
+# # This controls the order + grouping on the main Articles index page.
+# articles:
+#   - title: "Getting started"
+#     contents:
+#       - rsim
+#       - mle
+#   - title: "Diagnostics"
+#     contents:
+#       - discrepancy
+#   - title: "Other topics"
+#     contents:
+#       - esscher-tilt-simulation
+
+# # group reference index so it reads well
+# reference:
+#   - title: "Likelihood inference"
+#     contents:
+#       - find.saddlepoint.MLE
+#       - compute.spa.negll
+#   - title: "Discrepancy and corrections"
+#     contents:
+#       - compute.saddlepointLL.correction
+#       - compute.std.error
+#   - title: "CGF families"
+#     contents:
+#       - PoissonCGF
+#       - GammaCGF
+#       - NormalCGF
+#       - BinomialCGF
+#       - NegBinCGF
+#       - MultinomialCGF
+#   - title: "CGF model constructors"
+#     contents:
+#       - ends_with("ModelCGF")
+#   - title: "CGF operators"
+#     contents:
+#       - iidReplicatesCGF
+#       - linearlyMappedCGF
+#       - sumOfiidCGF
+#       - sumOfIndependentCGF
+#       - randomlyStoppedSumCGF
+#       - EsscherTiltCGF
 

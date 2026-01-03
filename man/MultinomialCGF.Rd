@@ -36,7 +36,8 @@ All multinomial random vectors processed by \code{MultinomialCGF} are assumed to
 }
 \examples{
 tvec <- rep(0,3)
-parameter_vector <- c(10, 2, 3, 5)         # total count=10, odds=(2,3,5) or probabilities=c(0.2,0.3,0.5)
+parameter_vector <- c(10, 2, 3, 5)
+# total count=10, odds=(2,3,5) or probabilities=c(0.2,0.3,0.5)
 MultinomialCGF$K1(tvec, parameter_vector)  # MultinomialCGF$K1(tvec, c(0.2,0.3,0.5))
 
 }

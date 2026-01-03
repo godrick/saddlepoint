@@ -10,9 +10,7 @@ title: saddlepoint
 
 
 Saddlepoint methods use the CGF
-$
-K(t) = \log \mathbb{E}\left[\exp(t X)\right]
-$
+$K(t) = \log \mathbb{E}\left[\exp(t X)\right]$
 to build accurate approximations to likelihoods, densities, and tail probabilities.
 
 :::

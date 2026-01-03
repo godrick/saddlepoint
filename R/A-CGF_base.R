@@ -659,6 +659,17 @@ if (!is.null(logdetK2_func)) {
 #' @param func_T (optional) Overriding function for the first-order correction term.
 #' @param K2operator,K2operatorAK2AT,K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC (optional) Overriding operator methods.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored (optional) Overriding factored-operator methods.
+#' @param K2_solve Optional computational helper.
+#'   A function of the form `function(tvec, parameter_vector, rhs)` returning
+#'   the solution to `K2(tvec, parameter_vector) %*% x = rhs`.
+#'   `rhs` may be a vector or a matrix (solve column-wise).
+#' @param logdetK2 Optional computational helper.
+#'   A function of the form `function(tvec, parameter_vector)` returning `log(det(K2(tvec, parameter_vector)))`
+#'   Useful for wrapper CGFs that can compute this without materializing the full `K2`.
+#' @param rsim Optional simulation method.
+#'   A function of the form `function(iidReps, parameter_vector)` returning
+#'   a numeric vector or matrix of simulated observations.
+#'   If supplied, the resulting CGF exposes `$rsim()` and `$has_simulate()`.
 #' @param ... Additional named methods or overrides.
 #'
 #' @return An object of class `CGF`.

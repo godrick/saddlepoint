@@ -1,8 +1,8 @@
 ---
-title: "Saddlepoint likelihood inference: find.saddlepoint.MLE"
+title: "Inference: find.saddlepoint.MLE()"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Saddlepoint likelihood inference: find.saddlepoint.MLE}
+  %\VignetteIndexEntry{Inference: find.saddlepoint.MLE()}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

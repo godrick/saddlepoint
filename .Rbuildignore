@@ -11,3 +11,8 @@
 ^pkgdown$
 ^docs$
 ^\.github$
+^LICENSE\.md$
+^index\.md$
+^doc$
+^Meta$
+

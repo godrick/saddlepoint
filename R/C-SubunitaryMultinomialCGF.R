@@ -75,8 +75,8 @@
 #' probability 1 - sum(pi) and is assumed to have count 0.
 #'
 #' Technically, this is the (d+1)-category multinomial CGF evaluated at
-#' t_{d+1} = -Inf, which introduces a multiplicative factor for the event
-#' {Y_{d+1}=0}. This is why the K() differs from the standard multinomial
+#' \eqn{t_{d+1} = -Inf}, which introduces a multiplicative factor for the event
+#' \eqn{\{Y_{d+1}=0\}}. This is why the K() differs from the standard multinomial
 #' family by an additive constant N*log(sum(pi)).
 #'
 #' @examples

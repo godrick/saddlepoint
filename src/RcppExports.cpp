@@ -12,76 +12,20 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// tvec_hat_from_tvec
-ADrep tvec_hat_from_tvec(ADrep theta, vec tvec, vec observations, SEXP K1_fn, SEXP K2_solve_fn);
-RcppExport SEXP _saddlepoint_tvec_hat_from_tvec(SEXP thetaSEXP, SEXP tvecSEXP, SEXP observationsSEXP, SEXP K1_fnSEXP, SEXP K2_solve_fnSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< ADrep >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< vec >::type tvec(tvecSEXP);
-    Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type K1_fn(K1_fnSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
-    rcpp_result_gen = Rcpp::wrap(tvec_hat_from_tvec(theta, tvec, observations, K1_fn, K2_solve_fn));
-    return rcpp_result_gen;
-END_RCPP
-}
-// tapedSaddlepointSolve
-ADrep tapedSaddlepointSolve(ADrep theta, vec observations, SEXP K2_solve_fn, SEXP saddlepoint_solve_fn, SEXP cgf_obj);
-RcppExport SEXP _saddlepoint_tapedSaddlepointSolve(SEXP thetaSEXP, SEXP observationsSEXP, SEXP K2_solve_fnSEXP, SEXP saddlepoint_solve_fnSEXP, SEXP cgf_objSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< ADrep >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< vec >::type observations(observationsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type K2_solve_fn(K2_solve_fnSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type saddlepoint_solve_fn(saddlepoint_solve_fnSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type cgf_obj(cgf_objSEXP);
-    rcpp_result_gen = Rcpp::wrap(tapedSaddlepointSolve(theta, observations, K2_solve_fn, saddlepoint_solve_fn, cgf_obj));
-    return rcpp_result_gen;
-END_RCPP
-}
-// matinv_TMBad
-ADrep matinv_TMBad(ADrep x);
-RcppExport SEXP _saddlepoint_matinv_TMBad(SEXP xSEXP) {
+// sp_getValues
+Rcpp::NumericVector sp_getValues(ADrep x);
+RcppExport SEXP _saddlepoint_sp_getValues(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< ADrep >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(matinv_TMBad(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// matinv_double
-Eigen::MatrixXd matinv_double(const Eigen::MatrixXd& x);
-RcppExport SEXP _saddlepoint_matinv_double(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(matinv_double(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// getValues1
-Rcpp::NumericVector getValues1(ADrep x);
-RcppExport SEXP _saddlepoint_getValues1(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< ADrep >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(getValues1(x));
+    rcpp_result_gen = Rcpp::wrap(sp_getValues(x));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_saddlepoint_tvec_hat_from_tvec", (DL_FUNC) &_saddlepoint_tvec_hat_from_tvec, 5},
-    {"_saddlepoint_tapedSaddlepointSolve", (DL_FUNC) &_saddlepoint_tapedSaddlepointSolve, 5},
-    {"_saddlepoint_matinv_TMBad", (DL_FUNC) &_saddlepoint_matinv_TMBad, 1},
-    {"_saddlepoint_matinv_double", (DL_FUNC) &_saddlepoint_matinv_double, 1},
-    {"_saddlepoint_getValues1", (DL_FUNC) &_saddlepoint_getValues1, 1},
+    {"_saddlepoint_sp_getValues", (DL_FUNC) &_saddlepoint_sp_getValues, 1},
     {NULL, NULL, 0}
 };
 

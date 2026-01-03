@@ -54,6 +54,20 @@ of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_ha
 
 \item{func_T}{(optional) Overriding function for the first-order correction term.}
 
+\item{K2_solve}{Optional computational helper.
+A function of the form \verb{function(tvec, parameter_vector, rhs)} returning
+the solution to \code{K2(tvec, parameter_vector) \%*\% x = rhs}.
+\code{rhs} may be a vector or a matrix (solve column-wise).}
+
+\item{logdetK2}{Optional computational helper.
+A function of the form \verb{function(tvec, parameter_vector)} returning \code{log(det(K2(tvec, parameter_vector)))}
+Useful for wrapper CGFs that can compute this without materializing the full \code{K2}.}
+
+\item{rsim}{Optional simulation method.
+A function of the form \verb{function(iidReps, parameter_vector)} returning
+a numeric vector or matrix of simulated observations.
+If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate()}.}
+
 \item{K4operatorAABB_factored, K3K3operatorAABBCC_factored, K3K3operatorABCABC_factored}{(optional) Overriding factored-operator methods.}
 
 \item{K2operator, K2operatorAK2AT, K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC}{(optional) Overriding operator methods.}
