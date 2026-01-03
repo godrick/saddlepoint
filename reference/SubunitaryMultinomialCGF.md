@@ -1,0 +1,54 @@
+# SubunitaryMultinomialCGF
+
+A ready-to-use CGF object for the subunitary multinomial model.
+
+## Usage
+
+``` r
+SubunitaryMultinomialCGF
+```
+
+## Format
+
+An object of class CGF (R6), with methods K, K1, K2, K3operator,
+K4operator, etc.
+
+## Details
+
+Parameter vector: c(N, pi_1, ..., pi_d), where pi_i are the
+probabilities of the 'active' categories and sum(pi) \<= 1. The omitted
+category has probability 1 - sum(pi) and is assumed to have count 0.
+
+Technically, this is the (d+1)-category multinomial CGF evaluated at
+\\t\_{d+1} = -Inf\\, which introduces a multiplicative factor for the
+event \\\\Y\_{d+1}=0\\\\. This is why the K() differs from the standard
+multinomial family by an additive constant N\*log(sum(pi)).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+set.seed(1)
+d <- 3
+N <- 10
+pi_vec <- c(0.2, 0.3, 0.1)  # sum < 1 (subunitary)
+tt <- rnorm(d)
+
+param <- c(N, pi_vec)
+
+# K1 (and all higher t-derivatives) match the standard multinomial family
+SubunitaryMultinomialCGF$K1(tt, param)
+MultinomialCGF$K1(tt, param)
+
+
+# K differs by N*log(sum(pi_vec)) per iid block:
+SubunitaryMultinomialCGF$K(tt, param) - MultinomialCGF$K(tt, param)
+# should be ~ N * log(sum(pi_vec))
+
+# With multiple iid blocks,
+# the difference scales with the number of blocks:
+t2 <- c(tt, tt)
+SubunitaryMultinomialCGF$K(t2, param) - MultinomialCGF$K(t2, param)
+# should be ~ 2*N*log(sum(pi_vec))
+} # }
+```
