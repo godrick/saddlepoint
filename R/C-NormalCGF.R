@@ -262,6 +262,36 @@ GaussianModelCGF <- NormalModelCGF
     as.vector(solve(sp$Sigma, y - sp$mu))
   }
 
+  # Simulation: draw iidReps samples from N(mu, Sigma) and return a d x iidReps matrix.
+  simulate_fun <- function(iidReps, parameter_vector, ...) {
+    param_num <- as.numeric(parameter_vector)
+    sp <- .split_param(param_num)
+
+    d <- as.integer(sp$d)
+    mu <- as.numeric(sp$mu)
+    Sigma <- as.matrix(sp$Sigma)
+
+    if (length(mu) != d) stop("MultivariateNormal$rsim: internal error (mu length mismatch).")
+    if (nrow(Sigma) != d || ncol(Sigma) != d) stop("MultivariateNormal$rsim: internal error (Sigma dimension mismatch).")
+    if (any(!is.finite(mu))) stop("MultivariateNormal$rsim: 'mu' must be finite.")
+    if (any(!is.finite(Sigma))) stop("MultivariateNormal$rsim: 'Sigma' must have finite entries.")
+
+    Rchol <- tryCatch(
+      chol(Sigma),
+      error = function(e) {
+        stop(
+          "MultivariateNormal$rsim: chol(Sigma) failed. ",
+          "Sigma must be symmetric positive definite for simulation. ",
+          "Original error: ", conditionMessage(e),
+          call. = FALSE
+        )
+      }
+    )
+
+    Z <- matrix(stats::rnorm(d * iidReps), nrow = d, ncol = iidReps)
+    matrix(mu, nrow = d, ncol = iidReps) + t(Rchol) %*% Z
+  }
+
 
   # K2_solve_fun <- function(tvec, param, rhs) {
   #   sp <- .split_param(param)
@@ -312,6 +342,8 @@ GaussianModelCGF <- NormalModelCGF
     K4operatorAABB = K4AABBfun,
     K3K3operatorAABBCC = K3K3AABBCCfun,
     K3K3operatorABCABC = K3K3ABCABCfun,
+
+    rsim = simulate_fun,
 
     op_name = op_name,
     ...
