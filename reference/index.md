@@ -127,6 +127,9 @@
 - [`saddlepoint.solve()`](https://godrick.github.io/saddlepoint/reference/saddlepoint.solve.md)
   : Numerical saddlepoint equation solver
 
+- [`shiftedCGF()`](https://godrick.github.io/saddlepoint/reference/shiftedCGF.md)
+  : Shifted CGF (deterministic translation)
+
 - [`sumOfIndependentCGF()`](https://godrick.github.io/saddlepoint/reference/sumOfIndependentCGF.md)
   : CGF Object for the sum of independent random variables
 
