@@ -1,8 +1,8 @@
 on:
   push:
-    branches: [main, master]
+    branches: [development, master]
   pull_request:
-    branches: [main, master]
+    branches: [development, master]
   workflow_dispatch:
 
 name: pkgdown
