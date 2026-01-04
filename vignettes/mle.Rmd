@@ -184,7 +184,7 @@ Most constraints can be handled using `lb.theta` / `ub.theta`.
 Imagine you track daily event counts for three ordered risk groups (low / medium / high) over `B` days.
 
 Let the per-day rates be
-$\theta = (\lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}}), $
+$\theta = \left( \lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}} \right),$
 and suppose domain knowledge suggests a monotone trend:
 $\lambda_{\text{low}} \le \lambda_{\text{med}} \le \lambda_{\text{high}}.$
 
