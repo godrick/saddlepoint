@@ -339,8 +339,9 @@ constraints)<a class="anchor" aria-label="anchor" href="#additional-theta-only-i
 that cannot be expressed as independent bounds.</p>
 <p>Imagine you track daily event counts for three ordered risk groups
 (low / medium / high) over <code>B</code> days.</p>
-<p>Let the per-day rates be $= (<em>{},</em>{},_{}), $ and suppose
-domain knowledge suggests a monotone trend:
+<p>Let the per-day rates be
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>λ</mi><mtext mathvariant="normal">low</mtext></msub><mo>,</mo><msub><mi>λ</mi><mtext mathvariant="normal">med</mtext></msub><mo>,</mo><msub><mi>λ</mi><mtext mathvariant="normal">high</mtext></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">\theta = \left( \lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}} \right),</annotation></semantics></math>
+and suppose domain knowledge suggests a monotone trend:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mtext mathvariant="normal">low</mtext></msub><mo>≤</mo><msub><mi>λ</mi><mtext mathvariant="normal">med</mtext></msub><mo>≤</mo><msub><mi>λ</mi><mtext mathvariant="normal">high</mtext></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">\lambda_{\text{low}} \le \lambda_{\text{med}} \le \lambda_{\text{high}}.</annotation></semantics></math></p>
 <p>These may be enforced via custom reparameterization, but
 <code>user.ineq.constraint.function()</code> lets you state them

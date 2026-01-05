@@ -195,8 +195,9 @@ cannot be expressed as independent bounds.
 Imagine you track daily event counts for three ordered risk groups (low
 / medium / high) over `B` days.
 
-Let the per-day rates be \$= (*{},*{},\_{}), \$ and suppose domain
-knowledge suggests a monotone trend:
+Let the per-day rates be
+$\theta = \left( \lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}} \right),$
+and suppose domain knowledge suggests a monotone trend:
 $\lambda_{\text{low}} \leq \lambda_{\text{med}} \leq \lambda_{\text{high}}.$
 
 These may be enforced via custom reparameterization, but
