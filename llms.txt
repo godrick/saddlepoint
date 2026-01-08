@@ -54,14 +54,14 @@ fit$std.error
 - [`BinomialModelCGF()`](https://godrick.github.io/saddlepoint/reference/BinomialModelCGF.md)
   : Create a Parametric Binomial CGF Object
 
-- [`EsscherTiltCGF()`](https://godrick.github.io/saddlepoint/reference/EsscherTiltCGF.md)
-  : Esscher / Exponential Tilting of a CGF
-
 - [`ExponentialCGF`](https://godrick.github.io/saddlepoint/reference/ExponentialCGF.md)
   : Exponential CGF Object
 
 - [`ExponentialModelCGF()`](https://godrick.github.io/saddlepoint/reference/ExponentialModelCGF.md)
   : Create a Parametric Exponential CGF Object
+
+- [`ExponentialTiltCGF()`](https://godrick.github.io/saddlepoint/reference/ExponentialTiltCGF.md)
+  : Exponential Tilting of a CGF
 
 - [`GammaCGF`](https://godrick.github.io/saddlepoint/reference/GammaCGF.md)
   : Gamma CGF Object
@@ -198,7 +198,7 @@ fit$std.error
   MLEs](https://godrick.github.io/saddlepoint/articles/discrepancy.md):
 
 - [Additional information on
-  EsscherTiltCGF](https://godrick.github.io/saddlepoint/articles/esscher-tilt-simulation.md):
+  ExponentialTiltCGF](https://godrick.github.io/saddlepoint/articles/exponential-tilt-simulation.md):
 
 - [Inference:
   find.saddlepoint.MLE()](https://godrick.github.io/saddlepoint/articles/mle.md):

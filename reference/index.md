@@ -8,14 +8,14 @@
 - [`BinomialModelCGF()`](https://godrick.github.io/saddlepoint/reference/BinomialModelCGF.md)
   : Create a Parametric Binomial CGF Object
 
-- [`EsscherTiltCGF()`](https://godrick.github.io/saddlepoint/reference/EsscherTiltCGF.md)
-  : Esscher / Exponential Tilting of a CGF
-
 - [`ExponentialCGF`](https://godrick.github.io/saddlepoint/reference/ExponentialCGF.md)
   : Exponential CGF Object
 
 - [`ExponentialModelCGF()`](https://godrick.github.io/saddlepoint/reference/ExponentialModelCGF.md)
   : Create a Parametric Exponential CGF Object
+
+- [`ExponentialTiltCGF()`](https://godrick.github.io/saddlepoint/reference/ExponentialTiltCGF.md)
+  : Exponential Tilting of a CGF
 
 - [`GammaCGF`](https://godrick.github.io/saddlepoint/reference/GammaCGF.md)
   : Gamma CGF Object

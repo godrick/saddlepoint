@@ -1,16 +1,15 @@
-# Esscher / Exponential Tilting of a CGF
+# Exponential Tilting of a CGF
 
-Returns a new `CGF` corresponding to the Esscher (exponential) tilt of a
-base CGF.
+Returns a new `CGF` corresponding to the exponential tilt of a base CGF.
 
-If the base random vector has CGF \\K(t;\theta)\\, then the Esscher
-tilted CGF is \$\$K\_{\text{tilt}}(t;\theta) = K(t + h(\theta);\theta) -
-K(h(\theta);\theta).\$\$
+If the base random vector has CGF \\K(t;\theta)\\, then the
+exponentially tilted CGF is \$\$K\_{\text{tilt}}(t;\theta) = K(t +
+h(\theta);\theta) - K(h(\theta);\theta).\$\$
 
 ## Usage
 
 ``` r
-EsscherTiltCGF(cgf, tilt, iidReps = "any", block_size = NULL, ...)
+ExponentialTiltCGF(cgf, tilt, iidReps = "any", block_size = NULL, ...)
 ```
 
 ## Arguments
@@ -53,7 +52,7 @@ A `CGF` object (tilted).
 ## ------------------------------------------------------------
 lam <- 2
 h   <- 0.4
-cgT <- EsscherTiltCGF(PoissonCGF, tilt = h, iidReps = 1)
+cgT <- ExponentialTiltCGF(PoissonCGF, tilt = h, iidReps = 1)
 tt <- c(-0.2, 0.1, 0.05)
 stopifnot(all.equal(cgT$K(tt, lam), PoissonCGF$K(tt, lam * exp(h)), tol = 1e-12))
 
@@ -63,7 +62,7 @@ stopifnot(all.equal(cgT$K(tt, lam), PoissonCGF$K(tt, lam * exp(h)), tol = 1e-12)
 ##   Tilt by h: Gamma(a, b-h), domain tt < (b-h)
 ## ------------------------------------------------------------
 a <- 5; b <- 3; h <- 0.5
-cgTg <- EsscherTiltCGF(GammaCGF, tilt = h, iidReps = 1)
+cgTg <- ExponentialTiltCGF(GammaCGF, tilt = h, iidReps = 1)
 stopifnot(all.equal(cgTg$K(0.2, c(a,b)), GammaCGF$K(0.2, c(a, b - h)), tol = 1e-12))
 # Check constraint: requires both tt+h < b and h < b
 print(cgTg$ineq_constraint(0.2, c(a,b)))  # should be <= 0
@@ -82,7 +81,7 @@ cg_bin  <- BinomialModelCGF(n = adaptor(fixed_param = n_fix),
 cg_sum  <- sumOfIndependentCGF(list(cg_pois, cg_bin), iidReps = 1)
 
 h <- 0.3
-cg_sum_tilt <- EsscherTiltCGF(cg_sum, tilt = h, iidReps = "any", block_size = 1)
+cg_sum_tilt <- ExponentialTiltCGF(cg_sum, tilt = h, iidReps = "any", block_size = 1)
 
 # Simulate from the exact tilted model:
 theta_base <- c(lambda = 2.5, p = 0.35)
@@ -131,7 +130,7 @@ cat("Exact theta_hat:", fit_exact$par, "\n")
 
 ## ------------------------------------------------------------
 ## Example 4: theta-dependent tilt + SPA MLE vs exact MLE
-##   Z = Pois(lambda) + Binom(n,p), then Esscher-tilt by h(theta)
+##   Z = Pois(lambda) + Binom(n,p), then exponential-tilt by h(theta)
 ##   where h(theta) = log(lambda).
 ##
 ##   Under tilt by h, the components tilt as:
@@ -161,7 +160,7 @@ cg_sum <- sumOfIndependentCGF(list(cg_pois, cg_bin), iidReps = 1)
 tilt_theta <- function(theta) log(theta[1])
 
 ## tilted CGF for B i.i.d. observations (scalar blocks)
-cg_tilt_B <- EsscherTiltCGF(
+cg_tilt_B <- ExponentialTiltCGF(
   cgf        = cg_sum,
   tilt       = tilt_theta,
   iidReps    = B,

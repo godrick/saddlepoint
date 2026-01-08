@@ -12,7 +12,7 @@
   MLEs](https://godrick.github.io/saddlepoint/articles/discrepancy.md):
 
 - [Additional information on
-  EsscherTiltCGF](https://godrick.github.io/saddlepoint/articles/esscher-tilt-simulation.md):
+  ExponentialTiltCGF](https://godrick.github.io/saddlepoint/articles/exponential-tilt-simulation.md):
 
 - [Inference:
   find.saddlepoint.MLE()](https://godrick.github.io/saddlepoint/articles/mle.md):

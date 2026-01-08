@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Additional information on EsscherTiltCGF • saddlepoint</title>
+<title>Additional information on ExponentialTiltCGF • saddlepoint</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<script src="../extra.js"></script><meta property="og:title" content="Additional information on EsscherTiltCGF">
+<script src="../extra.js"></script><meta property="og:title" content="Additional information on ExponentialTiltCGF">
 </head>
 <body>
 <p>
@@ -51,7 +51,7 @@
 <li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/esscher-tilt-simulation.html">Additional information on EsscherTiltCGF</a></li>
+    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -73,16 +73,16 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Additional information on EsscherTiltCGF</h1>
+      <h1>Additional information on ExponentialTiltCGF</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/development/vignettes/esscher-tilt-simulation.Rmd" class="external-link"><code>vignettes/esscher-tilt-simulation.Rmd</code></a></small>
-      <div class="d-none name"><code>esscher-tilt-simulation.Rmd</code></div>
+      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/development/vignettes/exponential-tilt-simulation.Rmd" class="external-link"><code>vignettes/exponential-tilt-simulation.Rmd</code></a></small>
+      <div class="d-none name"><code>exponential-tilt-simulation.Rmd</code></div>
     </div>
 
     
     
-<p><code><a href="../reference/EsscherTiltCGF.html">EsscherTiltCGF()</a></code> defines exponential tilting as a
+<p><code><a href="../reference/ExponentialTiltCGF.html">ExponentialTiltCGF()</a></code> defines exponential tilting as a
 CGF-level transformation: $ K_h(t) = K(t+h) - K(h), $ which corresponds
 to a change-of-measure $ P_h(x) ;; e<sup>{h</sup>x},P(x). $ This is not
 a deterministic transformation of draws from the base distribution. In
@@ -93,9 +93,9 @@ alone.</p>
 exists in closed form. But for a general composite CGF object, there is
 no universal exact sampler.</p>
 <p>We do not provide a generic exact <code>rsim()</code> implementation
-for <code>EsscherTiltCGF(..., cgf = ..., )</code>. However, if you can
-simulate from the base model (<code>cgf$rsim()</code> exists), you can
-still simulate from the tilted model using standard Monte Carlo
+for <code>ExponentialTiltCGF(..., cgf = ..., )</code>. However, if you
+can simulate from the base model (<code>cgf$rsim()</code> exists), you
+can still simulate from the tilted model using standard Monte Carlo
 ideas:</p>
 <ul>
 <li><ol style="list-style-type: upper-alpha">
@@ -140,7 +140,7 @@ Use proposal
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Importance sampling + resampling</span></span>
-<span><span class="va">esscher_rsim_is_resample</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">base_cgf</span>,</span>
+<span><span class="va">exponential_tilt_rsim_is_resample</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">base_cgf</span>,</span>
 <span>                                     <span class="va">tilt</span>,</span>
 <span>                                     <span class="va">iidReps</span>,</span>
 <span>                                     <span class="va">parameter_vector</span>,</span>
@@ -185,7 +185,7 @@ Use proposal
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Independence Metropolis–Hastings with proposal q = base distribution</span></span>
-<span><span class="va">esscher_rsim_imh</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">base_cgf</span>,</span>
+<span><span class="va">exponential_tilt_rsim_imh</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">base_cgf</span>,</span>
 <span>                             <span class="va">tilt</span>,</span>
 <span>                             <span class="va">iidReps</span>,</span>
 <span>                             <span class="va">parameter_vector</span>,</span>
@@ -273,13 +273,13 @@ applies to more complex composite CGFs whenever
 <span><span class="va">tau</span> <span class="op">&lt;-</span> <span class="fl">0.4</span></span>
 <span></span>
 <span><span class="va">base</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">tilted_cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/EsscherTiltCGF.html">EsscherTiltCGF</a></span><span class="op">(</span><span class="va">base</span>, tilt <span class="op">=</span> <span class="va">tau</span><span class="op">)</span></span>
+<span><span class="va">tilted_cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ExponentialTiltCGF.html">ExponentialTiltCGF</a></span><span class="op">(</span><span class="va">base</span>, tilt <span class="op">=</span> <span class="va">tau</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># mean under the tilt is K'_base(tau) = lambda * exp(tau)</span></span>
 <span><span class="va">mean_theory</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">base</span><span class="op">$</span><span class="fu">K1</span><span class="op">(</span><span class="va">tau</span>, <span class="va">theta_true</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># --- (A) </span></span>
-<span><span class="va">sim_is</span> <span class="op">&lt;-</span> <span class="fu">esscher_rsim_is_resample</span><span class="op">(</span></span>
+<span><span class="va">sim_is</span> <span class="op">&lt;-</span> <span class="fu">exponential_tilt_rsim_is_resample</span><span class="op">(</span></span>
 <span>  base_cgf <span class="op">=</span> <span class="va">base</span>,</span>
 <span>  tilt <span class="op">=</span> <span class="va">tau</span>,</span>
 <span>  iidReps <span class="op">=</span> <span class="fl">2000</span>,</span>
@@ -296,7 +296,7 @@ applies to more complex composite CGFs whenever
 <span><span class="co">#&gt; [1] 1606.499</span></span>
 <span></span>
 <span><span class="co"># --- (B) </span></span>
-<span><span class="va">sim_mh</span> <span class="op">&lt;-</span> <span class="fu">esscher_rsim_imh</span><span class="op">(</span></span>
+<span><span class="va">sim_mh</span> <span class="op">&lt;-</span> <span class="fu">exponential_tilt_rsim_imh</span><span class="op">(</span></span>
 <span>  base_cgf <span class="op">=</span> <span class="va">base</span>,</span>
 <span>  tilt <span class="op">=</span> <span class="va">tau</span>,</span>
 <span>  iidReps <span class="op">=</span> <span class="fl">2000</span>,</span>
