@@ -26,8 +26,8 @@ navbar:
         href: articles/mle.html
       - text: "3. Discrepancy diagnostic"
         href: articles/discrepancy.html
-      - text: "4. Esscher tilt simulation"
-        href: articles/esscher-tilt-simulation.html
+      - text: "4. Exponential tilt simulation"
+        href: articles/exponential-tilt-simulation.html
 
 home:
   title: "saddlepoint"
@@ -53,7 +53,7 @@ authors:
 #       - discrepancy
 #   - title: "Other topics"
 #     contents:
-#       - esscher-tilt-simulation
+#       - exponential-tilt-simulation
 
 # # group reference index so it reads well
 # reference:
@@ -83,4 +83,4 @@ authors:
 #       - sumOfiidCGF
 #       - sumOfIndependentCGF
 #       - randomlyStoppedSumCGF
-#       - EsscherTiltCGF
+#       - ExponentialTiltCGF

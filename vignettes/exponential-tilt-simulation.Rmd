@@ -1,8 +1,10 @@
 ---
-title: "Additional information on EsscherTiltCGF"
-output: rmarkdown::html_vignette
+title: "Additional information on ExponentialTiltCGF"
+output:
+  rmarkdown::html_vignette:
+    highlight: null
 vignette: >
-  %\VignetteIndexEntry{Additional information on EsscherTiltCGF}
+  %\VignetteIndexEntry{Additional information on ExponentialTiltCGF}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,7 +21,7 @@ library(saddlepoint)
 ```
 
 
-`EsscherTiltCGF()` defines exponential tilting as a CGF-level transformation:
+`ExponentialTiltCGF()` defines exponential tilting as a CGF-level transformation:
 $
 K_h(t) = K(t+h) - K(h),
 $
@@ -34,7 +36,7 @@ In general, even though the CGF determines the law, there is no universal, close
 For many families (Normal, Poisson, Gamma, ...) an exact tilted law exists in closed form.
 But for a general composite CGF object, there is no universal exact sampler.
 
-We do not provide a generic exact `rsim()` implementation for `EsscherTiltCGF(..., cgf = ..., )`.
+We do not provide a generic exact `rsim()` implementation for `ExponentialTiltCGF(..., cgf = ..., )`.
 However, if you can simulate from the base model (`cgf$rsim()` exists), you can still simulate from the tilted model using standard Monte Carlo ideas:
 
 - (A) Importance sampling + resampling (IS-R)  
@@ -68,7 +70,7 @@ However, if you can simulate from the base model (`cgf$rsim()` exists), you can 
 }
 
 # Importance sampling + resampling
-esscher_rsim_is_resample <- function(base_cgf,
+exponential_tilt_rsim_is_resample <- function(base_cgf,
                                      tilt,
                                      iidReps,
                                      parameter_vector,
@@ -113,7 +115,7 @@ esscher_rsim_is_resample <- function(base_cgf,
 }
 
 # Independence Metropolis–Hastings with proposal q = base distribution
-esscher_rsim_imh <- function(base_cgf,
+exponential_tilt_rsim_imh <- function(base_cgf,
                              tilt,
                              iidReps,
                              parameter_vector,
@@ -201,13 +203,13 @@ theta_true <- c(lambda = 10)
 tau <- 0.4
 
 base <- PoissonModelCGF(lambda = adaptor(indices = 1))
-tilted_cgf <- EsscherTiltCGF(base, tilt = tau)
+tilted_cgf <- ExponentialTiltCGF(base, tilt = tau)
 
 # mean under the tilt is K'_base(tau) = lambda * exp(tau)
 mean_theory <- as.numeric(base$K1(tau, theta_true))
 
 # --- (A) 
-sim_is <- esscher_rsim_is_resample(
+sim_is <- exponential_tilt_rsim_is_resample(
   base_cgf = base,
   tilt = tau,
   iidReps = 2000,
@@ -221,7 +223,7 @@ mean_theory
 sim_is$ess  # diagnostic; higher is better (<= proposal_iidReps)
 
 # --- (B) 
-sim_mh <- esscher_rsim_imh(
+sim_mh <- exponential_tilt_rsim_imh(
   base_cgf = base,
   tilt = tau,
   iidReps = 2000,
@@ -259,7 +261,6 @@ theta_true
 > - IS-R can degenerates if the tilt is large (check ESS).
 > - IMH is often more robust for large tilts, but you should still check mixing.
 > - If your base family has a closed-form tilted law (Normal / Poisson / Gamma / ...), prefer that exact sampler. The generic IS-R / IMH methods are fallbacks.
-
 
 
 

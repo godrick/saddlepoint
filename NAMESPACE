@@ -2,9 +2,9 @@
 
 export(BinomialCGF)
 export(BinomialModelCGF)
-export(EsscherTiltCGF)
 export(ExponentialCGF)
 export(ExponentialModelCGF)
+export(ExponentialTiltCGF)
 export(GammaCGF)
 export(GammaModelCGF)
 export(GaussianCGF)

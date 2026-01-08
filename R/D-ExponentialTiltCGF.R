@@ -1,11 +1,11 @@
 # ------------------------------------------------------------------
-#  R/EsscherTiltCGF.R
-#  Main function: EsscherTiltCGF (exported)
+#  R/ExponentialTiltCGF.R
+#  Main function: ExponentialTiltCGF (exported)
 #
 #  -------
-#  Build a CGF object for the Esscher / exponential tilt of a base CGF:
+#  Build a CGF object for the exponentially tilted version of a base CGF:
 #     dP_h(x) = exp(h^T x) dP(x) / E[exp(h^T X)]
-#  If X has CGF K_X(t;theta), then under the Esscher tilt with vector h:
+#  If X has CGF K_X(t;theta), then under the exponential tilt with vector h:
 #     K_{X,h}(t;theta) = K_X(t + h;theta) - K_X(h;theta).
 #  --------------
 #  - Same dimension as the base CGF (tvec dimension unchanged).
@@ -25,7 +25,7 @@
 #        otherwise, it errors (to avoid silent recycling bugs).
 # ------------------------------------------------------------------
 
-.esscherTiltCGF_internal <- function(base_cgf, tilt_fn, ...) {
+.exponentialTiltCGF_internal <- function(base_cgf, tilt_fn, ...) {
   stopifnot(inherits(base_cgf, "CGF"))
   stopifnot(is.function(tilt_fn))
 
@@ -59,11 +59,11 @@
 
   # Helper: expand h(theta) to length(tvec) safely (no silent partial recycling)
   expand_h <- function(h, m) {
-    if (length(h) == 0L) stop("EsscherTiltCGF: tilt_fn(theta) returned length 0.")
+    if (length(h) == 0L) stop("ExponentialTiltCGF: tilt_fn(theta) returned length 0.")
     if (length(h) == m) return(h)
     if (m %% length(h) != 0L) {
       stop(
-        "EsscherTiltCGF: length(tvec) = ", m,
+        "ExponentialTiltCGF: length(tvec) = ", m,
         " is not a multiple of length(h) = ", length(h), ".\n",
         "Provide a tilt vector h of length 1, block_size, or length(tvec)."
       )
@@ -190,7 +190,7 @@
 
   # call_history label
   hist <- paste(base_cgf$call_history, collapse = " -> ")
-  op_name_vec <- c(hist, "EsscherTiltCGF")
+  op_name_vec <- c(hist, "ExponentialTiltCGF")
 
   createCGF(
     K  = Kfun,
@@ -223,12 +223,12 @@
   )
 }
 
-#' @title Esscher / Exponential Tilting of a CGF
+#' @title Exponential Tilting of a CGF
 #'
 #' @description
-#' Returns a new `CGF` corresponding to the Esscher (exponential) tilt of a base CGF.
+#' Returns a new `CGF` corresponding to the exponential tilt of a base CGF.
 #'
-#' If the base random vector has CGF \eqn{K(t;\theta)}, then the Esscher tilted CGF is
+#' If the base random vector has CGF \eqn{K(t;\theta)}, then the exponentially tilted CGF is
 #' \deqn{K_{\text{tilt}}(t;\theta) = K(t + h(\theta);\theta) - K(h(\theta);\theta).}
 #'
 # This is not a randomly-stopped sum (RSS). It does not introduce a random count;
@@ -251,7 +251,7 @@
 #' ## ------------------------------------------------------------
 #' lam <- 2
 #' h   <- 0.4
-#' cgT <- EsscherTiltCGF(PoissonCGF, tilt = h, iidReps = 1)
+#' cgT <- ExponentialTiltCGF(PoissonCGF, tilt = h, iidReps = 1)
 #' tt <- c(-0.2, 0.1, 0.05)
 #' stopifnot(all.equal(cgT$K(tt, lam), PoissonCGF$K(tt, lam * exp(h)), tol = 1e-12))
 #'
@@ -261,7 +261,7 @@
 #' ##   Tilt by h: Gamma(a, b-h), domain tt < (b-h)
 #' ## ------------------------------------------------------------
 #' a <- 5; b <- 3; h <- 0.5
-#' cgTg <- EsscherTiltCGF(GammaCGF, tilt = h, iidReps = 1)
+#' cgTg <- ExponentialTiltCGF(GammaCGF, tilt = h, iidReps = 1)
 #' stopifnot(all.equal(cgTg$K(0.2, c(a,b)), GammaCGF$K(0.2, c(a, b - h)), tol = 1e-12))
 #' # Check constraint: requires both tt+h < b and h < b
 #' print(cgTg$ineq_constraint(0.2, c(a,b)))  # should be <= 0
@@ -279,7 +279,7 @@
 #' cg_sum  <- sumOfIndependentCGF(list(cg_pois, cg_bin), iidReps = 1)
 #'
 #' h <- 0.3
-#' cg_sum_tilt <- EsscherTiltCGF(cg_sum, tilt = h, iidReps = "any", block_size = 1)
+#' cg_sum_tilt <- ExponentialTiltCGF(cg_sum, tilt = h, iidReps = "any", block_size = 1)
 #'
 #' # Simulate from the exact tilted model:
 #' theta_base <- c(lambda = 2.5, p = 0.35)
@@ -325,7 +325,7 @@
 #'
 #' ## ------------------------------------------------------------
 #' ## Example 4: theta-dependent tilt + SPA MLE vs exact MLE
-#' ##   Z = Pois(lambda) + Binom(n,p), then Esscher-tilt by h(theta)
+#' ##   Z = Pois(lambda) + Binom(n,p), then exponential-tilt by h(theta)
 #' ##   where h(theta) = log(lambda).
 #' ##
 #' ##   Under tilt by h, the components tilt as:
@@ -355,7 +355,7 @@
 #' tilt_theta <- function(theta) log(theta[1])
 #'
 #' ## tilted CGF for B i.i.d. observations (scalar blocks)
-#' cg_tilt_B <- EsscherTiltCGF(
+#' cg_tilt_B <- ExponentialTiltCGF(
 #'   cgf        = cg_sum,
 #'   tilt       = tilt_theta,
 #'   iidReps    = B,
@@ -408,7 +408,7 @@
 #' }
 #'
 #' @export
-EsscherTiltCGF <- function(cgf,
+ExponentialTiltCGF <- function(cgf,
                            tilt,
                            iidReps = "any",
                            block_size = NULL,
@@ -423,6 +423,6 @@ EsscherTiltCGF <- function(cgf,
 
   tilt_fn <- validate_function_or_adaptor(tilt)
 
-  base <- .esscherTiltCGF_internal(base_cgf = cgf, tilt_fn = tilt_fn, ...)
+  base <- .exponentialTiltCGF_internal(base_cgf = cgf, tilt_fn = tilt_fn, ...)
   iidReplicatesCGF(cgf = base, iidReps = iidReps, block_size = block_size)
 }
