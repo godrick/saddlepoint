@@ -8,7 +8,7 @@ library(saddlepoint)
 This vignette is about `CGF$rsim()`, which simulates draws from the
 distribution described by a `CGF` object.
 
-## The `rsim()` contract
+## `rsim()` arguments
 
 All `CGF$rsim()` methods follow the same return convention:
 
