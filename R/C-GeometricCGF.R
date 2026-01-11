@@ -60,18 +60,29 @@
     },
     t_hat_elem  = function(x, pm) log(x) - log(1 + x - pm[,1] - pm[,1]*x),
     split_param_to_mat = function(param) matrix(param, ncol = 1L),
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      p <- as.numeric(parameter_vector)
+    rsim_elem = function(n, tvec, pm, ...) {
+      p <- as.numeric(pm[, 1])
+      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) {
+        stop("GeometricCGF$rsim: 'p' must be finite and in (0, 1].", call. = FALSE)
+      }
 
-      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) stop("GeometricCGF$rsim: 'p' must be finite and in (0, 1].")
+      logq <- log1p(-p)
+      lt <- logq + tvec
 
+      p_tilt <- -expm1(lt)
+      if (any(!is.finite(p_tilt)) || any(p_tilt <= 0 | p_tilt > 1)) {
+        stop("GeometricCGF$rsim: tilted probability invalid (check tvec).", call. = FALSE)
+      }
 
-      d <- length(p)
-      out <- stats::rgeom(
-        n    = d * iidReps,
-        prob = rep.int(p, times = iidReps)
+      vector_length <- length(tvec)
+      matrix(
+        stats::rgeom(
+          n = n * vector_length,
+          prob = rep.int(p_tilt, times = n)
+        ),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
     iidReps = iidReps,
     op_name = op_name,

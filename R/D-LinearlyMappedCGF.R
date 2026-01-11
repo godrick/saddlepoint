@@ -216,24 +216,89 @@
   }
 
 
-
-  # ------------------------------------------------------------------
-  # Optional simulator: if X ~ cgf and Y = A X then Y_sim = A %*% X_sim
-  # ------------------------------------------------------------------
   simulate_fun <- NULL
   if (isTRUE(cgf$has_simulate())) {
-    simulate_fun <- function(iidReps, parameter_vector, drop = TRUE, ...) {
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       A_current <- get_sparse_A(parameter_vector)
-      X_sim <- cgf$rsim(iidReps = iidReps, parameter_vector = parameter_vector, drop = FALSE, ...)
-      if (nrow(X_sim) != ncol(A_current)) {
-        stop("linearlyMapped simulate: dimension mismatch. nrow(X_sim)=", nrow(X_sim),
-             " but ncol(A)=", ncol(A_current), ".")
-      }
-      Y_sim <- as.matrix(A_current %*% X_sim)
-      if (drop && nrow(Y_sim) == 1L) return(as.numeric(Y_sim))
-      Y_sim
+      d_out <- nrow(A_current)
+      d_in  <- ncol(A_current)
+
+      # # single-block only
+      # if (vector_length != d_out) stop("linearlyMappedCGF$rsim: 'vector_length' must equal nrow(A).", call. = FALSE)
+      #
+
+      # tilt propagation: t_x = A^T t_y
+      t_inner <- if (is.null(tvec)) NULL else as.vector(t(A_current) %*% tvec)
+
+      X <- cgf$rsim(
+        n = n,
+        vector_length = d_in,
+        parameter_vector = parameter_vector,
+        tvec = t_inner,
+        flatten = FALSE,
+        ...
+      )
+
+      as.matrix(A_current %*% X)  # d_out x n
     }
   }
+
+
+  # # ------------------------------------------------------------------
+  # # Optional simulator: if X ~ cgf and Y = A X then Y_sim = A %*% X_sim
+  # # ------------------------------------------------------------------
+  # simulate_fun <- NULL
+  # if (isTRUE(cgf$has_simulate())) {
+  #   simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+  #     A_current <- get_sparse_A(parameter_vector)
+  #     d_out <- nrow(A_current)
+  #     d_in <- ncol(A_current)
+  #
+  #     if (vector_length %% d_out != 0L) {
+  #       stop("linearlyMappedCGF$rsim: 'vector_length' must be a multiple of nrow(A).", call. = FALSE)
+  #     }
+  #     blocks <- as.integer(vector_length %/% d_out)
+  #
+  #     out <- matrix(0, nrow = vector_length, ncol = n)
+  #
+  #     if (is.null(tvec)) {
+  #       X <- cgf$rsim(
+  #         n = n * blocks,
+  #         vector_length = d_in,
+  #         parameter_vector = parameter_vector,
+  #         tvec = NULL,
+  #         flatten = FALSE,
+  #         ...
+  #       )
+  #       Y <- as.matrix(A_current %*% X)
+  #       for (j in seq_len(n)) {
+  #         cols <- ((j - 1L) * blocks + 1L):(j * blocks)
+  #         out[, j] <- as.vector(Y[, cols, drop = FALSE])
+  #       }
+  #       return(out)
+  #     }
+  #
+  #     tA <- t(A_current)
+  #     for (b in seq_len(blocks)) {
+  #       rows <- ((b - 1L) * d_out + 1L):(b * d_out)
+  #       t_y  <- tvec[rows]
+  #       t_x  <- as.vector(tA %*% t_y)
+  #
+  #       Xb <- cgf$rsim(
+  #         n = n,
+  #         vector_length = d_in,
+  #         parameter_vector = parameter_vector,
+  #         tvec = t_x,
+  #         flatten = FALSE,
+  #         ...
+  #       )
+  #       Yb <- as.matrix(A_current %*% Xb)
+  #       out[rows, ] <- Yb
+  #     }
+  #
+  #     out
+  #   }
+  # }
 
   # ------------------------------------------------------------------
   # # Build the new mapped CGF using createCGF
@@ -417,5 +482,3 @@ linearlyMappedCGF <- function(cgf, matrix_A, iidReps = "any", ...) {
 
   iidReplicatesCGF(cgf = mapped, iidReps = iidReps, block_size = block_size)
 }
-
-

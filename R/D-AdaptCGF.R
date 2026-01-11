@@ -111,12 +111,14 @@
   wrapped_rsim <- NULL
   if (isTRUE(cgf$has_simulate())) {
     # This becomes *simulate_func* in the wrapped CGF.
-    # We return a matrix (drop = FALSE) to keep CGF$rsim()'s post-processing simple.
-    wrapped_rsim <- function(iidReps, parameter_vector, ...) {
+    # Always return a matrix; flattening is handled by the public CGF$rsim().
+    wrapped_rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       cgf$rsim(
-        iidReps = iidReps,
+        n = n,
+        vector_length = vector_length,
         parameter_vector = param_adaptor(parameter_vector),
-        drop = FALSE,
+        tvec = tvec,
+        flatten = FALSE,
         ...
       )
     }

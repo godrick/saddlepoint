@@ -51,8 +51,10 @@
   .get_n <- function(param) {
     n_val <- n_fn(param)
     if (length(n_val) != 1L) stop("sumOfiidCGF: n(theta) must return a scalar.")
-       # Only enforce positivity when n is plain numeric
-    if (!inherits(n_val, "advector") && (is.na(n_val) || n_val <= 0)) stop("sumOfiidCGF: n(theta) must be > 0.")
+    # Only enforce positivity when n is plain numeric
+    if (!inherits(n_val, "advector") && (!is.finite(n_val) || n_val <= 0)) {
+      stop("sumOfiidCGF: n(theta) must be a finite scalar > 0.")
+    }
     n_val
   }
 
@@ -207,33 +209,40 @@
   # simulation (only if base cgf can simulate)
   simulate_fun <- NULL
   if (isTRUE(cgf$has_simulate())) {
-    simulate_fun <- function(iidReps, parameter_vector, ...) {
-
-      n_val <- as.numeric(n_fn(parameter_vector))
-      if (length(n_val) != 1L || !is.finite(n_val) || n_val < 1) stop("sumOfiidCGF$rsim: n(theta) must be a finite positive scalar.")
-      if (abs(n_val - round(n_val)) > 1e-8) stop("sumOfiidCGF$rsim: n(theta) must be an integer to simulate a sum of i.i.d. terms.")
-
-      n_int <- as.integer(round(n_val))
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      n_num <- .get_n(parameter_vector)
+      if (abs(n_num - round(n_num)) > 1e-8) {
+        stop("sumOfiidCGF$rsim: n(theta) must be an integer to simulate a sum of i.i.d. terms.",
+             call. = FALSE)
+      }
+      n_int <- as.integer(round(n_num))
 
       if (n_int == 1L) {
-        return(cgf$rsim(iidReps = iidReps, parameter_vector = parameter_vector, drop = FALSE, ...))
+        return(cgf$rsim(
+          n = n,
+          vector_length = vector_length,
+          parameter_vector = parameter_vector,
+          tvec = tvec,
+          flatten = FALSE,
+          ...
+        ))
       }
 
-      X <- cgf$rsim(
-        iidReps = iidReps * n_int,
+      X_all <- cgf$rsim(
+        n = n * n_int,
+        vector_length = vector_length,
         parameter_vector = parameter_vector,
-        drop = FALSE,
+        tvec = tvec,
+        flatten = FALSE,
         ...
       )
 
-      d <- nrow(X)
-      out <- matrix(0, nrow = d, ncol = iidReps)
-
-      # group columns: (1..n_int) -> draw 1, (n_int+1..2*n_int) -> draw 2, etc.
-      for (k in seq_len(n_int)) {
-        out <- out + X[, seq.int(from = k, to = iidReps * n_int, by = n_int), drop = FALSE]
+      out <- matrix(0, nrow = vector_length, ncol = n)
+      pos <- 1L
+      for (j in seq_len(n)) {
+        out[, j] <- rowSums(X_all[, pos:(pos + n_int - 1L), drop = FALSE])
+        pos <- pos + n_int
       }
-
       out
     }
   }
@@ -359,7 +368,7 @@ sumOfiidCGF <- function(cgf,
   .check_iidReps(iidReps)
 
   # Explicit single replicate.
-  if (is.numeric(iidReps) && iidReps == 1L) return(base_cgf)
+  if (is.numeric(iidReps) && iidReps == 1L && is.null(block_size)) return(base_cgf)
 
   if (identical(iidReps, "any") && is.null(block_size)) {
     stop("sumOfiidCGF(): iidReps='any' requires a non-NULL 'block_size'.")

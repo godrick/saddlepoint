@@ -17,8 +17,8 @@
 
 #' @noRd
 .expand_to_length_strict <- function(x, n, what = "vector") {
-  # Works for numeric and RTMB AD vectors without coercing.
   x <- as.vector(x)
+  # x <- x[]
   lx <- length(x)
   if (lx == 0L) stop(sprintf("%s must have positive length.", what))
   if (lx == n) return(x)
@@ -118,14 +118,16 @@
   # Simulation: if X can simulate, Y = X + b(theta) can simulate by shifting draws.
   simulate_fun <- NULL
   if (isTRUE(base_cgf$has_simulate())) {
-    simulate_fun <- function(iidReps, parameter_vector, ...) {
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       X_sim <- base_cgf$rsim(
-        iidReps = iidReps,
+        n = n,
+        vector_length = vector_length,
         parameter_vector = parameter_vector,
-        drop = FALSE,
+        tvec = tvec,
+        flatten = FALSE,
         ...
       )
-      b <- b_at(parameter_vector, nrow(X_sim))
+      b <- b_at(parameter_vector, vector_length)
       X_sim + b
     }
   }
@@ -221,7 +223,7 @@
 #' # Simulate Y = X + b(theta_true)
 #' theta_true <- c(0.7, log(2))     # b(theta_true) = (0.7, 2)
 #' mu_true <- mu0 + b_fun(theta_true)
-#' Y <- cg$rsim(iidReps = B, parameter_vector = theta_true, drop = FALSE)
+#' Y <- cg$rsim(n = B, vector_length = d, parameter_vector = theta_true)
 #'
 #' fit <- find.saddlepoint.MLE(
 #'   observed.data  = Y,            # columns treated as i.i.d. blocks

@@ -54,7 +54,7 @@
 # Internal constructor: builds the CGF for ONE replicate of Y.
 # Optional iid replication is handled in the exported wrapper.
 # ------------------------------------------------------------------
-.randomlyStoppedSumCGF_internal <- function(count_cgf, summand_cgf, block_size_hint = NULL, ...) {
+.randomlyStoppedSumCGF_internal <- function(count_cgf, summand_cgf, ...) {
 
 
   .trace_mat <- function(M) {
@@ -475,47 +475,38 @@
 
 
 
-  # Optional: validate / store the dimension hint (d = dim(X) = dim(Y))
-  # We use it only for sanity checks, or the edge-case where all sampled N are zero.
-  d_hint <- NULL
-  if (!is.null(block_size_hint)) {
-    if (length(block_size_hint) != 1L || !is.finite(block_size_hint) ||
-        block_size_hint < 1L || block_size_hint != as.integer(block_size_hint)) {
-      stop("randomlyStoppedSumCGF: 'block_size' must be a positive integer when provided.")
-    }
-    d_hint <- as.integer(block_size_hint)
-  }
-
   simulate_fun <- NULL
   if (isTRUE(count_cgf$has_simulate()) && isTRUE(summand_cgf$has_simulate())) {
-    simulate_fun <- function(iidReps, parameter_vector,
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL,
                              max_total_summands = NULL,
                              ...) {
 
-      # Sample counts N_1,...,N_B
-      N_draw <- count_cgf$rsim(
-        iidReps = iidReps,
+      d <- as.integer(vector_length)
+
+      # Under tilt t: X_i are tilted by t; N is tilted by s = K_X(t) (scalar)
+      count_tvec <- NULL
+      if (!is.null(tvec)) {
+        s <- summand_cgf$K(tvec, parameter_vector)
+        s <- as.numeric(s)
+        if (length(s) != 1L || !is.finite(s)) {
+          stop("randomlyStoppedSumCGF$rsim: K_X(t) must be a finite scalar.", call. = FALSE)
+        }
+        count_tvec <- s
+      }
+
+      # Sample counts N_1,...,N_n
+      N_vec <- count_cgf$rsim(
+        n = n,
+        vector_length = 1L,
         parameter_vector = parameter_vector,
-        drop = TRUE,
+        tvec = count_tvec,
+        flatten = TRUE,
         ...
       )
-      N_vec <- as.numeric(N_draw)
-      # count_cgf must be scalar (one count per replicate)
-      if (length(N_vec) != iidReps) {
-        extra_dim <- ""
-        if (!is.null(dim(N_draw))) {
-          extra_dim <- paste0(" (dim: ", nrow(N_draw), " x ", ncol(N_draw), ")")
-        }
-        stop(
-          "randomlyStoppedSumCGF$rsim: 'count_cgf' must simulate ONE scalar count per replicate.\n",
-          "Expected ", iidReps, " draws but got length ", length(N_vec), extra_dim, ".\n",
-          "Hint: this often means your 'count_cgf' is using too many parameters (e.g. theta has extra entries).\n",
-          "Wrap count_cgf with an adaptor so it selects only its count parameters.",
-          call. = FALSE
-        )
+      N_vec <- as.numeric(N_vec)
+      if (any(!is.finite(N_vec))) {
+        stop("randomlyStoppedSumCGF$rsim: count_cgf$rsim() returned non-finite values.", call. = FALSE)
       }
-      if (any(!is.finite(N_vec))) stop("randomlyStoppedSumCGF$rsim: count_cgf$rsim() returned non-finite values.", call. = FALSE)
-
 
       # Enforce integer-ish and >= 0
       tol <- 1e-8
@@ -534,7 +525,9 @@
 
       # total number of summands to generate
       N_total_num <- sum(as.double(N_int))
-      if (!is.finite(N_total_num) || N_total_num < 0) stop("randomlyStoppedSumCGF$rsim: invalid total count.", call. = FALSE)
+      if (!is.finite(N_total_num) || N_total_num < 0) {
+        stop("randomlyStoppedSumCGF$rsim: invalid total count.", call. = FALSE)
+      }
 
       if (N_total_num > .Machine$integer.max) {
         stop(
@@ -551,65 +544,41 @@
             max_total_summands < 0L || max_total_summands != as.integer(max_total_summands)) {
           stop("'max_total_summands' must be NULL or a nonnegative integer.", call. = FALSE)
         }
-        if (N_total > as.integer(max_total_summands)) {
+        mts <- as.integer(max_total_summands)
+        if (N_total > mts) {
           stop(
             "randomlyStoppedSumCGF$rsim: total number of summands (", N_total,
-            ") exceeds max_total_summands (", as.integer(max_total_summands), ").",
+            ") exceeds max_total_summands (", mts, ").",
             call. = FALSE
           )
         }
       }
 
-      # determine dimension d (dim X = dim Y)
-      d <- d_hint
-
       # Edge-case: all sampled counts are zero => Y is identically 0
-      if (N_total == 0L) {
-        if (is.null(d)) {
-          # No dimension hint available; infer d with a single summand draw.
-          # (This only happens when all N are zero.)
-          X1 <- summand_cgf$rsim(iidReps = 1L,
-                                 parameter_vector = parameter_vector,
-                                 drop = FALSE,
-                                 ...)
-          if (is.null(dim(X1))) X1 <- matrix(X1, nrow = 1L)
-          d <- nrow(X1)
-        }
-        return(matrix(0, nrow = d, ncol = iidReps))
-      }
+      if (N_total == 0L) return(matrix(0, nrow = d, ncol = n))
 
       # sample all summands at once
       X_all <- summand_cgf$rsim(
-        iidReps = N_total,
+        n = N_total,
+        vector_length = d,
         parameter_vector = parameter_vector,
-        drop = FALSE,
+        tvec = tvec,
+        flatten = FALSE,
         ...
       )
-      if (is.null(dim(X_all))) {
-        X_all <- matrix(X_all, nrow = 1L, ncol = N_total)
-      }
 
-      if (!is.null(d) && nrow(X_all) != d) {
-        stop(
-          "randomlyStoppedSumCGF$rsim: summand dimension mismatch. Expected ", d,
-          " rows but got ", nrow(X_all), ".",
-          call. = FALSE
-        )
-      }
-      if (is.null(d)) d <- nrow(X_all)
-
-      # Segment-sum into B outputs
-      Y <- matrix(0, nrow = d, ncol = iidReps)
-      pos <- 1
-      for (b in seq_len(iidReps)) {
-        nb <- N_int[b]
-        if (nb > 0L) {
-          if (nb == 1L) {
-            Y[, b] <- X_all[, pos]
+      # Segment-sum into n outputs
+      Y <- matrix(0, nrow = d, ncol = n)
+      pos <- 1L
+      for (j in seq_len(n)) {
+        nj <- N_int[j]
+        if (nj > 0L) {
+          if (nj == 1L) {
+            Y[, j] <- X_all[, pos]
           } else {
-            Y[, b] <- rowSums(X_all[, pos:(pos + nb - 1L), drop = FALSE])
+            Y[, j] <- rowSums(X_all[, pos:(pos + nj - 1L), drop = FALSE])
           }
-          pos <- pos + nb
+          pos <- pos + nj
         }
       }
       Y
@@ -746,7 +715,6 @@ randomlyStoppedSumCGF <- function(count_cgf,
   # out_cgf <- .randomlyStoppedSumCGF_internal(count_cgf, summand_cgf, ...)
   out_cgf <- .randomlyStoppedSumCGF_internal(
     count_cgf, summand_cgf,
-    block_size_hint = block_size,
     ...
   )
 
@@ -756,7 +724,7 @@ randomlyStoppedSumCGF <- function(count_cgf,
     stop("randomlyStoppedSumCGF(): Please supply at least one of 'block_size' or 'iidReps' to disambiguate i.i.d. replication semantics.")
   }
 
-  if (!is.null(iidReps) && iidReps == 1) return(out_cgf)
+  if (!is.null(iidReps) && iidReps == 1 && is.null(block_size)) return(out_cgf)
 
   # if (!is.null(iidReps) && iidReps == 1 && is.null(block_size)) {
   #   # Allow explicit iidReps=1 as a way to declare "single replicate".

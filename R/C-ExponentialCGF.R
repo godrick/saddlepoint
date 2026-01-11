@@ -67,18 +67,23 @@
       cbind(param)
       # matrix(param, ncol = 1L)
     },
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      rate <- as.numeric(parameter_vector)
+    rsim_elem = function(n, tvec, pm, ...) {
+      rate <- as.numeric(pm[, 1])
+      if (any(!is.finite(rate)) || any(rate <= 0)) {
+        stop("ExponentialCGF$rsim: 'rate' must be finite and > 0.")
+      }
 
-      if (any(!is.finite(rate)) || any(rate <= 0)) stop("ExponentialCGF$rsim: 'rate' must be finite and > 0.")
+      rate_tilt <- rate - tvec
+      if (any(!is.finite(rate_tilt)) || any(rate_tilt <= 0)) {
+        stop("ExponentialCGF$rsim: 'rate - tvec' must be finite and > 0.", call. = FALSE)
+      }
 
-
-      d <- length(rate)
-      out <- stats::rexp(
-        n    = d * iidReps,
-        rate = rep.int(rate, times = iidReps)
+      vector_length <- length(tvec)
+      matrix(
+        stats::rexp(n = n * vector_length, rate = rep.int(rate_tilt, times = n)),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
 
     iidReps = iidReps,
@@ -161,7 +166,6 @@ ExponentialModelCGF <- function(rate, iidReps = "any", ...) {
   base_cgf <- .exponential_base_cgf(iidReps = iidReps, op_name = "ExponentialModelCGF", ...)
   adaptCGF(cgf = base_cgf, adaptor = rate_fn)
 }
-
 
 
 

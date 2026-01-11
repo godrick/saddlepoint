@@ -20,9 +20,8 @@
 #  We follow the same conventions as sumOfIndependentCGF():
 #    - The wrapper passes (iidReps, block_size) to iidReplicatesCGF().
 #    - The tilt vector h(theta) is "recycled by blocks" automatically:
-#        if length(h) divides length(tvec), it is repeated to match length(tvec).
+#        if iidReplicatesCGF is used, h(theta) is interpreted as a single-block tilt and repeated across blocks.
 #        if length(h) == length(tvec), it is used as-is.
-#        otherwise, it errors (to avoid silent recycling bugs).
 # ------------------------------------------------------------------
 
 .exponentialTiltCGF_internal <- function(base_cgf, tilt_fn, ...) {
@@ -57,7 +56,7 @@
   has_analytic <- isTRUE(base_cgf$has_analytic_tvec_hat())
   hat0 <- if (has_analytic) base_cgf$analytic_tvec_hat else NULL
 
-  # Helper: expand h(theta) to length(tvec) safely (no silent partial recycling)
+  # Helper: expand h(theta) to length(tvec)
   expand_h <- function(h, m) {
     if (length(h) == 0L) stop("ExponentialTiltCGF: tilt_fn(theta) returned length 0.")
     if (length(h) == m) return(h)
@@ -68,7 +67,6 @@
         "Provide a tilt vector h of length 1, block_size, or length(tvec)."
       )
     }
-    # AD-friendly recycling by indexing (instead of rep())
     h[(seq_len(m) - 1L) %% length(h) + 1L]
   }
 
@@ -188,6 +186,25 @@
     }
   }
 
+  # This does NOT imply a general exact sampler from the tilted law.
+  # rsim is only available if the base CGF can simulate under a tilt (tvec != NULL).
+  simulate_fun <- NULL
+  if (isTRUE(base_cgf$has_simulate())) {
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      h <- expand_h(tilt_fn(parameter_vector), vector_length)
+      t_total <- if (is.null(tvec)) h else (h + tvec)
+
+      base_cgf$rsim(
+        n = n,
+        vector_length = vector_length,
+        parameter_vector = parameter_vector,
+        tvec = t_total,
+        flatten = FALSE,
+        ...
+      )
+    }
+  }
+
   # call_history label
   hist <- paste(base_cgf$call_history, collapse = " -> ")
   op_name_vec <- c(hist, "ExponentialTiltCGF")
@@ -217,6 +234,7 @@
 
     ineq_constraint = ineqfun,
     analytic_tvec_hat_func = analytic_tvec_hat_fun,
+    rsim = simulate_fun,
 
     op_name = op_name_vec,
     ...

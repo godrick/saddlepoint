@@ -57,23 +57,28 @@
     },
 
     split_param_to_mat = split_mu_sigma,
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      pm <- split_mu_sigma(parameter_vector)
-      mu    <- as.numeric(pm[, 1])
+    rsim_elem = function(n, tvec, pm, ...) {
+      mu <- as.numeric(pm[, 1])
       sigma <- as.numeric(pm[, 2])
 
       if (any(!is.finite(mu))) stop("NormalCGF$rsim: 'mu' must be finite.")
+      if (any(!is.finite(sigma)) || any(sigma < 0)) {
+        stop("NormalCGF$rsim: 'sigma' must be finite and >= 0.")
+      }
 
-      if (any(!is.finite(sigma)) || any(sigma < 0)) stop("NormalCGF$rsim: 'sigma' must be finite and >= 0.")
+      sig2 <- sigma * sigma
+      mean_tilt <- mu + sig2 * tvec
+      vector_length <- length(tvec)
 
-
-      d <- length(mu)
-      out <- stats::rnorm(
-        n    = d * iidReps,
-        mean = rep.int(mu,    times = iidReps),
-        sd   = rep.int(sigma, times = iidReps)
+      matrix(
+        stats::rnorm(
+          n = n * vector_length,
+          mean = rep.int(mean_tilt, times = n),
+          sd = rep.int(sigma, times = n)
+        ),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
 
     iidReps = iidReps,
@@ -262,20 +267,32 @@ GaussianModelCGF <- NormalModelCGF
     as.vector(solve(sp$Sigma, y - sp$mu))
   }
 
-  # Simulation: draw iidReps samples from N(mu, Sigma) and return a d x iidReps matrix.
-  simulate_fun <- function(iidReps, parameter_vector, ...) {
-    param_num <- as.numeric(parameter_vector)
-    sp <- .split_param(param_num)
+  # Simulation: draw n samples from N(mu + Sigma*t, Sigma), return d x n.
+  simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 
+    # Parse params (dimension d inferred from parameter_vector length)
+    sp <- .split_param(parameter_vector)
     d <- as.integer(sp$d)
-    mu <- as.numeric(sp$mu)
+
+    # This is NOT redundant: base CGF only checks vector_length is an integer,
+    # it does not know it must equal d.
+    if (vector_length != d) {
+      stop(
+        "MultivariateNormal$rsim: 'vector_length' must equal d = ", d,
+        " inferred from parameter_vector; got ", vector_length, ".",
+        call. = FALSE
+      )
+    }
+
+    mu    <- as.numeric(sp$mu)
     Sigma <- as.matrix(sp$Sigma)
 
-    if (length(mu) != d) stop("MultivariateNormal$rsim: internal error (mu length mismatch).")
-    if (nrow(Sigma) != d || ncol(Sigma) != d) stop("MultivariateNormal$rsim: internal error (Sigma dimension mismatch).")
-    if (any(!is.finite(mu))) stop("MultivariateNormal$rsim: 'mu' must be finite.")
-    if (any(!is.finite(Sigma))) stop("MultivariateNormal$rsim: 'Sigma' must have finite entries.")
+    # Apply exact exponential tilting: mu_tilt = mu + Sigma %*% tvec
+    if (!is.null(tvec)) {
+      mu <- mu + as.vector(Sigma %*% tvec)
+    }
 
+    # We only need chol for simulation; chol requires SPD.
     Rchol <- tryCatch(
       chol(Sigma),
       error = function(e) {
@@ -288,29 +305,9 @@ GaussianModelCGF <- NormalModelCGF
       }
     )
 
-    Z <- matrix(stats::rnorm(d * iidReps), nrow = d, ncol = iidReps)
-    matrix(mu, nrow = d, ncol = iidReps) + t(Rchol) %*% Z
+    Z <- matrix(stats::rnorm(d * n), nrow = d, ncol = n)
+    matrix(mu, nrow = d, ncol = n) + t(Rchol) %*% Z
   }
-
-
-  # K2_solve_fun <- function(tvec, param, rhs) {
-  #   sp <- .split_param(param)
-  #   d <- sp$d
-  #   if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
-  #   if (is.null(dim(rhs))) {
-  #     if (length(rhs) != d) stop("MultivariateNormal: K2_solve rhs length mismatch.")
-  #     return(as.vector(solve(sp$Sigma, rhs)))
-  #   }
-  #   if (nrow(rhs) != d) stop("MultivariateNormal: K2_solve rhs nrow mismatch.")
-  #   solve(sp$Sigma, rhs)
-  # }
-  #
-  # logdetK2_fun <- function(tvec, param) {
-  #   sp <- .split_param(param)
-  #   d <- sp$d
-  #   if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
-  #   determinant(sp$Sigma, logarithm = TRUE)$modulus
-  # }
 
 
   K3opfun <- function(tvec, param, v1, v2, v3) 0

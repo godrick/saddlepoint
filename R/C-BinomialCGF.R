@@ -52,26 +52,35 @@
       log(x * (1 - pm[,2])) - log(pm[,2] * (pm[,1] - x))
     },
     split_param_to_mat = split_np,
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      pm <- split_np(parameter_vector)
-      n <- as.numeric(pm[, 1])
+    rsim_elem = function(n, tvec, pm, ...) {
+      n_trials <- as.numeric(pm[, 1])
       p <- as.numeric(pm[, 2])
 
-      if (any(!is.finite(n)) || any(n < 0)) {
+      if (any(!is.finite(n_trials)) || any(n_trials < 0)) {
         stop("BinomialCGF$rsim: 'n' must be finite and >= 0.")
       }
-      # For simulation, n must be integer-ish
-      if (any(abs(n - round(n)) > 1e-8)) stop("BinomialCGF$rsim: 'n' must be an integer to simulate.")
-      n <- as.integer(round(n))
-      if (any(!is.finite(p)) || any(p < 0 | p > 1)) stop("BinomialCGF$rsim: 'p' must be finite and in [0, 1].")
+      if (any(abs(n_trials - round(n_trials)) > 1e-8)) {
+        stop("BinomialCGF$rsim: 'n' must be an integer to simulate.")
+      }
+      n_trials <- as.integer(round(n_trials))
+      if (any(!is.finite(p)) || any(p < 0 | p > 1)) {
+        stop("BinomialCGF$rsim: 'p' must be finite and in [0, 1].")
+      }
 
-      d <- length(n)
-      out <- stats::rbinom(
-        n    = d * iidReps,
-        size = rep.int(n, times = iidReps),
-        prob = rep.int(p, times = iidReps)
+      p_tilt <- stats::plogis( stats::qlogis(p) + tvec )
+      if (any(!is.finite(p_tilt)) || any(p_tilt < 0 | p_tilt > 1)) {
+        stop("BinomialCGF$rsim: tilted probability invalid (check tvec).", call. = FALSE)
+      }
+      vector_length <- length(tvec)
+      matrix(
+        stats::rbinom(
+          n = n * vector_length,
+          size = rep.int(n_trials, times = n),
+          prob = rep.int(p_tilt, times = n)
+        ),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
 
     iidReps = iidReps,
@@ -151,4 +160,3 @@ BinomialModelCGF <- function(n, prob, iidReps = "any", ...) {
 
   adaptCGF(base_cgf, adaptor_fun)
 }
-

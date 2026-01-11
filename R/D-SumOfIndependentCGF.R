@@ -91,24 +91,7 @@
     total
   }
 
-  # Constraints: concatenate once (avoid calling each constraint twice)
-  ineqfun <- function(tvec, param) {
-    pieces <- lapply(ineq_list, function(f) f(tvec, param))
-    total_size <- sum(lengths(pieces))
-
-    out <- numeric(total_size) * param[1]
-    if (total_size == 0L) return(out)
-
-    idx <- 1L
-    for (p in pieces) {
-      lp <- length(p)
-      if (lp > 0L) {
-        out[idx:(idx + lp - 1L)] <- p
-        idx <- idx + lp
-      }
-    }
-    out
-  }
+  #
 
   ineqfun <- function(tvec, param) {
     pieces <- lapply(ineq_list, function(f) f(tvec, param))
@@ -285,21 +268,32 @@
 
   # simulation (only if all summands can simulate)
   simulate_fun <- NULL
-  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate()), FALSE ))) {
-    simulate_fun <- function(iidReps, parameter_vector, ...) {
-      sims <- lapply(seq_along(cgf_list), function(j) {
-        cgf_list[[j]]$rsim(
-          iidReps = iidReps,
-          parameter_vector = parameter_vector,
-          drop = FALSE,
-          ...
-        )
-      })
+  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate()), logical(1)))) {
+    rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      out <- rsim_list[[1]](
+        n = n,
+        vector_length = vector_length,
+        parameter_vector = parameter_vector,
+        tvec = tvec,
+        flatten = FALSE,
+        ...
+      )
 
-      d0 <- nrow(sims[[1]])
-      if (any(vapply(sims, nrow, integer(1)) != d0)) stop("sumOfIndependentCGF$rsim: summands returned incompatible dimensions.")
+      if (length(rsim_list) > 1L) {
+        for (j in 2:length(rsim_list)) {
+          out <- out + rsim_list[[j]](
+            n = n,
+            vector_length = vector_length,
+            parameter_vector = parameter_vector,
+            tvec = tvec,
+            flatten = FALSE,
+            ...
+          )
+        }
+      }
 
-      Reduce(`+`, sims)
+      out
     }
   }
 
@@ -467,7 +461,7 @@ sumOfIndependentCGF <- function(cgf_list,
   if (is.null(block_size) && is.null(iidReps)) return(base_cgf)
   if (is.null(iidReps)) iidReps <- "any"
   .check_iidReps(iidReps)
-  if (is.numeric(iidReps) && iidReps == 1L) return(base_cgf)
+  if (is.numeric(iidReps) && iidReps == 1L && is.null(block_size)) return(base_cgf)
   if (identical(iidReps, "any") && is.null(block_size)) {
     stop("sumOfIndependentCGF(): iidReps='any' requires a non-NULL 'block_size'.")
   }

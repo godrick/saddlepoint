@@ -16,6 +16,7 @@ createCGF_fromVectorisedFunctions(
   tilting_exponent = NULL,
   neg_ll = NULL,
   func_T = NULL,
+  rsim = NULL,
   K4operatorAABB = NULL,
   K3K3operatorAABBCC = NULL,
   K3K3operatorABCABC = NULL,
@@ -47,6 +48,11 @@ createCGF_fromVectorisedFunctions(
 \item{neg_ll}{Optional neg_ll function override.}
 
 \item{func_T}{Optional func_T function override.}
+
+\item{rsim}{Optional simulation method. A function of the form
+\code{function(n, vector_length, parameter_vector, tvec = NULL, ...)} returning
+a numeric vector or matrix of length \code{n * vector_length} or a
+\code{vector_length x n} matrix.}
 
 \item{K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC}{Optional operator overrides.}
 

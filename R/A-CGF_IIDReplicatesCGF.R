@@ -451,8 +451,46 @@
   # ------------------------------------------------------------------
   simulate_fun <- NULL
   if (isTRUE(cgf$has_simulate())) {
-    simulate_fun <- function(iidReps, parameter_vector, drop = TRUE, ...) {
-      cgf$rsim(iidReps = iidReps, parameter_vector = parameter_vector, drop = drop, ...)
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      d_cur <- .block_size_value(block_size, parameter_vector)
+      lay <- .resolve_rep_layout(vector_length, block_size = d_cur, iidReps = iidReps)
+      d <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+      if (!is.null(tvec) && length(tvec) != vector_length) stop("iidReplicatesCGF$rsim: if supplied, 'tvec' must have length == vector_length.", call. = FALSE)
+
+      out <- matrix(0, nrow = vector_length, ncol = n)
+
+      if (is.null(tvec)) {
+        X <- cgf$rsim(
+          n = n * B,
+          vector_length = d,
+          parameter_vector = parameter_vector,
+          tvec = NULL,
+          flatten = FALSE,
+          ...
+        )
+        for (j in seq_len(n)) {
+          cols <- ((j - 1L) * B + 1L):(j * B)
+          out[, j] <- as.vector(X[, cols, drop = FALSE])
+        }
+        return(out)
+      }
+
+      for (b in seq_len(B)) {
+        # idx <- chunkIndices(b, d)
+        idx <- ((b - 1L) * d + 1L):(b * d)
+        Xb <- cgf$rsim(
+          n = n,
+          vector_length = d,
+          parameter_vector = parameter_vector,
+          tvec = tvec[idx],
+          flatten = FALSE,
+          ...
+        )
+        out[idx, ] <- Xb
+      }
+
+      out
     }
   }
 
@@ -594,7 +632,7 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
 
   # If there's no replication to enforce
   if (identical(iidReps, "any") && is.null(block_size)) return(cgf)
-  if (is.numeric(iidReps) && iidReps == 1L) return(cgf)
+  if (is.numeric(iidReps) && iidReps == 1L && is.null(block_size)) return(cgf)
 
 
   .iidReplicatesCGF_internal(
@@ -604,8 +642,6 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
   )
 
 }
-
-
 
 
 

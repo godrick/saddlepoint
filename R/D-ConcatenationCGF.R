@@ -504,33 +504,35 @@
 
   # simulation (only if all components can simulate)
   simulate_fun <- NULL
-  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate()), FALSE ))) {
-    simulate_fun <- function(iidReps, parameter_vector, ...) {
+  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate()), logical(1)))) {
+    rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
+    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 
-      sims <- lapply(seq_along(cgf_list), function(j) {
-        Xj <- cgf_list[[j]]$rsim(
-          iidReps = iidReps,
+      if (vector_length != total_dim) {
+        stop(
+          "concatenationCGF$rsim: 'vector_length' must equal sum(component_dims) = ",
+          total_dim, ". Got ", vector_length, ".",
+          call. = FALSE
+        )
+      }
+
+      out <- matrix(0, nrow = total_dim, ncol = n)
+
+      for (i in seq_len(L)) {
+        idx <- idx_list[[i]]
+        t_sub <- if (is.null(tvec)) NULL else tvec[idx]
+
+        out[idx, ] <- rsim_list[[i]](
+          n = n,
+          vector_length = dims[i],
           parameter_vector = parameter_vector,
-          drop = FALSE,
+          tvec = t_sub,
+          flatten = FALSE,
           ...
         )
+      }
 
-        if (!is.matrix(Xj)) {
-          Xj <- matrix(Xj, nrow = component_dims[j], ncol = iidReps)
-        }
-
-        if (nrow(Xj) != component_dims[j]) {
-          stop(
-            "concatenationCGF$rsim: component ", j,
-            " returned nrow=", nrow(Xj),
-            " but expected ", component_dims[j],
-            ". Check 'component_dims' and/or the component model."
-          )
-        }
-        Xj
-      })
-
-      do.call(rbind, sims)
+      out
     }
   }
 

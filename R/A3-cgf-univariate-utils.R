@@ -56,6 +56,7 @@
   iidReps,
   op_name,
   ineq_elem = NULL,
+  rsim_elem = NULL,
   ...
 ) {
   .check_iidReps(iidReps)
@@ -68,11 +69,21 @@
             is.function(t_hat_elem),
             is.function(split_param_to_mat))
   if (!is.null(ineq_elem)) stopifnot(is.function(ineq_elem))
+  if (!is.null(rsim_elem)) stopifnot(is.function(rsim_elem))
 
   # Helper that prepares the expanded parameter matrix for a given vector 'vec'
   prep_par <- function(vec, param) {
     base_mat <- unname(split_param_to_mat(param))
     .broadcast_univariate_matrix(vec, base_mat, iidReps)
+  }
+
+  rsim_wrapper <- NULL
+  if (!is.null(rsim_elem)) {
+    rsim_wrapper <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      t_use <- if (is.null(tvec)) numeric(vector_length) else tvec
+      pm <- prep_par(t_use, parameter_vector)
+      rsim_elem(n = n, tvec = t_use, pm = pm, ...)
+    }
   }
 
   createCGF_fromVectorisedFunctions(
@@ -109,6 +120,7 @@
         ineq_elem(tvec, pm)
       }
     } else NULL,
+    rsim = rsim_wrapper,
     op_name = op_name,
     ...
   )

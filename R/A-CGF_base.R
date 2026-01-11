@@ -503,27 +503,63 @@ if (!is.null(logdetK2_func)) {
   self$has_simulate <- function() {
     !is.null(private$simulate_func)
   }
-  self$rsim <- function(iidReps, parameter_vector, drop = TRUE, ...) {
+  self$rsim <- function(n, vector_length, parameter_vector, tvec = NULL, flatten = FALSE, ...) {
     if (!self$has_simulate()) {
       stop("This CGF does not implement simulation (no 'simulate_func').", call. = FALSE)
     }
-    if (length(iidReps) != 1L || !is.finite(iidReps) || iidReps < 1L || iidReps != as.integer(iidReps)) {
-      stop("'iidReps' must be a positive integer.", call. = FALSE)
+    if (length(n) != 1L || !is.finite(n) || n < 1L || n != as.integer(n)) {
+      stop("'n' must be a positive integer.", call. = FALSE)
     }
-    iidReps <- as.integer(iidReps)
+    n <- as.integer(n)
 
-    out <- private$simulate_func(iidReps = iidReps, parameter_vector = parameter_vector, ...)
+    if (length(vector_length) != 1L || !is.finite(vector_length) || vector_length < 1L ||
+        vector_length != as.integer(vector_length)) {
+      stop("'vector_length' must be a positive integer.", call. = FALSE)
+    }
+    vector_length <- as.integer(vector_length)
 
+    if (!is.logical(flatten) || length(flatten) != 1L || is.na(flatten)) {
+      stop("'flatten' must be TRUE or FALSE.", call. = FALSE)
+    }
+
+    if (!is.null(tvec)) {
+      if (!is.numeric(tvec)) stop("'tvec' must be NULL or numeric.", call. = FALSE)
+      if (length(tvec) != vector_length) {
+        stop("'tvec' must have length == vector_length.", call. = FALSE)
+      }
+    }
+
+    out <- private$simulate_func(
+      n = n,
+      vector_length = vector_length,
+      parameter_vector = parameter_vector,
+      tvec = tvec,
+      ...
+    )
 
     if (is.null(dim(out))) {
       if (!is.numeric(out)) stop("simulate_func must return a numeric vector or matrix.", call. = FALSE)
-      if (length(out) %% iidReps != 0L) {
-        stop("simulate_func returned a vector whose length is not divisible by iidReps.", call. = FALSE)
+      if (length(out) != n * vector_length) {
+        stop(
+          "simulate_func returned a vector of length ", length(out),
+          ", expected ", n * vector_length, " (= n * vector_length).",
+          call. = FALSE
+        )
       }
-      d <- length(out) %/% iidReps
-      out <- matrix(out, nrow = d, ncol = iidReps)
+      out <- matrix(out, nrow = vector_length, ncol = n)
+    } else {
+      out <- as.matrix(out)
+      if (!is.numeric(out)) stop("simulate_func must return a numeric vector or matrix.", call. = FALSE)
+      if (nrow(out) != vector_length || ncol(out) != n) {
+        stop(
+          "simulate_func returned a matrix with dim=", paste(dim(out), collapse = "x"),
+          ", expected ", vector_length, "x", n, " (= vector_length x n).",
+          call. = FALSE
+        )
+      }
     }
-    if (drop && nrow(out) == 1) return(as.numeric(out))
+
+    if (flatten) return(as.numeric(out))
     out
   }
 
@@ -667,8 +703,8 @@ if (!is.null(logdetK2_func)) {
 #'   A function of the form `function(tvec, parameter_vector)` returning `log(det(K2(tvec, parameter_vector)))`
 #'   Useful for wrapper CGFs that can compute this without materializing the full `K2`.
 #' @param rsim Optional simulation method.
-#'   A function of the form `function(iidReps, parameter_vector)` returning
-#'   a numeric vector or matrix of simulated observations.
+#'   A function of the form `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
+#'   returning a `vector_length x n` matrix.
 #'   If supplied, the resulting CGF exposes `$rsim()` and `$has_simulate()`.
 #' @param ... Additional named methods or overrides.
 #'

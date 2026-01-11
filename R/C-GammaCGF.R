@@ -36,23 +36,32 @@
     },
     t_hat_elem  = function(x, pm) pm[,2] - (pm[,1] / x),
     split_param_to_mat = split_ab,
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      pm <- split_ab(parameter_vector)
+    rsim_elem = function(n, tvec, pm, ...) {
       shape <- as.numeric(pm[, 1])
       rate  <- as.numeric(pm[, 2])
 
-      if (any(!is.finite(shape)) || any(shape <= 0)) stop("GammaCGF$rsim: 'shape' must be finite and > 0.")
+      if (any(!is.finite(shape)) || any(shape <= 0)) {
+        stop("GammaCGF$rsim: 'shape' must be finite and > 0.")
+      }
+      if (any(!is.finite(rate)) || any(rate <= 0)) {
+        stop("GammaCGF$rsim: 'rate' must be finite and > 0.")
+      }
 
-      if (any(!is.finite(rate)) || any(rate <= 0)) stop("GammaCGF$rsim: 'rate' must be finite and > 0.")
+      rate_tilt <- rate - tvec
+      if (any(!is.finite(rate_tilt)) || any(rate_tilt <= 0)) {
+        stop("GammaCGF$rsim: 'rate - tvec' must be finite and > 0.", call. = FALSE)
+      }
 
-
-      d <- length(shape)
-      out <- stats::rgamma(
-        n     = d * iidReps,
-        shape = rep.int(shape, times = iidReps),
-        rate  = rep.int(rate,  times = iidReps)
+      vector_length <- length(tvec)
+      matrix(
+        stats::rgamma(
+          n = n * vector_length,
+          shape = rep.int(shape, times = n),
+          rate = rep.int(rate_tilt, times = n)
+        ),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
 
     iidReps = iidReps,
@@ -128,5 +137,4 @@ GammaModelCGF <- function(shape, rate, iidReps = "any", ...) {
     adaptor = function(theta) c(shape_fn(theta), rate_fn(theta))
   )
 }
-
 

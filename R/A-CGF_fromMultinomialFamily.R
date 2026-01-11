@@ -299,54 +299,63 @@ MultinomialFamilyCGF <- R6::R6Class(
       K4operatorAABB_val / 8 - K3K3operatorAABBCC_val / 8 - K3K3operatorABCABC_val / 12
     },
 
-    # ------------------------------------------------------------------
-    # Default simulator (single block)
-    # ------------------------------------------------------------------
-    # Simulate iidReps draws from a d-category multinomial with:
-    #   parameter_vector = c(N, odds_1, ..., odds_d)
-    # where 'odds' may be:
-    #   - a probability vector summing to 1, or
-    #   - nonnegative unnormalised weights (treated as odds; will be normalised).
-    #
-    # Returns a matrix of dimension d by iidReps (integer counts).
-    simulate_func_default = function(iidReps, parameter_vector, ...) {
-      pv <- as.numeric(parameter_vector)
-
-      if (length(pv) < 2L) {
+    simulate_func_default = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+      if (length(parameter_vector) < 2) {
         stop("MultinomialFamilyCGF$rsim: 'parameter_vector' must be c(N, odds[1:d]) with length >= 2.", call. = FALSE)
       }
 
-      N_val <- pv[1]
-      odds  <- pv[-1]
-      d <- length(odds)
+      N_val <- parameter_vector[1]
+      odds  <- parameter_vector[-1]
+      d     <- length(odds)
 
-      if (!is.finite(N_val) || N_val < 0) {
-        stop("MultinomialFamilyCGF$rsim: N must be finite and >= 0.", call. = FALSE)
-      }
-      if (N_val != as.integer(N_val)) {
-        stop("MultinomialFamilyCGF$rsim: N must be an integer for simulation.", call. = FALSE)
-      }
-      if (N_val > .Machine$integer.max) {
-        stop("MultinomialFamilyCGF$rsim: N exceeds .Machine$integer.max; cannot simulate with rmultinom().", call. = FALSE)
-      }
-      N_int <- as.integer(N_val)
 
-      if (d < 1L) {
-        stop("MultinomialFamilyCGF$rsim: need at least one category (length(parameter_vector) must be >= 2).", call. = FALSE)
+      if (vector_length != d) {
+        stop("MultinomialFamilyCGF$rsim: require vector_length == d = length(parameter_vector) - 1. ",
+             "Got vector_length=", vector_length, ", d=", d, ".", call. = FALSE)
       }
-      if (any(!is.finite(odds)) || any(odds < 0)) {
-        stop("MultinomialFamilyCGF$rsim: odds/probabilities must be finite and >= 0.", call. = FALSE)
-      }
+
+
+      # validate N (multinomial size)
+      if (!is.finite(N_val) || N_val < 0) stop("MultinomialFamilyCGF$rsim: N must be finite and >= 0.", call. = FALSE)
+
+      tol <- 1e-8
+      N_round <- round(N_val)
+      if (abs(N_val - N_round) > tol) stop("MultinomialFamilyCGF$rsim: N must be (near) integer for simulation. Got N=", N_val, ".", call. = FALSE)
+
+      N_int <- as.integer(N_round)
+
+
+      if (any(!is.finite(odds)) || any(odds < 0)) stop("MultinomialFamilyCGF$rsim: odds/probabilities must be finite and >= 0.", call. = FALSE)
+
       odds_sum <- sum(odds)
       if (!is.finite(odds_sum) || odds_sum <= 0) {
         stop("MultinomialFamilyCGF$rsim: odds/probabilities must have a positive finite sum.", call. = FALSE)
       }
 
-      p <- odds / odds_sum  # safe: odds_sum > 0
+      # compute tilted probabilities if tvec is supplied:
+      #   p_tilt ~ odds * exp(tvec)
+      if (!is.null(tvec)) {
+        if (length(tvec) != d) {
+          stop("MultinomialFamilyCGF$rsim: if supplied, 'tvec' must have length d.", call. = FALSE)
+        }
+        if (any(!is.finite(tvec))) {
+          stop("MultinomialFamilyCGF$rsim: 'tvec' must be finite.", call. = FALSE)
+        }
+        tmax <- max(tvec)
+        w <- odds * exp(tvec - tmax)
+      } else {
+        w <- odds
+      }
 
-      # stats::rmultinom returns an integer matrix with nrow=d and ncol=iidReps
-      stats::rmultinom(n = iidReps, size = N_int, prob = p)
+      wsum <- sum(w)
+
+      p <- w / wsum
+
+      # stats::rmultinom returns an integer matrix d x n
+      stats::rmultinom(n = n, size = N_int, prob = p)
     }
+
+
   ),
 
   public = list(
@@ -394,8 +403,8 @@ MultinomialFamilyCGF <- R6::R6Class(
       # func_T_func <- if (is.null(func_Tfunc)) private$func_Tfunc_default else func_Tfunc
       final_func_T_func <- if(is.null(func_T_func)) private$func_Tfunc_default else func_T_func
 
-      # Default simulation for a single multinomial block
       final_simulate_func <- if (is.null(simulate_func)) private$simulate_func_default else simulate_func
+
 
 
 

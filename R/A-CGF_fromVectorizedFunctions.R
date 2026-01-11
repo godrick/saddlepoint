@@ -239,6 +239,10 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' @param tilting_exponent Optional tilting exponent function override.
 #' @param neg_ll Optional neg_ll function override.
 #' @param func_T Optional func_T function override.
+#' @param rsim Optional simulation method. A function of the form
+#'   \code{function(n, vector_length, parameter_vector, tvec = NULL, ...)} returning
+#'   a numeric vector or matrix of length \code{n * vector_length} or a
+#'   \code{vector_length x n} matrix.
 #' @param K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC Optional operator overrides.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored Optional factored operator overrides.
 #' @param K2operator,K2operatorAK2AT Optional operator overrides.
@@ -258,6 +262,7 @@ createCGF_fromVectorisedFunctions <- function(
     tilting_exponent = NULL,
     neg_ll = NULL,
     func_T = NULL,
+    rsim = NULL,
     K4operatorAABB = NULL,
     K3K3operatorAABBCC = NULL,
     K3K3operatorABCABC = NULL,
@@ -274,6 +279,7 @@ createCGF_fromVectorisedFunctions <- function(
     tilting_exponent_func       = tilting_exponent,
     neg_ll_func                 = neg_ll,
     func_T_func                 = func_T,
+    simulate_func              = rsim,
     K4operatorAABB_func         = K4operatorAABB,
     K3K3operatorAABBCC_func     = K3K3operatorAABBCC,
     K3K3operatorABCABC_func     = K3K3operatorABCABC,
@@ -308,4 +314,3 @@ createCGF_fromVectorisedFunctions <- function(
   ))
 
 }
-

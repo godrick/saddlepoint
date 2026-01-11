@@ -11,21 +11,18 @@
     K4_elem = function(tvec, pm) pm[,1] *  exp(tvec),
     t_hat_elem = function(x, pm) log(x / pm[,1]),
     split_param_to_mat = function(param) { cbind(param) },
-    simulate_func = function(iidReps, parameter_vector, drop = TRUE, ...) {
-      lambda <- as.numeric(parameter_vector)
-      if (length(lambda) < 1L) stop("Poisson rsim: 'lambda' has length 0.")
-      if (any(!is.finite(lambda)) || any(lambda < 0)) {
-        stop("Poisson rsim: all 'lambda' entries must be finite and >= 0.")
-      }
-      if (length(iidReps) != 1L || !is.finite(iidReps) || iidReps < 1L || iidReps != as.integer(iidReps)) {
-        stop("Poisson rsim: 'iidReps' must be a positive integer.")
-      }
-      iidReps <- as.integer(iidReps)
-      n <- length(lambda)*iidReps
-      out <- matrix(stats::rpois(n = n, lambda = rep.int(lambda, times = iidReps)),
-                    nrow = length(lambda), ncol = iidReps)
-      # if (drop && nrow(out) == 1L) return(as.numeric(out))
-      out
+    rsim_elem = function(n, tvec, pm, ...) {
+      lambda <- as.numeric(pm[, 1])
+      if (any(!is.finite(lambda)) || any(lambda < 0)) stop("Poisson rsim: all 'lambda' entries must be finite and >= 0.")
+
+
+      lambda_tilt <- lambda * exp(tvec)
+      vector_length <- length(tvec)
+      matrix(
+        stats::rpois(n = n * vector_length, lambda = rep.int(lambda_tilt, times = n)),
+        nrow = vector_length,
+        ncol = n
+      )
     },
     iidReps = iidReps,
     op_name = op_name,

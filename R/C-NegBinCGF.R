@@ -82,23 +82,35 @@
       log(x) - log(q * (pm[,1] + x))
     },
     split_param_to_mat = split_rp,
-    simulate_func = function(iidReps, parameter_vector, ...) {
-      pm <- split_rp(parameter_vector)
-      r <- as.numeric(pm[, 1])  # "size"
-      p <- as.numeric(pm[, 2])  # "prob"
+    rsim_elem = function(n, tvec, pm, ...) {
+      r <- as.numeric(pm[, 1])
+      p <- as.numeric(pm[, 2])
 
-      if (any(!is.finite(r)) || any(r <= 0)) stop("NegBinCGF$rsim: 'r' (size) must be finite and > 0.")
+      if (any(!is.finite(r)) || any(r <= 0)) {
+        stop("NegBinCGF$rsim: 'r' (size) must be finite and > 0.", call. = FALSE)
+      }
+      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) {
+        stop("NegBinCGF$rsim: 'p' must be finite and in (0, 1].", call. = FALSE)
+      }
 
-      if (any(!is.finite(p)) || any(p <= 0 | p > 1)) stop("NegBinCGF$rsim: 'p' must be finite and in (0, 1].")
+      logq <- log1p(-p)
+      lt <- logq + tvec
 
+      p_tilt <- -expm1(lt)
+      if (any(!is.finite(p_tilt)) || any(p_tilt <= 0 | p_tilt > 1)) {
+        stop("NegBinCGF$rsim: tilted probability invalid (check tvec).", call. = FALSE)
+      }
 
-      d <- length(r)
-      out <- stats::rnbinom(
-        n    = d * iidReps,
-        size = rep.int(r, times = iidReps),
-        prob = rep.int(p, times = iidReps)
+      vector_length <- length(tvec)
+      matrix(
+        stats::rnbinom(
+          n = n * vector_length,
+          size = rep.int(r, times = n),
+          prob = rep.int(p_tilt, times = n)
+        ),
+        nrow = vector_length,
+        ncol = n
       )
-      matrix(out, nrow = d, ncol = iidReps)
     },
     iidReps = iidReps,
     op_name = op_name,
@@ -171,9 +183,6 @@ NegBinModelCGF <- function(r, p, iidReps = "any", ...) {
     adaptor = function(theta) { c(r_fn(theta), p_fn(theta)) }
   )
 }
-
-
-
 
 
 

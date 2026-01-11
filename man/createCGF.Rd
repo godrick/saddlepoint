@@ -64,8 +64,8 @@ A function of the form \verb{function(tvec, parameter_vector)} returning \code{l
 Useful for wrapper CGFs that can compute this without materializing the full \code{K2}.}
 
 \item{rsim}{Optional simulation method.
-A function of the form \verb{function(iidReps, parameter_vector)} returning
-a numeric vector or matrix of simulated observations.
+A function of the form \verb{function(n, vector_length, parameter_vector, tvec = NULL, ...)}
+returning a \verb{vector_length x n} matrix.
 If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate()}.}
 
 \item{K4operatorAABB_factored, K3K3operatorAABBCC_factored, K3K3operatorABCABC_factored}{(optional) Overriding factored-operator methods.}
