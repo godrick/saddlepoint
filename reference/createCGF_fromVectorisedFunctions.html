@@ -36,7 +36,6 @@ along with any optional operators or methods."></head><body><p>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -74,6 +73,7 @@ along with any optional operators or methods.</p>
 <span>  tilting_exponent <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  neg_ll <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  func_T <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rsim <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  K4operatorAABB <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  K3K3operatorAABBCC <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  K3K3operatorABCABC <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -128,6 +128,13 @@ along with any optional operators or methods.</p>
 
 <dt id="arg-func-t">func_T<a class="anchor" aria-label="anchor" href="#arg-func-t"></a></dt>
 <dd><p>Optional func_T function override.</p></dd>
+
+
+<dt id="arg-rsim">rsim<a class="anchor" aria-label="anchor" href="#arg-rsim"></a></dt>
+<dd><p>Optional simulation method. A function of the form
+<code>function(n, vector_length, parameter_vector, tvec = NULL, ...)</code> returning
+a numeric vector or matrix of length <code>n * vector_length</code> or a
+<code>vector_length x n</code> matrix.</p></dd>
 
 
 <dt id="arg-k-operatoraabb-k-k-operatoraabbcc-k-k-operatorabcabc">K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC<a class="anchor" aria-label="anchor" href="#arg-k-operatoraabb-k-k-operatoraabbcc-k-k-operatorabcabc"></a></dt>

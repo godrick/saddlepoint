@@ -100,8 +100,8 @@ createCGF(
 - rsim:
 
   Optional simulation method. A function of the form
-  `function(iidReps, parameter_vector)` returning a numeric vector or
-  matrix of simulated observations. If supplied, the resulting CGF
+  `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
+  returning a `vector_length x n` matrix. If supplied, the resulting CGF
   exposes `$rsim()` and `$has_simulate()`.
 
 - K4operatorAABB_factored, K3K3operatorAABBCC_factored,

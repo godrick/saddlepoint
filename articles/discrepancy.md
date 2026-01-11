@@ -59,7 +59,7 @@ cgf_alpha <- GammaModelCGF(shape = adaptor(indices = 1), rate = adaptor(fixed_pa
 set.seed(1)
 n <- 80
 alpha_true <- 6
-x <- cgf_alpha$rsim(iidReps = n, parameter_vector = alpha_true)
+x <- as.numeric(cgf_alpha$rsim(n = n, vector_length = 1, parameter_vector = alpha_true))
 
 # true MLE
 alpha_mle_true_fn <- function(alpha_, dat) -sum(dgamma(x = dat, shape = alpha_, 
@@ -113,7 +113,7 @@ delta_true_vec  <- numeric(B)
 delta_hat_vec   <- numeric(B)
 
 for (b in 1:B) {
-  x <- cgf_alpha$rsim(iidReps = n, parameter_vector = alpha_true)
+  x <- as.numeric(cgf_alpha$rsim(n = n, vector_length = 1, parameter_vector = alpha_true))
 
   # true MLE
   alpha_true_mle <- nlminb(start = 0.3, objective = alpha_mle_true_fn, lower = 1e-03, dat = x)$par

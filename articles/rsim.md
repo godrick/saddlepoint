@@ -1,346 +1,300 @@
 # Random simulation with CGF objects: rsim
 
-This vignette documents how `rsim(...)` works across CGF objects and
-wrappers in this codebase. We will keep extending it as new CGFs gain
-simulation support.
-
-> **Conventions used here**
->
-> - In cgf\$rsim(iidReps = B, …), iidReps = number of simulated draws.
-> - In building blocks like iidReplicatesCGF(…, iidReps = …), iidReps =
->   how many i.i.d. blocks tvec represents (or “any” to infer).
-> - For a `d`-dimensional random vector, simulation returns a
->   `d x (iidReps)` matrix where each **column** is one draw.
-> - If `d == 1` and `drop = TRUE` (default), simulation returns a
->   numeric vector of length `iidReps`.
-
-## What `block_size` is, and when you need to think about it
-
-A lot of CGFs in this `saddlepoint` package are *vectorized*. That means
-a long `tvec` could mean either:
-
-- **one** high-dimensional random vector, or
-- **B** independent “blocks” of a smaller random vector (i.i.d.
-  replication).
-
-The wrapper
-[`iidReplicatesCGF()`](https://godrick.github.io/saddlepoint/reference/iidReplicatesCGF.md)
-disambiguates those interpretations. It uses:
-
-- `block_size` = dimension of one observation (one block), and
-- `iidReps` (inside the wrapper) = how many blocks to expect (or `"any"`
-  to infer it from `length(tvec)`).
-
-### Does `block_size` matter for `rsim()`?
-
-Usually, **no**. `rsim(iidReps = B, ...)` is unambiguous: you asked for
-`B` draws, and simulation can determine the dimension `d` from the model
-parameters.
-
-You mainly need `block_size` when *constructing* a CGF (e.g., RSS
-models) so that evaluation methods (`K`, `K1`, `K2`, etc.) cannot
-silently reinterpret a long `tvec` as “a different statistical model”.
-
-Wrappers like
-[`linearlyMappedCGF()`](https://godrick.github.io/saddlepoint/reference/linearlyMappedCGF.md)
-can usually infer `block_size` internally (e.g., `nrow(A)`), so you
-rarely worry about it there.
-
-## Quick checklist for `rsim()` support
-
-A CGF supports simulation if:
-
 ``` r
-# cgf$has_simulate()
+
+library(saddlepoint)
 ```
 
-returns `TRUE`.
+This vignette is about `CGF$rsim()`, which simulates draws from the
+distribution described by a `CGF` object.
 
-When it does, the canonical call is:
+## The `rsim()` contract
+
+All `CGF$rsim()` methods follow the same return convention:
+
+- `n` is the number of independent draws to generate.
+- `vector_length` is the dimension of one draw (each draw is a column).
+- The return value is a matrix of shape `vector_length x n`.
+- With `flatten = TRUE`, the result is flattened to a numeric vector
+  (column-major order).
 
 ``` r
-Y <- cgf$rsim(iidReps = 10, parameter_vector = theta)
-```
 
-## Example 1a: PoissonCGF (scalar and vector)
-
-``` r
 set.seed(1)
 
-# Scalar Poisson (d = 1)
 lambda <- 2
-x <- PoissonCGF$rsim(iidReps = 10, parameter_vector = lambda)
-x
-#>  [1] 1 1 2 4 1 4 4 2 2 0
-
-# Vector Poisson (d = 2) interpreted as independent components
-lambda2 <- c(2, 3)
-X <- PoissonCGF$rsim(iidReps = 5, parameter_vector = lambda2, drop = FALSE)
+X <- PoissonCGF$rsim(n = 5, vector_length = 1, parameter_vector = lambda)
 X
 #>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]    1    3    3    3    1
-#> [2,]    1    2    3    8    4
+#> [1,]    1    1    2    4    1
+dim(X)
+#> [1] 1 5
 ```
 
-## Example 1b: NormalCGF (vectorized independent normals)
+If you prefer a plain vector:
 
 ``` r
-set.seed(1)
 
-# Two independent normals packed into one CGF parameter vector:
-# parameter_vector = c(mu1, mu2, sigma1, sigma2)
-param <- c(0, 5, 1, 2)
-
-X <- NormalCGF$rsim(iidReps = 5, parameter_vector = param, drop = FALSE)
-X
-#>            [,1]       [,2]      [,3]      [,4]      [,5]
-#> [1,] -0.6264538 -0.8356286 0.3295078 0.4874291 0.5757814
-#> [2,]  5.3672866  8.1905616 3.3590632 6.4766494 4.3892232
-dim(X)  # 2 x 5
-#> [1] 2 5
-rowMeans(X)  # ~ c(0, 5)
-#> [1] -0.01387285  5.55655682
+PoissonCGF$rsim(n = 5, vector_length = 1, parameter_vector = lambda, flatten = TRUE)
+#> [1] 4 4 2 2 0
 ```
 
-## Example 1c: BinomialCGF (vectorized)
+## Vector-valued simulation
+
+CGF objects support vector-valued random variables. For example, a
+vector of independent Poisson variables can be represented by passing a
+vector `parameter_vector` (one `lambda` per component) and setting
+`vector_length` to match.
 
 ``` r
+
 set.seed(1)
 
-# Two independent binomials:
-# parameter_vector = c(n1, n2, p1, p2)
-param <- c(10, 20, 0.2, 0.6)
-
-X <- BinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
-X
-#>      [,1] [,2] [,3] [,4] [,5] [,6]
-#> [1,]    1    2    1    4    2    1
-#> [2,]   13    9    9   11   15   14
-rowMeans(X)              # ~ c(2, 12)
-#> [1]  1.833333 11.833333
-rowMeans(X) / c(10, 20)  # ~ c(0.2, 0.6)
-#> [1] 0.1833333 0.5916667
+lambda_vec <- c(2, 5, 10)
+Xv <- PoissonCGF$rsim(n = 4, vector_length = length(lambda_vec), parameter_vector = lambda_vec)
+Xv
+#>      [,1] [,2] [,3] [,4]
+#> [1,]    1    1    2    1
+#> [2,]    4    8    2    7
+#> [3,]   10   15    7    9
+dim(Xv)
+#> [1] 3 4
 ```
 
-## Example 2: linearlyMappedCGF simulation (sum of independent Poissons)
+### Linear maps + replicated blocks (vector_length = block_size \* iidReps)
 
-Let `X = (X1, X2)` with `X1 ~ Pois(2)`, `X2 ~ Pois(3)` independent, and
-define `Y = X1 + X2`. This is implemented as a linear map with
-`A = [1 1]`.
+Example:
 
-``` r
-set.seed(1)
+1.  Start from a vector CGF (e.g. independent Poissons),
+2.  Apply a linear map `Y = A X`,
+3.  Replicate the resulting vector-valued observation `Y` across blocks.
 
-cg_vec <- PoissonCGF
-A <- matrix(c(1, 1), nrow = 1)
+This makes `vector_length` larger than 1:
+`vector_length = block_size * iidReps`.
 
-cg_sum <- linearlyMappedCGF(cg_vec, A)
-
-lambda <- c(2, 3)
-Y <- cg_sum$rsim(iidReps = 10000, parameter_vector = lambda)
-
-mean(Y)         # should be ~ 5
-#> [1] 5.0059
-var(Y)          # should be ~ 5
-#> [1] 4.958761
-```
-
-## Example 3: Parameter mapping with adaptors (avoiding “wrong dimension” mistakes)
-
-A common pitfall is passing a combined parameter vector to a component
-CGF that expects only one number. For example, if `count_cgf` is
-`PoissonCGF` and you pass `theta = c(lambdaN, lambdaX)`, then
-`PoissonCGF` interprets this as a **2-dimensional** Poisson parameter,
-not a scalar.
-
-The fix is to *adapt* each sub-CGF so it receives only the piece of
-`theta` it needs.
+Below, `X` is a 5-vector of independent Poissons, `A` is `3 × 5`, so one
+observation `Y` lives in `R^3`. We then create `B = 9` i.i.d. copies of
+`Y`, so `vector_length = 3 * 9 = 27`.
 
 ``` r
+
 set.seed(1)
 
-# theta = c(lambdaN, lambdaX)
-theta <- c(lambdaN = 2, lambdaX = 3)
+lambda5 <- c(1, 2, 3, 4, 5)
 
-count_cgf   <- PoissonModelCGF(lambda = adaptor(indices = 1))
-summand_cgf <- PoissonModelCGF(lambda = adaptor(indices = 2))
-
-rss <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = 1)
-
-Y <- rss$rsim(iidReps = 10000, parameter_vector = theta)
-mean(Y)  # for compound Poisson, E[Y] = E[N] * E[X] = lambdaN * lambdaX = 6
-#> [1] 5.9946
-```
-
-## Example 4: RSS with vector summands (Poisson thinning check)
-
-Let `N ~ Poisson(lambda)` and `X_i ~ Multinomial(1, p)` a one-hot vector
-(categorical draw). Then `Y = sum_{i=1}^N X_i` should have independent
-Poisson components with means `lambda * p`.
-
-``` r
-set.seed(1)
-
-d <- 3
-theta <- c(lambda = 10, p = c(0.2, 0.3, 0.5))
-
-count_cgf <- PoissonModelCGF(lambda = adaptor(indices = 1))
-summand_cgf <- MultinomialModelCGF(
-  n        = adaptor(fixed_param = 1),
-  prob_vec = adaptor(indices = 2:(d + 1))
+A <- matrix(
+  c(
+    1, 0, 0, 0, 0,
+    0, 1, 1, 0, 0,
+    0, 0, 0, 1, 1
+  ),
+  nrow = 3,
+  byrow = TRUE
 )
 
-rss_vec <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = d)
+B <- 9
 
-Y <- rss_vec$rsim(iidReps = 20000, parameter_vector = theta, drop = FALSE)
+# B replicates of a 3-vector observation: Y = A X
+# vector_length will be B*3
+cg_Y <- linearlyMappedCGF(PoissonCGF, A, iidReps = B)
 
-rowMeans(Y)  # should be ~ lambda * p = (2, 3, 5)
-#> [1] 2.00410 3.00845 5.01905
+vector_length <- nrow(A) * B
+n_sims <- 20000
+
+Y <- cg_Y$rsim(n = n_sims, vector_length = vector_length, parameter_vector = lambda5)
+dim(Y)
+#> [1]    27 20000
 ```
 
-## Example 5: MultinomialCGF simulation (odds vs probabilities)
-
-`MultinomialCGF` expects `parameter_vector = c(N, x_1, ..., x_d)`. The
-`x` vector is treated as odds (or as probabilities if it already sums to
-1).
+A simple numerical check (untilted, `tvec = 0`): the mean of `Y = A X`
+should be `E[Y] = A E[X] = A lambda`.
 
 ``` r
-set.seed(1)
 
-N <- 10
-odds <- c(2, 3, 5)
-param_odds <- c(N, odds)
+mu_Y <- as.vector(A %*% lambda5)
 
-X <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_odds, drop = FALSE)
-X
-#>      [,1] [,2] [,3] [,4] [,5] [,6]
-#> [1,]    1    2    1    4    2    1
-#> [2,]    3    5    5    3    1    2
-#> [3,]    6    3    4    3    7    7
-colSums(X)  # should all equal N
-#> [1] 10 10 10 10 10 10
+# Row means for the 27-vector, reshaped into 3 x B block layout:
+mu_hat_blocks <- matrix(rowMeans(Y), nrow = nrow(A), ncol = B)
 
-# Same distribution if you pass probabilities instead of odds
-p <- odds / sum(odds)
-param_p <- c(N, p)
-
-Xp <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_p, drop = FALSE)
-colSums(Xp)
-#> [1] 10 10 10 10 10 10
+# Each column (each block) should be close to mu_Y:
+mu_hat_blocks
+#>         [,1]    [,2]    [,3]    [,4]    [,5]    [,6]   [,7]    [,8]   [,9]
+#> [1,] 0.99270 0.99730 1.00150 1.00280 1.01035 1.00300 0.9799 0.99150 0.9976
+#> [2,] 4.98965 5.01495 4.98525 5.02030 5.01635 4.99945 5.0026 5.01825 4.9985
+#> [3,] 9.03350 9.00030 8.96525 8.96055 9.01445 8.98030 9.0451 8.99960 8.9515
+mu_Y
+#> [1] 1 5 9
 ```
 
-## Example 6: MultinomialModelCGF (theta-mapped multinomial)
+The same idea under tilting: If you tilt `Y` by a block tilt `h` (length
+3), then `X` is implicitly tilted by `A^T h`, so under the tilted law:
+
+- `E[X] = lambda * exp(A^T h)` (elementwise),
+- `E[Y] = A E[X]`.
 
 ``` r
-set.seed(1)
 
-d <- 3
-theta <- c(N = 12, p = c(0.1, 0.2, 0.7))
+h_block <- c(0.2, -0.1, 0.15)
+h_full  <- rep(h_block, times = B)
 
-cgf <- MultinomialModelCGF(
-  n        = function(th) th[1],
-  prob_vec = function(th) th[2:(d + 1)],
-  iidReps  = "any"
+Y_tilt <- cg_Y$rsim(
+  n = n_sims,
+  vector_length = vector_length,
+  parameter_vector = lambda5,
+  tvec = h_full
 )
 
-X <- cgf$rsim(iidReps = 5, parameter_vector = theta, drop = FALSE)
-X
-#>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]    0    1    0    3    1
-#> [2,]    2    4    5    2    0
-#> [3,]   10    7    7    7   11
-colSums(X)
-#> [1] 12 12 12 12 12
+lambda_tilt <- lambda5 * exp(as.vector(t(A) %*% h_block))
+mu_Y_tilt <- A %*% lambda_tilt
+
+mu_hat_tilt_blocks <- matrix(rowMeans(Y_tilt), nrow = nrow(A), ncol = B)
+
+mu_hat_tilt_blocks
+#>          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]     [,8]
+#> [1,]  1.23320  1.21580  1.22385  1.21360  1.21035  1.21320  1.22380  1.22580
+#> [2,]  4.50050  4.53055  4.50610  4.51885  4.52400  4.50105  4.53535  4.52110
+#> [3,] 10.45365 10.46560 10.46960 10.44355 10.41785 10.46100 10.46205 10.45945
+#>          [,9]
+#> [1,]  1.22195
+#> [2,]  4.51240
+#> [3,] 10.50820
+mu_Y_tilt
+#>           [,1]
+#> [1,]  1.221403
+#> [2,]  4.524187
+#> [3,] 10.456508
 ```
 
-## Example 7: SubunitaryMultinomialCGF
-
-`SubunitaryMultinomialCGF` uses parameters `c(N, pi_1,...,pi_d)` where
-`sum(pi) <= 1` and conceptually corresponds to a (d+1)-category
-multinomial **conditioned** on the last category being zero.
-
-Simulation returns the `d` active-category counts and still sums to `N`.
+A quick “large vector” example:
 
 ``` r
+
 set.seed(1)
 
-N <- 10
-pi <- c(0.2, 0.3, 0.1)  # sum < 1 (subunitary)
-param <- c(N, pi)
+d <- 2000
+mu    <- rep(0, d)
+sigma <- rep(1, d)
+param <- c(mu, sigma)  # NormalCGF uses c(mu[1:d], sigma[1:d])
 
-W <- SubunitaryMultinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
-W
-#>      [,1] [,2] [,3] [,4] [,5] [,6]
-#> [1,]    2    4    2    6    4    2
-#> [2,]    6    3    4    3    6    7
-#> [3,]    2    3    4    1    0    1
-colSums(W)
-#> [1] 10 10 10 10 10 10
+Xn <- NormalCGF$rsim(n = 2, vector_length = d, parameter_vector = param)
+dim(Xn)
+#> [1] 2000    2
 ```
 
-## Example 8: sumOfiidCGF (sum of i.i.d. Poissons)
+## Exponential tilting via `tvec`
+
+We now support tilted simulation by passing a nonzero `tvec` to
+`rsim()`.
+
+Informally, simulating with `tvec = h` means simulating from the
+exponentially tilted law with density (or pmf) proportional to
+`exp(h^T x)`.
+
+Equivalently, if `K(t)` is the original CGF, the tilted CGF is
+
+$$K_{h}(t) = K(t + h) - K(h).$$
+
+For common exponential-family models, the tilted law stays in the same
+family, often with a simple parameter update.
+
+Not every `tvec` is valid: when the CGF only exists on a domain
+(e.g. `t < rate` for Exponential/Gamma), tilted simulation requires
+`tvec` to lie in that domain.
+
+### Poisson
+
+$\lambda_{h} = \lambda e^{h}$
 
 ``` r
+
 set.seed(1)
 
-base <- PoissonModelCGF(lambda = adaptor(indices = 1))
-sum10 <- sumOfiidCGF(base, n = 10, block_size = 1)
+B <- 20000
+lambda <- 3
+h <- 0.4
 
-theta <- c(lambda = 2)
-Y <- sum10$rsim(iidReps = 20000, parameter_vector = theta)
+Xh <- PoissonCGF$rsim(
+  n = B,
+  vector_length = 1,
+  parameter_vector = lambda,
+  tvec = h
+)
 
-mean(Y)  # should be ~ 20
-#> [1] 19.99555
-var(Y)   # should be ~ 20
-#> [1] 19.69872
+mean(Xh)
+#> [1] 4.4778
+lambda * exp(h)
+#> [1] 4.475474
 ```
 
-## Example: sumOfIndependentCGF (sum of independent, not-necessarily-identical terms)
+### Multinomial
+
+Here the tilt is vector-valued: `tvec` has length `d`.
 
 ``` r
+
 set.seed(1)
 
-theta <- c(lambda1 = 2, lambda2 = 3)
+B <- 3000
+d <- 30
+N <- 50
 
-cg1 <- PoissonModelCGF(lambda = adaptor(indices = 1))
-cg2 <- PoissonModelCGF(lambda = adaptor(indices = 2))
+# Random probability vector
+p <- stats::runif(d)
+p <- p / sum(p)
 
-cg_sum <- sumOfIndependentCGF(list(cg1, cg2), block_size = 1)
+# A small tilt
+h <- stats::rnorm(d, sd = 0.25)
 
-Y <- cg_sum$rsim(iidReps = 20000, parameter_vector = theta)
+p_h <- p * exp(h)
+p_h <- p_h / sum(p_h)
 
-mean(Y)  # should be ~ 5
-#> [1] 4.9943
-var(Y)   # should be ~ 5
-#> [1] 4.993817
+Xh_multi <- MultinomialCGF$rsim(
+  n = B,
+  vector_length = d,
+  parameter_vector = c(N, p),
+  tvec = h
+)
+
+# Average proportions across simulations should be close to p_h
+prop_hat <- rowMeans(Xh_multi) / N
+c(
+  rms_error = sqrt(mean((prop_hat - p_h)^2)),
+  max_abs_error = max(abs(prop_hat - p_h))
+)
+#>     rms_error max_abs_error 
+#>  0.0004134259  0.0007863824
+
+head(cbind(prop_hat = prop_hat, p_h = p_h), 8)
+#>        prop_hat        p_h
+#> [1,] 0.01631333 0.01654760
+#> [2,] 0.02311333 0.02335956
+#> [3,] 0.04641333 0.04571452
+#> [4,] 0.07073333 0.07028831
+#> [5,] 0.01510667 0.01474633
+#> [6,] 0.07135333 0.07124861
+#> [7,] 0.07161333 0.07239972
+#> [8,] 0.04263333 0.04243257
 ```
 
-## Other issues
+## A compositional example: sum of independent components
 
-### 1) RSS: `count_cgf` must be scalar
+[`sumOfIndependentCGF()`](https://godrick.github.io/saddlepoint/reference/sumOfIndependentCGF.md)
+constructs a CGF for a sum of independent random vectors. Simulation
+composes in the obvious way: simulate each component and add.
 
-In RSS models, `count_cgf` represents a *scalar* count `N`, so
-simulation requires a scalar draw per replicate. If your count CGF is
-vectorized (like `PoissonCGF`) and you accidentally pass a vector
-parameter, you’ll get a “count must be scalar” error.
+``` r
 
-The fix is to use parameter adaptors (as shown above) so the count CGF
-receives only the scalar parameter it needs.
+set.seed(1)
 
-------------------------------------------------------------------------
+# Y = Y1 + Y2, with Y1 ~ Poisson(2), Y2 ~ Poisson(5)
+cg1 <- PoissonModelCGF(lambda = function(theta) theta[1])
+cg2 <- PoissonModelCGF(lambda = function(theta) theta[2])
 
-## Adding a new `rsim()` implementation
+cg_sum <- sumOfIndependentCGF(list(cg1, cg2))
 
-For any new base distribution, define a simulator and pass it to
-`createCGF(rsim = ...)`.
+theta <- c(2, 5)
+Y <- cg_sum$rsim(n = 10000, vector_length = 1, parameter_vector = theta)
 
-**Contract expected by `CGF$rsim`:**
-
-- simulator returns either:
-  - a numeric vector of length `d * iidReps`, or
-  - a numeric `d x iidReps` matrix.
-- each column corresponds to one simulated draw of the underlying random
-  vector.
-
-Then wrappers can often be implemented in a small, compositional way:
-e.g. `linearlyMappedCGF` simulates `X` and returns `A %*% X`.
+mean(Y) # should be close to 7
+#> [1] 7.0052
+```

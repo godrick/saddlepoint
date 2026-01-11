@@ -18,6 +18,7 @@ createCGF_fromVectorisedFunctions(
   tilting_exponent = NULL,
   neg_ll = NULL,
   func_T = NULL,
+  rsim = NULL,
   K4operatorAABB = NULL,
   K3K3operatorAABBCC = NULL,
   K3K3operatorABCABC = NULL,
@@ -75,6 +76,13 @@ createCGF_fromVectorisedFunctions(
 - func_T:
 
   Optional func_T function override.
+
+- rsim:
+
+  Optional simulation method. A function of the form
+  `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
+  returning a numeric vector or matrix of length `n * vector_length` or
+  a `vector_length x n` matrix.
 
 - K4operatorAABB, K3K3operatorAABBCC, K3K3operatorABCABC:
 

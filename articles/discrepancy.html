@@ -51,7 +51,6 @@
 <li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -152,7 +151,7 @@ parameter)<a class="anchor" aria-label="anchor" href="#example-gammashape-alpha-
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">80</span></span>
 <span><span class="va">alpha_true</span> <span class="op">&lt;-</span> <span class="fl">6</span></span>
-<span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">cgf_alpha</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="va">n</span>, parameter_vector <span class="op">=</span> <span class="va">alpha_true</span><span class="op">)</span></span>
+<span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">cgf_alpha</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="va">n</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">alpha_true</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># true MLE</span></span>
 <span><span class="va">alpha_mle_true_fn</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">alpha_</span>, <span class="va">dat</span><span class="op">)</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">dgamma</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">dat</span>, shape <span class="op">=</span> <span class="va">alpha_</span>, </span>
@@ -206,7 +205,7 @@ in this controlled toy setting.</p>
 <span><span class="va">delta_hat_vec</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="va">B</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">b</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">B</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="va">cgf_alpha</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="va">n</span>, parameter_vector <span class="op">=</span> <span class="va">alpha_true</span><span class="op">)</span></span>
+<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">cgf_alpha</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="va">n</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">alpha_true</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="co"># true MLE</span></span>
 <span>  <span class="va">alpha_true_mle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/nlminb.html" class="external-link">nlminb</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">0.3</span>, objective <span class="op">=</span> <span class="va">alpha_mle_true_fn</span>, lower <span class="op">=</span> <span class="fl">1e-03</span>, dat <span class="op">=</span> <span class="va">x</span><span class="op">)</span><span class="op">$</span><span class="va">par</span></span>

@@ -51,7 +51,6 @@
 <li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -337,7 +336,7 @@ evaluation typically needs truncation or special-purpose methods.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="va">B</span> <span class="op">&lt;-</span> <span class="fl">100</span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cg_rss</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="va">B</span>, parameter_vector <span class="op">=</span> <span class="va">theta_true</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">cg_rss</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="va">B</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">theta_true</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span><span class="co">#&gt;   1.099   4.856   5.988   6.183   7.644  11.917</span></span></code></pre></div>

@@ -51,7 +51,6 @@
 <li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -312,7 +311,7 @@ compositionally, then fit
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># ## OR</span></span>
-<span><span class="co"># Y &lt;- cgf_Y$rsim(iidReps = B, parameter_vector = p_true)</span></span>
+<span><span class="co"># Y &lt;- as.numeric(cgf_Y$rsim(n = B, vector_length = 1, parameter_vector = p_true))</span></span>
 <span></span>
 <span><span class="va">fit_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/find.saddlepoint.MLE.html">find.saddlepoint.MLE</a></span><span class="op">(</span></span>
 <span>  observed.data  <span class="op">=</span> <span class="va">Y</span>,</span>
@@ -375,7 +374,7 @@ directly while keeping the natural parameters.</p>
 <span></span>
 <span><span class="co"># ## We could also use rsim()</span></span>
 <span><span class="co">#  set.seed(1)</span></span>
-<span><span class="co">#  y &lt;- cgf$rsim(iidReps = 1, parameter_vector = c(lambda_low = 3.0, lambda_med = 7.0, lambda_high = 5.0))</span></span>
+<span><span class="co">#  y &lt;- as.numeric(cgf$rsim(n = 1, vector_length = 3, parameter_vector = c(lambda_low = 3.0, lambda_med = 7.0, lambda_high = 5.0)))</span></span>
 <span></span>
 <span></span>
 <span><span class="co"># NLOPT convention: constraints(theta) &lt;= 0 is feasible.</span></span>
@@ -422,7 +421,7 @@ custom optimisers.</p>
 <code class="sourceCode R"><span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">theta0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fl">0</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">NormalCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">10</span>, parameter_vector <span class="op">=</span> <span class="va">theta0</span><span class="op">)</span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">NormalCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">10</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">theta0</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span></span>
 <span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute.spa.negll.html">compute.spa.negll</a></span><span class="op">(</span></span>
@@ -496,7 +495,7 @@ function; may change without notice)</em>
 <span>  summand_cgf <span class="op">=</span> <span class="va">summand_cgf</span>,</span>
 <span>  block_size <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cgf_Y</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="va">B</span>, parameter_vector <span class="op">=</span> <span class="va">p_true</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">cgf_Y</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="va">B</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">p_true</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span></span>
 <span></span>

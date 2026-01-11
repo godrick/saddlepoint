@@ -167,7 +167,7 @@ cgf_Y <- randomlyStoppedSumCGF(
 )
 
 # ## OR
-# Y <- cgf_Y$rsim(iidReps = B, parameter_vector = p_true)
+# Y <- as.numeric(cgf_Y$rsim(n = B, vector_length = 1, parameter_vector = p_true))
 
 fit_p <- find.saddlepoint.MLE(
   observed.data  = Y,
@@ -234,7 +234,7 @@ cgf <- PoissonModelCGF(lambda = function(theta) B * theta)
 
 # ## We could also use rsim()
 #  set.seed(1)
-#  y <- cgf$rsim(iidReps = 1, parameter_vector = c(lambda_low = 3.0, lambda_med = 7.0, lambda_high = 5.0))
+#  y <- as.numeric(cgf$rsim(n = 1, vector_length = 3, parameter_vector = c(lambda_low = 3.0, lambda_med = 7.0, lambda_high = 5.0)))
 
 
 # NLOPT convention: constraints(theta) <= 0 is feasible.
@@ -282,7 +282,7 @@ for debugging or plugging into custom optimisers.
 
 set.seed(1)
 theta0 <- c(mu = 0, sigma = 1)
-y <- NormalCGF$rsim(iidReps = 10, parameter_vector = theta0)
+y <- as.numeric(NormalCGF$rsim(n = 10, vector_length = 1, parameter_vector = theta0))
 
 
 nll <- compute.spa.negll(
@@ -357,7 +357,7 @@ cgf_Y <- randomlyStoppedSumCGF(
   summand_cgf = summand_cgf,
   block_size = 1
 )
-Y <- cgf_Y$rsim(iidReps = B, parameter_vector = p_true)
+Y <- as.numeric(cgf_Y$rsim(n = B, vector_length = 1, parameter_vector = p_true))
 
 
 

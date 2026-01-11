@@ -198,7 +198,7 @@ cg_rss <- randomlyStoppedSumCGF(cg_N, cg_X, block_size = 1)
 ``` r
 
 B <- 100
-Y <- cg_rss$rsim(iidReps = B, parameter_vector = theta_true)
+Y <- as.numeric(cg_rss$rsim(n = B, vector_length = 1, parameter_vector = theta_true))
 summary(Y)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #>   1.099   4.856   5.988   6.183   7.644  11.917

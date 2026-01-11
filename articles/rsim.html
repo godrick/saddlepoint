@@ -12,8 +12,8 @@
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <script src="../extra.js"></script><meta property="og:title" content="Random simulation with CGF objects: rsim">
-<meta name="description" content="How to use rsim() across CGF objects and wrappers, and how iid blocking (block_size/iidReps) affects interpretation.">
-<meta property="og:description" content="How to use rsim() across CGF objects and wrappers, and how iid blocking (block_size/iidReps) affects interpretation.">
+<meta name="description" content="How to simulate using CGF objects, including vector-valued draws and exponential tilting via tvec.">
+<meta property="og:description" content="How to simulate using CGF objects, including vector-valued draws and exponential tilting via tvec.">
 </head>
 <body>
 <p>
@@ -53,7 +53,6 @@
 <li><a class="dropdown-item" href="../articles/concatenationCGF.html">Concatenation of CGFs (concatenationCGF)</a></li>
     <li><a class="dropdown-item" href="../articles/custom-cgf.html">Creating custom CGFs (from vectorized functions)</a></li>
     <li><a class="dropdown-item" href="../articles/discrepancy.html">Discrepancy diagnostic for saddlepoint MLEs</a></li>
-    <li><a class="dropdown-item" href="../articles/exponential-tilt-simulation.html">Additional information on ExponentialTiltCGF</a></li>
     <li><a class="dropdown-item" href="../articles/mle.html">Inference: find.saddlepoint.MLE()</a></li>
     <li><a class="dropdown-item" href="../articles/randomlyStoppedSumCGF.html">Randomly-stopped sums</a></li>
     <li><a class="dropdown-item" href="../articles/rsim.html">Random simulation with CGF objects: rsim</a></li>
@@ -84,364 +83,297 @@
 
     
     
-<p>This vignette documents how <code>rsim(...)</code> works across CGF
-objects and wrappers in this codebase. We will keep extending it as new
-CGFs gain simulation support.</p>
-<blockquote>
-<p><strong>Conventions used here</strong></p>
-<ul>
-<li>In cgf$rsim(iidReps = B, …), iidReps = number of simulated
-draws.</li>
-<li>In building blocks like iidReplicatesCGF(…, iidReps = …), iidReps =
-how many i.i.d. blocks tvec represents (or “any” to infer).</li>
-<li>For a <code>d</code>-dimensional random vector, simulation returns a
-<code>d x (iidReps)</code> matrix where each <strong>column</strong> is
-one draw.</li>
-<li>If <code>d == 1</code> and <code>drop = TRUE</code> (default),
-simulation returns a numeric vector of length <code>iidReps</code>.</li>
-</ul>
-</blockquote>
-<div class="section level2">
-<h2 id="what-block_size-is-and-when-you-need-to-think-about-it">What <code>block_size</code> is, and when you need to think about
-it<a class="anchor" aria-label="anchor" href="#what-block_size-is-and-when-you-need-to-think-about-it"></a>
-</h2>
-<p>A lot of CGFs in this <code>saddlepoint</code> package are
-<em>vectorized</em>. That means a long <code>tvec</code> could mean
-either:</p>
-<ul>
-<li>
-<strong>one</strong> high-dimensional random vector, or</li>
-<li>
-<strong>B</strong> independent “blocks” of a smaller random vector
-(i.i.d. replication).</li>
-</ul>
-<p>The wrapper <code><a href="../reference/iidReplicatesCGF.html">iidReplicatesCGF()</a></code> disambiguates those
-interpretations. It uses:</p>
-<ul>
-<li>
-<code>block_size</code> = dimension of one observation (one block),
-and</li>
-<li>
-<code>iidReps</code> (inside the wrapper) = how many blocks to
-expect (or <code>"any"</code> to infer it from
-<code>length(tvec)</code>).</li>
-</ul>
-<div class="section level3">
-<h3 id="does-block_size-matter-for-rsim">Does <code>block_size</code> matter for <code>rsim()</code>?<a class="anchor" aria-label="anchor" href="#does-block_size-matter-for-rsim"></a>
-</h3>
-<p>Usually, <strong>no</strong>. <code>rsim(iidReps = B, ...)</code> is
-unambiguous: you asked for <code>B</code> draws, and simulation can
-determine the dimension <code>d</code> from the model parameters.</p>
-<p>You mainly need <code>block_size</code> when <em>constructing</em> a
-CGF (e.g., RSS models) so that evaluation methods (<code>K</code>,
-<code>K1</code>, <code>K2</code>, etc.) cannot silently reinterpret a
-long <code>tvec</code> as “a different statistical model”.</p>
-<p>Wrappers like <code><a href="../reference/linearlyMappedCGF.html">linearlyMappedCGF()</a></code> can usually infer
-<code>block_size</code> internally (e.g., <code>nrow(A)</code>), so you
-rarely worry about it there.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="quick-checklist-for-rsim-support">Quick checklist for <code>rsim()</code> support<a class="anchor" aria-label="anchor" href="#quick-checklist-for-rsim-support"></a>
-</h2>
-<p>A CGF supports simulation if:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># cgf$has_simulate()</span></span></code></pre></div>
-<p>returns <code>TRUE</code>.</p>
-<p>When it does, the canonical call is:</p>
+<code class="sourceCode R"><span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://godrick.github.io/saddlepoint/">saddlepoint</a></span><span class="op">)</span></span></code></pre></div>
+<p>This vignette is about <code>CGF$rsim()</code>, which simulates draws
+from the distribution described by a <code>CGF</code> object.</p>
+<div class="section level2">
+<h2 id="the-rsim-contract">The <code>rsim()</code> contract<a class="anchor" aria-label="anchor" href="#the-rsim-contract"></a>
+</h2>
+<p>All <code>CGF$rsim()</code> methods follow the same return
+convention:</p>
+<ul>
+<li>
+<code>n</code> is the number of independent draws to generate.</li>
+<li>
+<code>vector_length</code> is the dimension of one draw (each draw
+is a column).</li>
+<li>The return value is a matrix of shape
+<code>vector_length x n</code>.</li>
+<li>With <code>flatten = TRUE</code>, the result is flattened to a
+numeric vector (column-major order).</li>
+</ul>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cgf</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">10</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-1a-poissoncgf-scalar-and-vector">Example 1a: PoissonCGF (scalar and vector)<a class="anchor" aria-label="anchor" href="#example-1a-poissoncgf-scalar-and-vector"></a>
-</h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Scalar Poisson (d = 1)</span></span>
 <span><span class="va">lambda</span> <span class="op">&lt;-</span> <span class="fl">2</span></span>
-<span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">10</span>, parameter_vector <span class="op">=</span> <span class="va">lambda</span><span class="op">)</span></span>
-<span><span class="va">x</span></span>
-<span><span class="co">#&gt;  [1] 1 1 2 4 1 4 4 2 2 0</span></span>
-<span></span>
-<span><span class="co"># Vector Poisson (d = 2) interpreted as independent components</span></span>
-<span><span class="va">lambda2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">5</span>, parameter_vector <span class="op">=</span> <span class="va">lambda2</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">5</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">lambda</span><span class="op">)</span></span>
 <span><span class="va">X</span></span>
 <span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></span>
-<span><span class="co">#&gt; [1,]    1    3    3    3    1</span></span>
-<span><span class="co">#&gt; [2,]    1    2    3    8    4</span></span></code></pre></div>
+<span><span class="co">#&gt; [1,]    1    1    2    4    1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1 5</span></span></code></pre></div>
+<p>If you prefer a plain vector:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">5</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">lambda</span>, flatten <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 4 4 2 2 0</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="example-1b-normalcgf-vectorized-independent-normals">Example 1b: NormalCGF (vectorized independent normals)<a class="anchor" aria-label="anchor" href="#example-1b-normalcgf-vectorized-independent-normals"></a>
+<h2 id="vector-valued-simulation">Vector-valued simulation<a class="anchor" aria-label="anchor" href="#vector-valued-simulation"></a>
 </h2>
+<p>CGF objects support vector-valued random variables. For example, a
+vector of independent Poisson variables can be represented by passing a
+vector <code>parameter_vector</code> (one <code>lambda</code> per
+component) and setting <code>vector_length</code> to match.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Two independent normals packed into one CGF parameter vector:</span></span>
-<span><span class="co"># parameter_vector = c(mu1, mu2, sigma1, sigma2)</span></span>
-<span><span class="va">param</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">5</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">NormalCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">5</span>, parameter_vector <span class="op">=</span> <span class="va">param</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">X</span></span>
-<span><span class="co">#&gt;            [,1]       [,2]      [,3]      [,4]      [,5]</span></span>
-<span><span class="co">#&gt; [1,] -0.6264538 -0.8356286 0.3295078 0.4874291 0.5757814</span></span>
-<span><span class="co">#&gt; [2,]  5.3672866  8.1905616 3.3590632 6.4766494 4.3892232</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>  <span class="co"># 2 x 5</span></span>
-<span><span class="co">#&gt; [1] 2 5</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>  <span class="co"># ~ c(0, 5)</span></span>
-<span><span class="co">#&gt; [1] -0.01387285  5.55655682</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-1c-binomialcgf-vectorized">Example 1c: BinomialCGF (vectorized)<a class="anchor" aria-label="anchor" href="#example-1c-binomialcgf-vectorized"></a>
-</h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Two independent binomials:</span></span>
-<span><span class="co"># parameter_vector = c(n1, n2, p1, p2)</span></span>
-<span><span class="va">param</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">0.2</span>, <span class="fl">0.6</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">BinomialCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">6</span>, parameter_vector <span class="op">=</span> <span class="va">param</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">X</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
-<span><span class="co">#&gt; [1,]    1    2    1    4    2    1</span></span>
-<span><span class="co">#&gt; [2,]   13    9    9   11   15   14</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>              <span class="co"># ~ c(2, 12)</span></span>
-<span><span class="co">#&gt; [1]  1.833333 11.833333</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>  <span class="co"># ~ c(0.2, 0.6)</span></span>
-<span><span class="co">#&gt; [1] 0.1833333 0.5916667</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-2-linearlymappedcgf-simulation-sum-of-independent-poissons">Example 2: linearlyMappedCGF simulation (sum of independent
-Poissons)<a class="anchor" aria-label="anchor" href="#example-2-linearlymappedcgf-simulation-sum-of-independent-poissons"></a>
-</h2>
-<p>Let <code>X = (X1, X2)</code> with <code>X1 ~ Pois(2)</code>,
-<code>X2 ~ Pois(3)</code> independent, and define
-<code>Y = X1 + X2</code>. This is implemented as a linear map with
-<code>A = [1 1]</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cg_vec</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span></span>
-<span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cg_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/linearlyMappedCGF.html">linearlyMappedCGF</a></span><span class="op">(</span><span class="va">cg_vec</span>, <span class="va">A</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">lambda</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cg_sum</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">10000</span>, parameter_vector <span class="op">=</span> <span class="va">lambda</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>         <span class="co"># should be ~ 5</span></span>
-<span><span class="co">#&gt; [1] 5.0059</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">var</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>          <span class="co"># should be ~ 5</span></span>
-<span><span class="co">#&gt; [1] 4.958761</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-3-parameter-mapping-with-adaptors-avoiding-wrong-dimension-mistakes">Example 3: Parameter mapping with adaptors (avoiding “wrong
-dimension” mistakes)<a class="anchor" aria-label="anchor" href="#example-3-parameter-mapping-with-adaptors-avoiding-wrong-dimension-mistakes"></a>
-</h2>
-<p>A common pitfall is passing a combined parameter vector to a
-component CGF that expects only one number. For example, if
-<code>count_cgf</code> is <code>PoissonCGF</code> and you pass
-<code>theta = c(lambdaN, lambdaX)</code>, then <code>PoissonCGF</code>
-interprets this as a <strong>2-dimensional</strong> Poisson parameter,
-not a scalar.</p>
-<p>The fix is to <em>adapt</em> each sub-CGF so it receives only the
-piece of <code>theta</code> it needs.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># theta = c(lambdaN, lambdaX)</span></span>
-<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lambdaN <span class="op">=</span> <span class="fl">2</span>, lambdaX <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">count_cgf</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">summand_cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">rss</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/randomlyStoppedSumCGF.html">randomlyStoppedSumCGF</a></span><span class="op">(</span><span class="va">count_cgf</span>, <span class="va">summand_cgf</span>, block_size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">rss</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">10000</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>  <span class="co"># for compound Poisson, E[Y] = E[N] * E[X] = lambdaN * lambdaX = 6</span></span>
-<span><span class="co">#&gt; [1] 5.9946</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-4-rss-with-vector-summands-poisson-thinning-check">Example 4: RSS with vector summands (Poisson thinning check)<a class="anchor" aria-label="anchor" href="#example-4-rss-with-vector-summands-poisson-thinning-check"></a>
-</h2>
-<p>Let <code>N ~ Poisson(lambda)</code> and
-<code>X_i ~ Multinomial(1, p)</code> a one-hot vector (categorical
-draw). Then <code>Y = sum_{i=1}^N X_i</code> should have independent
-Poisson components with means <code>lambda * p</code>.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">3</span></span>
-<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">10</span>, p <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">count_cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">summand_cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/MultinomialModelCGF.html">MultinomialModelCGF</a></span><span class="op">(</span></span>
-<span>  n        <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>fixed_param <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  prob_vec <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="op">(</span><span class="va">d</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">rss_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/randomlyStoppedSumCGF.html">randomlyStoppedSumCGF</a></span><span class="op">(</span><span class="va">count_cgf</span>, <span class="va">summand_cgf</span>, block_size <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">rss_vec</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">20000</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>  <span class="co"># should be ~ lambda * p = (2, 3, 5)</span></span>
-<span><span class="co">#&gt; [1] 2.00410 3.00845 5.01905</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-5-multinomialcgf-simulation-odds-vs-probabilities">Example 5: MultinomialCGF simulation (odds vs probabilities)<a class="anchor" aria-label="anchor" href="#example-5-multinomialcgf-simulation-odds-vs-probabilities"></a>
-</h2>
-<p><code>MultinomialCGF</code> expects
-<code>parameter_vector = c(N, x_1, ..., x_d)</code>. The <code>x</code>
-vector is treated as odds (or as probabilities if it already sums to
-1).</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">10</span></span>
-<span><span class="va">odds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="va">param_odds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">odds</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">MultinomialCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">6</span>, parameter_vector <span class="op">=</span> <span class="va">param_odds</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">X</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
-<span><span class="co">#&gt; [1,]    1    2    1    4    2    1</span></span>
-<span><span class="co">#&gt; [2,]    3    5    5    3    1    2</span></span>
-<span><span class="co">#&gt; [3,]    6    3    4    3    7    7</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>  <span class="co"># should all equal N</span></span>
-<span><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span>
-<span></span>
-<span><span class="co"># Same distribution if you pass probabilities instead of odds</span></span>
-<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="va">odds</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">odds</span><span class="op">)</span></span>
-<span><span class="va">param_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">p</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">Xp</span> <span class="op">&lt;-</span> <span class="va">MultinomialCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">6</span>, parameter_vector <span class="op">=</span> <span class="va">param_p</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">Xp</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-6-multinomialmodelcgf-theta-mapped-multinomial">Example 6: MultinomialModelCGF (theta-mapped multinomial)<a class="anchor" aria-label="anchor" href="#example-6-multinomialmodelcgf-theta-mapped-multinomial"></a>
-</h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">3</span></span>
-<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>N <span class="op">=</span> <span class="fl">12</span>, p <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cgf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/MultinomialModelCGF.html">MultinomialModelCGF</a></span><span class="op">(</span></span>
-<span>  n        <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">th</span><span class="op">)</span> <span class="va">th</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
-<span>  prob_vec <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">th</span><span class="op">)</span> <span class="va">th</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="op">(</span><span class="va">d</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>  iidReps  <span class="op">=</span> <span class="st">"any"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="va">cgf</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">5</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">X</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></span>
-<span><span class="co">#&gt; [1,]    0    1    0    3    1</span></span>
-<span><span class="co">#&gt; [2,]    2    4    5    2    0</span></span>
-<span><span class="co">#&gt; [3,]   10    7    7    7   11</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 12 12 12 12 12</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-7-subunitarymultinomialcgf">Example 7: SubunitaryMultinomialCGF<a class="anchor" aria-label="anchor" href="#example-7-subunitarymultinomialcgf"></a>
-</h2>
-<p><code>SubunitaryMultinomialCGF</code> uses parameters
-<code>c(N, pi_1,...,pi_d)</code> where <code>sum(pi) &lt;= 1</code> and
-conceptually corresponds to a (d+1)-category multinomial
-<strong>conditioned</strong> on the last category being zero.</p>
-<p>Simulation returns the <code>d</code> active-category counts and
-still sums to <code>N</code>.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">10</span></span>
-<span><span class="va">pi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">0.1</span><span class="op">)</span>  <span class="co"># sum &lt; 1 (subunitary)</span></span>
-<span><span class="va">param</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">pi</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">W</span> <span class="op">&lt;-</span> <span class="va">SubunitaryMultinomialCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">6</span>, parameter_vector <span class="op">=</span> <span class="va">param</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">W</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5] [,6]</span></span>
-<span><span class="co">#&gt; [1,]    2    4    2    6    4    2</span></span>
-<span><span class="co">#&gt; [2,]    6    3    4    3    6    7</span></span>
-<span><span class="co">#&gt; [3,]    2    3    4    1    0    1</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">W</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 10 10 10 10 10 10</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-8-sumofiidcgf-sum-of-i-i-d--poissons">Example 8: sumOfiidCGF (sum of i.i.d. Poissons)<a class="anchor" aria-label="anchor" href="#example-8-sumofiidcgf-sum-of-i-i-d--poissons"></a>
-</h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">base</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">sum10</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sumOfiidCGF.html">sumOfiidCGF</a></span><span class="op">(</span><span class="va">base</span>, n <span class="op">=</span> <span class="fl">10</span>, block_size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">sum10</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">20000</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>  <span class="co"># should be ~ 20</span></span>
-<span><span class="co">#&gt; [1] 19.99555</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">var</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>   <span class="co"># should be ~ 20</span></span>
-<span><span class="co">#&gt; [1] 19.69872</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="example-sumofindependentcgf-sum-of-independent-not-necessarily-identical-terms">Example: sumOfIndependentCGF (sum of independent,
-not-necessarily-identical terms)<a class="anchor" aria-label="anchor" href="#example-sumofindependentcgf-sum-of-independent-not-necessarily-identical-terms"></a>
-</h2>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lambda1 <span class="op">=</span> <span class="fl">2</span>, lambda2 <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">cg2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fu"><a href="../reference/adaptor.html">adaptor</a></span><span class="op">(</span>indices <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">cg_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sumOfIndependentCGF.html">sumOfIndependentCGF</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">cg1</span>, <span class="va">cg2</span><span class="op">)</span>, block_size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cg_sum</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>iidReps <span class="op">=</span> <span class="fl">20000</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>  <span class="co"># should be ~ 5</span></span>
-<span><span class="co">#&gt; [1] 4.9943</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">var</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>   <span class="co"># should be ~ 5</span></span>
-<span><span class="co">#&gt; [1] 4.993817</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="other-issues">Other issues<a class="anchor" aria-label="anchor" href="#other-issues"></a>
-</h2>
+<span><span class="va">lambda_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">Xv</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">4</span>, vector_length <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">lambda_vec</span><span class="op">)</span>, parameter_vector <span class="op">=</span> <span class="va">lambda_vec</span><span class="op">)</span></span>
+<span><span class="va">Xv</span></span>
+<span><span class="co">#&gt;      [,1] [,2] [,3] [,4]</span></span>
+<span><span class="co">#&gt; [1,]    1    1    2    1</span></span>
+<span><span class="co">#&gt; [2,]    4    8    2    7</span></span>
+<span><span class="co">#&gt; [3,]   10   15    7    9</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">Xv</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 3 4</span></span></code></pre></div>
 <div class="section level3">
-<h3 id="rss-count_cgf-must-be-scalar">1) RSS: <code>count_cgf</code> must be scalar<a class="anchor" aria-label="anchor" href="#rss-count_cgf-must-be-scalar"></a>
+<h3 id="linear-maps-replicated-blocks-vector_length-block_size-iidreps">Linear maps + replicated blocks (vector_length = block_size *
+iidReps)<a class="anchor" aria-label="anchor" href="#linear-maps-replicated-blocks-vector_length-block_size-iidreps"></a>
 </h3>
-<p>In RSS models, <code>count_cgf</code> represents a <em>scalar</em>
-count <code>N</code>, so simulation requires a scalar draw per
-replicate. If your count CGF is vectorized (like
-<code>PoissonCGF</code>) and you accidentally pass a vector parameter,
-you’ll get a “count must be scalar” error.</p>
-<p>The fix is to use parameter adaptors (as shown above) so the count
-CGF receives only the scalar parameter it needs.</p>
-<hr>
+<p>Example:</p>
+<ol style="list-style-type: decimal">
+<li>Start from a vector CGF (e.g. independent Poissons),</li>
+<li>Apply a linear map <code>Y = A X</code>,</li>
+<li>Replicate the resulting vector-valued observation <code>Y</code>
+across blocks.</li>
+</ol>
+<p>This makes <code>vector_length</code> larger than 1:
+<code>vector_length = block_size * iidReps</code>.</p>
+<p>Below, <code>X</code> is a 5-vector of independent Poissons,
+<code>A</code> is <code>3 × 5</code>, so one observation <code>Y</code>
+lives in <code>R^3</code>. We then create <code>B = 9</code> i.i.d.
+copies of <code>Y</code>, so
+<code>vector_length = 3 * 9 = 27</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lambda5</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>,</span>
+<span>    <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span>,</span>
+<span>    <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  nrow <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  byrow <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">B</span> <span class="op">&lt;-</span> <span class="fl">9</span></span>
+<span></span>
+<span><span class="co"># B replicates of a 3-vector observation: Y = A X</span></span>
+<span><span class="co"># vector_length will be B*3</span></span>
+<span><span class="va">cg_Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/linearlyMappedCGF.html">linearlyMappedCGF</a></span><span class="op">(</span><span class="va">PoissonCGF</span>, <span class="va">A</span>, iidReps <span class="op">=</span> <span class="va">B</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">vector_length</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">A</span><span class="op">)</span> <span class="op">*</span> <span class="va">B</span></span>
+<span><span class="va">n_sims</span> <span class="op">&lt;-</span> <span class="fl">20000</span></span>
+<span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cg_Y</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="va">n_sims</span>, vector_length <span class="op">=</span> <span class="va">vector_length</span>, parameter_vector <span class="op">=</span> <span class="va">lambda5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1]    27 20000</span></span></code></pre></div>
+<p>A simple numerical check (untilted, <code>tvec = 0</code>): the mean
+of <code>Y = A X</code> should be
+<code>E[Y] = A E[X] = A lambda</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="va">mu_Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">A</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">lambda5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Row means for the 27-vector, reshaped into 3 x B block layout:</span></span>
+<span><span class="va">mu_hat_blocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">A</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="va">B</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Each column (each block) should be close to mu_Y:</span></span>
+<span><span class="va">mu_hat_blocks</span></span>
+<span><span class="co">#&gt;         [,1]    [,2]    [,3]    [,4]    [,5]    [,6]   [,7]    [,8]   [,9]</span></span>
+<span><span class="co">#&gt; [1,] 0.99270 0.99730 1.00150 1.00280 1.01035 1.00300 0.9799 0.99150 0.9976</span></span>
+<span><span class="co">#&gt; [2,] 4.98965 5.01495 4.98525 5.02030 5.01635 4.99945 5.0026 5.01825 4.9985</span></span>
+<span><span class="co">#&gt; [3,] 9.03350 9.00030 8.96525 8.96055 9.01445 8.98030 9.0451 8.99960 8.9515</span></span>
+<span><span class="va">mu_Y</span></span>
+<span><span class="co">#&gt; [1] 1 5 9</span></span></code></pre></div>
+<p>The same idea under tilting: If you tilt <code>Y</code> by a block
+tilt <code>h</code> (length 3), then <code>X</code> is implicitly tilted
+by <code>A^T h</code>, so under the tilted law:</p>
+<ul>
+<li>
+<code>E[X] = lambda * exp(A^T h)</code> (elementwise),</li>
+<li>
+<code>E[Y] = A E[X]</code>.</li>
+</ul>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="va">h_block</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="op">-</span><span class="fl">0.1</span>, <span class="fl">0.15</span><span class="op">)</span></span>
+<span><span class="va">h_full</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">h_block</span>, times <span class="op">=</span> <span class="va">B</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Y_tilt</span> <span class="op">&lt;-</span> <span class="va">cg_Y</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="va">n_sims</span>,</span>
+<span>  vector_length <span class="op">=</span> <span class="va">vector_length</span>,</span>
+<span>  parameter_vector <span class="op">=</span> <span class="va">lambda5</span>,</span>
+<span>  tvec <span class="op">=</span> <span class="va">h_full</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lambda_tilt</span> <span class="op">&lt;-</span> <span class="va">lambda5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">A</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">h_block</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mu_Y_tilt</span> <span class="op">&lt;-</span> <span class="va">A</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">lambda_tilt</span></span>
+<span></span>
+<span><span class="va">mu_hat_tilt_blocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">Y_tilt</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">A</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="va">B</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mu_hat_tilt_blocks</span></span>
+<span><span class="co">#&gt;          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]     [,8]</span></span>
+<span><span class="co">#&gt; [1,]  1.23320  1.21580  1.22385  1.21360  1.21035  1.21320  1.22380  1.22580</span></span>
+<span><span class="co">#&gt; [2,]  4.50050  4.53055  4.50610  4.51885  4.52400  4.50105  4.53535  4.52110</span></span>
+<span><span class="co">#&gt; [3,] 10.45365 10.46560 10.46960 10.44355 10.41785 10.46100 10.46205 10.45945</span></span>
+<span><span class="co">#&gt;          [,9]</span></span>
+<span><span class="co">#&gt; [1,]  1.22195</span></span>
+<span><span class="co">#&gt; [2,]  4.51240</span></span>
+<span><span class="co">#&gt; [3,] 10.50820</span></span>
+<span><span class="va">mu_Y_tilt</span></span>
+<span><span class="co">#&gt;           [,1]</span></span>
+<span><span class="co">#&gt; [1,]  1.221403</span></span>
+<span><span class="co">#&gt; [2,]  4.524187</span></span>
+<span><span class="co">#&gt; [3,] 10.456508</span></span></code></pre></div>
+<p>A quick “large vector” example:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">2000</span></span>
+<span><span class="va">mu</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">d</span><span class="op">)</span></span>
+<span><span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">d</span><span class="op">)</span></span>
+<span><span class="va">param</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">mu</span>, <span class="va">sigma</span><span class="op">)</span>  <span class="co"># NormalCGF uses c(mu[1:d], sigma[1:d])</span></span>
+<span></span>
+<span><span class="va">Xn</span> <span class="op">&lt;-</span> <span class="va">NormalCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">2</span>, vector_length <span class="op">=</span> <span class="va">d</span>, parameter_vector <span class="op">=</span> <span class="va">param</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">Xn</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 2000    2</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
-<h2 id="adding-a-new-rsim-implementation">Adding a new <code>rsim()</code> implementation<a class="anchor" aria-label="anchor" href="#adding-a-new-rsim-implementation"></a>
+<h2 id="exponential-tilting-via-tvec">Exponential tilting via <code>tvec</code><a class="anchor" aria-label="anchor" href="#exponential-tilting-via-tvec"></a>
 </h2>
-<p>For any new base distribution, define a simulator and pass it to
-<code>createCGF(rsim = ...)</code>.</p>
-<p><strong>Contract expected by <code>CGF$rsim</code>:</strong></p>
-<ul>
-<li>simulator returns either:
-<ul>
-<li>a numeric vector of length <code>d * iidReps</code>, or</li>
-<li>a numeric <code>d x iidReps</code> matrix.</li>
-</ul>
-</li>
-<li>each column corresponds to one simulated draw of the underlying
-random vector.</li>
-</ul>
-<p>Then wrappers can often be implemented in a small, compositional way:
-e.g. <code>linearlyMappedCGF</code> simulates <code>X</code> and returns
-<code>A %*% X</code>.</p>
+<p>We now support tilted simulation by passing a nonzero
+<code>tvec</code> to <code>rsim()</code>.</p>
+<p>Informally, simulating with <code>tvec = h</code> means simulating
+from the exponentially tilted law with density (or pmf) proportional to
+<code>exp(h^T x)</code>.</p>
+<p>Equivalently, if <code>K(t)</code> is the original CGF, the tilted
+CGF is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>K</mi><mi>h</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>K</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo>+</mo><mi>h</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mi>K</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>h</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+K_h(t) = K(t + h) - K(h).
+</annotation></semantics></math></p>
+<p>For common exponential-family models, the tilted law stays in the
+same family, often with a simple parameter update.</p>
+<p>Not every <code>tvec</code> is valid: when the CGF only exists on a
+domain (e.g. <code>t &lt; rate</code> for Exponential/Gamma), tilted
+simulation requires <code>tvec</code> to lie in that domain.</p>
+<div class="section level3">
+<h3 id="poisson">Poisson<a class="anchor" aria-label="anchor" href="#poisson"></a>
+</h3>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>h</mi></msub><mo>=</mo><mi>λ</mi><msup><mi>e</mi><mi>h</mi></msup></mrow><annotation encoding="application/x-tex">\lambda_h = \lambda e^{h}</annotation></semantics></math></p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">B</span> <span class="op">&lt;-</span> <span class="fl">20000</span></span>
+<span><span class="va">lambda</span> <span class="op">&lt;-</span> <span class="fl">3</span></span>
+<span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fl">0.4</span></span>
+<span></span>
+<span><span class="va">Xh</span> <span class="op">&lt;-</span> <span class="va">PoissonCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="va">B</span>,</span>
+<span>  vector_length <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  parameter_vector <span class="op">=</span> <span class="va">lambda</span>,</span>
+<span>  tvec <span class="op">=</span> <span class="va">h</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Xh</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 4.4778</span></span>
+<span><span class="va">lambda</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">h</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 4.475474</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="multinomial">Multinomial<a class="anchor" aria-label="anchor" href="#multinomial"></a>
+</h3>
+<p>Here the tilt is vector-valued: <code>tvec</code> has length
+<code>d</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">B</span> <span class="op">&lt;-</span> <span class="fl">3000</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">30</span></span>
+<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">50</span></span>
+<span></span>
+<span><span class="co"># Random probability vector</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="va">p</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A small tilt</span></span>
+<span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">d</span>, sd <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p_h</span> <span class="op">&lt;-</span> <span class="va">p</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">h</span><span class="op">)</span></span>
+<span><span class="va">p_h</span> <span class="op">&lt;-</span> <span class="va">p_h</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">p_h</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Xh_multi</span> <span class="op">&lt;-</span> <span class="va">MultinomialCGF</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="va">B</span>,</span>
+<span>  vector_length <span class="op">=</span> <span class="va">d</span>,</span>
+<span>  parameter_vector <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">p</span><span class="op">)</span>,</span>
+<span>  tvec <span class="op">=</span> <span class="va">h</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Average proportions across simulations should be close to p_h</span></span>
+<span><span class="va">prop_hat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">Xh_multi</span><span class="op">)</span> <span class="op">/</span> <span class="va">N</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  rms_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="op">(</span><span class="va">prop_hat</span> <span class="op">-</span> <span class="va">p_h</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  max_abs_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">prop_hat</span> <span class="op">-</span> <span class="va">p_h</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;     rms_error max_abs_error </span></span>
+<span><span class="co">#&gt;  0.0004134259  0.0007863824</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>prop_hat <span class="op">=</span> <span class="va">prop_hat</span>, p_h <span class="op">=</span> <span class="va">p_h</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        prop_hat        p_h</span></span>
+<span><span class="co">#&gt; [1,] 0.01631333 0.01654760</span></span>
+<span><span class="co">#&gt; [2,] 0.02311333 0.02335956</span></span>
+<span><span class="co">#&gt; [3,] 0.04641333 0.04571452</span></span>
+<span><span class="co">#&gt; [4,] 0.07073333 0.07028831</span></span>
+<span><span class="co">#&gt; [5,] 0.01510667 0.01474633</span></span>
+<span><span class="co">#&gt; [6,] 0.07135333 0.07124861</span></span>
+<span><span class="co">#&gt; [7,] 0.07161333 0.07239972</span></span>
+<span><span class="co">#&gt; [8,] 0.04263333 0.04243257</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="a-compositional-example-sum-of-independent-components">A compositional example: sum of independent components<a class="anchor" aria-label="anchor" href="#a-compositional-example-sum-of-independent-components"></a>
+</h2>
+<p><code><a href="../reference/sumOfIndependentCGF.html">sumOfIndependentCGF()</a></code> constructs a CGF for a sum of
+independent random vectors. Simulation composes in the obvious way:
+simulate each component and add.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Y = Y1 + Y2, with Y1 ~ Poisson(2), Y2 ~ Poisson(5)</span></span>
+<span><span class="va">cg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">theta</span><span class="op">)</span> <span class="va">theta</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">cg2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">theta</span><span class="op">)</span> <span class="va">theta</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cg_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sumOfIndependentCGF.html">sumOfIndependentCGF</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">cg1</span>, <span class="va">cg2</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">cg_sum</span><span class="op">$</span><span class="fu">rsim</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">10000</span>, vector_length <span class="op">=</span> <span class="fl">1</span>, parameter_vector <span class="op">=</span> <span class="va">theta</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span> <span class="co"># should be close to 7</span></span>
+<span><span class="co">#&gt; [1] 7.0052</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -29,22 +29,14 @@ you provide 5 vectorized functions:
 - `K3_vectorized_func(tvec, param)` returning a numeric vector
 - `K4_vectorized_func(tvec, param)` returning a numeric vector
 
-The constructor then builds:
-
-- `K(tvec,param)` as `sum(K_vectorized_func(...))`,
-- `K2(tvec,param)` as a diagonal matrix with entries
-  `K2_vectorized_func(...)`,
-- and default higher-order operators needed for the correction term.
-
 Often very useful:
 
 - `ineq_constraint_func(tvec,param)` returning a numeric vector of
   constraints $g(t,\theta)$ with feasibility defined by $g \leq 0$,
 - `analytic_tvec_hat_func(x,param)` if you can solve
-  $K_{1}\left( \widehat{t};\theta \right) = x$ in closed form,
-- specialized `K2_solve` / `logdetK2` for performance.
+  $K_{1}\left( \widehat{t};\theta \right) = x$ in closed form
 
-## Example: a Normal CGF (SPA is exact)
+## Example:
 
 Let $X \sim N\left( \mu,\sigma^{2} \right)$. The CGF is
 $$K\left( t;\mu,\sigma^{2} \right) = \mu t + \frac{1}{2}\sigma^{2}t^{2},$$
@@ -52,8 +44,7 @@ and the derivatives are
 $$K_{1}(t) = \mu + \sigma^{2}t,\quad K_{2}(t) = \sigma^{2},\quad K_{3}(t) = 0,\quad K_{4}(t) = 0.$$
 
 Below we implement a Normal CGF parameterized by
-$\left( \mu,\log\sigma^{2} \right)$ to ensure positivity of
-$\sigma^{2}$.
+$\left( \mu,\log\sigma^{2} \right)$.
 
 ``` r
 
@@ -81,20 +72,51 @@ NormalLogSigma2CGF <- createCGF_fromVectorisedFunctions(
     s2 <- exp(param[2])
     (x - mu) / s2
   },
+  rsim = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    mu <- parameter_vector[1]
+    s2 <- exp(parameter_vector[2])
+
+    if (!is.finite(mu) || !is.finite(s2) || s2 <= 0) stop("NormalLogSigma2CGF$rsim: parameters must satisfy sigma2 > 0 and be finite.")
+    
+    if (is.null(tvec)) tvec <- rep(0, vector_length)
+
+    # Exponential tilting for Normal:
+    # If X ~ N(mu, sigma^2), then under tilt t the law is N(mu + sigma^2 t, sigma^2).
+    mu_tilt <- mu + s2 * tvec
+    sd <- sqrt(s2)
+
+    matrix(
+      stats::rnorm(
+        n = n * vector_length,
+        mean = rep.int(mu_tilt, times = n),
+        sd   = sd
+      ),
+      nrow = vector_length,
+      ncol = n
+    )
+  },
+
 
   op_name = "NormalLogSigma2CGF"
 )
 
-# Simulate iid data
+# Simulate iid data (using the CGF's rsim method)
 set.seed(1)
 B <- 50
 mu_true <- 1.5
 s2_true <- 2.0
-y <- rnorm(B, mean = mu_true, sd = sqrt(s2_true))
+theta_true <- c(mu_true, log(s2_true))
 
 # iid CGF for (Y_1,...,Y_B)
 cgB <- iidReplicatesCGF(NormalLogSigma2CGF, iidReps = B, block_size = 1)
 
+# Simulate one dataset (length B)
+y <- as.numeric(cgB$rsim(
+  n = 1,
+  vector_length = B,
+  parameter_vector = theta_true,
+  flatten = TRUE
+))
 # Saddlepoint MLE (should match exact normal MLE very closely; for Normal SPA is exact)
 fit <- find.saddlepoint.MLE(
   observed.data  = y,

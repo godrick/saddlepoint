@@ -11,9 +11,6 @@
 - [Discrepancy diagnostic for saddlepoint
   MLEs](https://godrick.github.io/saddlepoint/articles/discrepancy.md):
 
-- [Additional information on
-  ExponentialTiltCGF](https://godrick.github.io/saddlepoint/articles/exponential-tilt-simulation.md):
-
 - [Inference:
   find.saddlepoint.MLE()](https://godrick.github.io/saddlepoint/articles/mle.md):
 
@@ -23,5 +20,5 @@
 - [Random simulation with CGF objects:
   rsim](https://godrick.github.io/saddlepoint/articles/rsim.md):
 
-  How to use rsim() across CGF objects and wrappers, and how iid
-  blocking (block_size/iidReps) affects interpretation.
+  How to simulate using CGF objects, including vector-valued draws and
+  exponential tilting via tvec.

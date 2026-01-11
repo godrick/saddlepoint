@@ -71,7 +71,7 @@ cg <- shiftedCGF(cg_base, shift = b_fun)
 # Simulate Y = X + b(theta_true)
 theta_true <- c(0.7, log(2))     # b(theta_true) = (0.7, 2)
 mu_true <- mu0 + b_fun(theta_true)
-Y <- cg$rsim(iidReps = B, parameter_vector = theta_true, drop = FALSE)
+Y <- cg$rsim(n = B, vector_length = d, parameter_vector = theta_true)
 
 fit <- find.saddlepoint.MLE(
   observed.data  = Y,            # columns treated as i.i.d. blocks
