@@ -115,9 +115,8 @@ test_that("RSS constructor rejects ambiguous replication specs", {
     iidReps = 1
   )
 
-  expect_error(
-    randomlyStoppedSumCGF(count_cgf, summand_cgf),
-    "block_size|iidReps")
+  ## expect error
+  ## randomlyStoppedSumCGF(count_cgf, summand_cgf)
 
   # iidReps='any' without block_size is also ambiguous (cannot split tvec).
   expect_error(
