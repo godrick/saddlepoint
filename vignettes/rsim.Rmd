@@ -113,7 +113,7 @@ cg_Y <- linearlyMappedCGF(PoissonCGF, A, iidReps = B)
 vector_length <- nrow(A) * B
 n_sims <- 20000
 
-Y <- cg_Y_one$rsim(n = n_sims, vector_length = vector_length, parameter_vector = lambda5)
+Y <- cg_Y$rsim(n = n_sims, vector_length = vector_length, parameter_vector = lambda5)
 dim(Y)
 ```
 
