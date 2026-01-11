@@ -27,7 +27,6 @@ navbar:
       - text: "3. Discrepancy diagnostic"
         href: articles/discrepancy.html
       - text: "4. Exponential tilt simulation"
-        href: articles/exponential-tilt-simulation.html
 
 home:
   title: "saddlepoint"
@@ -53,7 +52,6 @@ authors:
 #       - discrepancy
 #   - title: "Other topics"
 #     contents:
-#       - exponential-tilt-simulation
 
 # # group reference index so it reads well
 # reference:
