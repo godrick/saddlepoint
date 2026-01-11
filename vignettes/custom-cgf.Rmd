@@ -1,6 +1,8 @@
 ---
 title: "Creating custom CGFs (from vectorized functions)"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    highlight: null
 vignette: >
   %\VignetteIndexEntry{Creating custom CGFs (from vectorized functions)}
   %\VignetteEngine{knitr::rmarkdown}

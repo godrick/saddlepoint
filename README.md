@@ -37,7 +37,7 @@ A <- matrix(c(1, 1), nrow = 1)
 cg_sum <- linearlyMappedCGF(cg_vec, A)
 
 lambda <- c(10, 15)
-Y <- cg_sum$rsim(iidReps = 10000, parameter_vector = lambda)
+Y <- cg_sum$rsim(n = 10000, vector_length = 1, parameter_vector = lambda)
 mean(Y)  # ~ 25
 
 
@@ -47,7 +47,5 @@ set.seed(1); x = rgamma(50, shape = 10, rate = 0.5)
 mle <- find.saddlepoint.MLE(observed.data = x, cgf = GammaCGF, starting.theta = c(1,1))$MLEs.theta
 mle 
 ```
-
-
 
 

@@ -1,7 +1,9 @@
 ---
 title: "Random simulation with CGF objects: rsim"
 description: "How to use rsim() across CGF objects and wrappers, and how iid blocking (block_size/iidReps) affects interpretation."
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    highlight: null
 vignette: >
   %\VignetteIndexEntry{Random simulation with CGF objects: rsim}
   %\VignetteEngine{knitr::rmarkdown}
@@ -24,10 +26,10 @@ We will keep extending it as new CGFs gain simulation support.
 
 > **Conventions used here**
 >
-> - In cgf$rsim(iidReps = B, ...), iidReps = number of simulated draws.
+> - In cgf$rsim(n = B, vector_length = d, ...), n = number of simulated draws and vector_length = dimension of each draw.
 > - In building blocks like iidReplicatesCGF(..., iidReps = ...), iidReps = how many i.i.d. blocks tvec represents (or "any" to infer).
-> - For a `d`-dimensional random vector, simulation returns a `d x (iidReps)` matrix where each **column** is one draw.
-> - If `d == 1` and `drop = TRUE` (default), simulation returns a numeric vector of length `iidReps`.
+> - For a `d`-dimensional random vector, simulation returns a `d x n` matrix where each **column** is one draw.
+> - For a scalar (`d = 1`), use `as.numeric(...)` if you want a flat vector (or set `flatten = TRUE`).
 
 
 ## What `block_size` is, and when you need to think about it
@@ -44,7 +46,7 @@ The wrapper `iidReplicatesCGF()` disambiguates those interpretations. It uses:
 
 ### Does `block_size` matter for `rsim()`?
 
-Usually, **no**. `rsim(iidReps = B, ...)` is unambiguous: you asked for `B` draws, and simulation can determine the dimension `d` from the model parameters.
+Usually, **no**. `rsim(n = B, vector_length = d, ...)` is unambiguous: you asked for `B` draws of a `d`-vector.
 
 You mainly need `block_size` when *constructing* a CGF (e.g., RSS models) so that evaluation methods (`K`, `K1`, `K2`, etc.) cannot silently reinterpret a long `tvec` as “a different statistical model”.
 
@@ -63,7 +65,7 @@ returns `TRUE`.
 When it does, the canonical call is:
 
 ```r
-Y <- cgf$rsim(iidReps = 10, parameter_vector = theta)
+Y <- cgf$rsim(n = 10, vector_length = 1, parameter_vector = theta)
 ```
 
 ## Example 1a: PoissonCGF (scalar and vector)
@@ -73,12 +75,12 @@ set.seed(1)
 
 # Scalar Poisson (d = 1)
 lambda <- 2
-x <- PoissonCGF$rsim(iidReps = 10, parameter_vector = lambda)
+x <- PoissonCGF$rsim(n = 10, vector_length = 1, parameter_vector = lambda)
 x
 
 # Vector Poisson (d = 2) interpreted as independent components
 lambda2 <- c(2, 3)
-X <- PoissonCGF$rsim(iidReps = 5, parameter_vector = lambda2, drop = FALSE)
+X <- PoissonCGF$rsim(n = 5, vector_length = 2, parameter_vector = lambda2)
 X
 ```
 
@@ -91,7 +93,7 @@ set.seed(1)
 # parameter_vector = c(mu1, mu2, sigma1, sigma2)
 param <- c(0, 5, 1, 2)
 
-X <- NormalCGF$rsim(iidReps = 5, parameter_vector = param, drop = FALSE)
+X <- NormalCGF$rsim(n = 5, vector_length = 2, parameter_vector = param)
 X
 dim(X)  # 2 x 5
 rowMeans(X)  # ~ c(0, 5)
@@ -106,7 +108,7 @@ set.seed(1)
 # parameter_vector = c(n1, n2, p1, p2)
 param <- c(10, 20, 0.2, 0.6)
 
-X <- BinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
+X <- BinomialCGF$rsim(n = 6, vector_length = 2, parameter_vector = param)
 X
 rowMeans(X)              # ~ c(2, 12)
 rowMeans(X) / c(10, 20)  # ~ c(0.2, 0.6)
@@ -126,7 +128,7 @@ A <- matrix(c(1, 1), nrow = 1)
 cg_sum <- linearlyMappedCGF(cg_vec, A)
 
 lambda <- c(2, 3)
-Y <- cg_sum$rsim(iidReps = 10000, parameter_vector = lambda)
+Y <- cg_sum$rsim(n = 10000, vector_length = 1, parameter_vector = lambda)
 
 mean(Y)         # should be ~ 5
 var(Y)          # should be ~ 5
@@ -151,7 +153,7 @@ summand_cgf <- PoissonModelCGF(lambda = adaptor(indices = 2))
 
 rss <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = 1)
 
-Y <- rss$rsim(iidReps = 10000, parameter_vector = theta)
+Y <- rss$rsim(n = 10000, vector_length = 1, parameter_vector = theta)
 mean(Y)  # for compound Poisson, E[Y] = E[N] * E[X] = lambdaN * lambdaX = 6
 ```
 
@@ -174,7 +176,7 @@ summand_cgf <- MultinomialModelCGF(
 
 rss_vec <- randomlyStoppedSumCGF(count_cgf, summand_cgf, block_size = d)
 
-Y <- rss_vec$rsim(iidReps = 20000, parameter_vector = theta, drop = FALSE)
+Y <- rss_vec$rsim(n = 20000, vector_length = d, parameter_vector = theta)
 
 rowMeans(Y)  # should be ~ lambda * p = (2, 3, 5)
 ```
@@ -189,9 +191,10 @@ set.seed(1)
 
 N <- 10
 odds <- c(2, 3, 5)
+d <- length(odds)
 param_odds <- c(N, odds)
 
-X <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_odds, drop = FALSE)
+X <- MultinomialCGF$rsim(n = 6, vector_length = d, parameter_vector = param_odds)
 X
 colSums(X)  # should all equal N
 
@@ -199,7 +202,7 @@ colSums(X)  # should all equal N
 p <- odds / sum(odds)
 param_p <- c(N, p)
 
-Xp <- MultinomialCGF$rsim(iidReps = 6, parameter_vector = param_p, drop = FALSE)
+Xp <- MultinomialCGF$rsim(n = 6, vector_length = d, parameter_vector = param_p)
 colSums(Xp)
 ```
 
@@ -217,7 +220,7 @@ cgf <- MultinomialModelCGF(
   iidReps  = "any"
 )
 
-X <- cgf$rsim(iidReps = 5, parameter_vector = theta, drop = FALSE)
+X <- cgf$rsim(n = 5, vector_length = d, parameter_vector = theta)
 X
 colSums(X)
 ```
@@ -236,7 +239,7 @@ N <- 10
 pi <- c(0.2, 0.3, 0.1)  # sum < 1 (subunitary)
 param <- c(N, pi)
 
-W <- SubunitaryMultinomialCGF$rsim(iidReps = 6, parameter_vector = param, drop = FALSE)
+W <- SubunitaryMultinomialCGF$rsim(n = 6, vector_length = length(pi), parameter_vector = param)
 W
 colSums(W)
 ```
@@ -250,7 +253,7 @@ base <- PoissonModelCGF(lambda = adaptor(indices = 1))
 sum10 <- sumOfiidCGF(base, n = 10, block_size = 1)
 
 theta <- c(lambda = 2)
-Y <- sum10$rsim(iidReps = 20000, parameter_vector = theta)
+Y <- sum10$rsim(n = 20000, vector_length = 1, parameter_vector = theta)
 
 mean(Y)  # should be ~ 20
 var(Y)   # should be ~ 20
@@ -270,7 +273,7 @@ cg2 <- PoissonModelCGF(lambda = adaptor(indices = 2))
 
 cg_sum <- sumOfIndependentCGF(list(cg1, cg2), block_size = 1)
 
-Y <- cg_sum$rsim(iidReps = 20000, parameter_vector = theta)
+Y <- cg_sum$rsim(n = 20000, vector_length = 1, parameter_vector = theta)
 
 mean(Y)  # should be ~ 5
 var(Y)   # should be ~ 5
@@ -297,10 +300,9 @@ For any new base distribution, define a simulator and pass it to `createCGF(rsim
 **Contract expected by `CGF$rsim`:**
 
 - simulator returns either:
-  - a numeric vector of length `d * iidReps`, or
-  - a numeric `d x iidReps` matrix.
+  - a numeric vector of length `d * n`, or
+  - a numeric `d x n` matrix.
 - each column corresponds to one simulated draw of the underlying random vector.
 
 Then wrappers can often be implemented in a small, compositional way:
 e.g. `linearlyMappedCGF` simulates `X` and returns `A %*% X`.
-
