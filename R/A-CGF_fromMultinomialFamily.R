@@ -362,25 +362,25 @@ MultinomialFamilyCGF <- R6::R6Class(
     initialize = function(
       op_name = "MultinomialFamilyCGF",
       iidReps = "any",
-      K_func = NULL,
-      K1_func = NULL,
-      K2_func = NULL,
-      K3operator_func = NULL,
-      K4operator_func = NULL,
-      K2operator_func = NULL,
-      K2operatorAK2AT_func = NULL,
-      K4operatorAABB_func = NULL,
-      K3K3operatorAABBCC_func = NULL,
-      K3K3operatorABCABC_func = NULL,
-      K4operatorAABB_factored_func = NULL,
-      K3K3operatorAABBCC_factored_func = NULL,
-      K3K3operatorABCABC_factored_func = NULL,
-      ineq_constraint_func = NULL,
-      analytic_tvec_hat_func = NULL,
-      tilting_exponent_func = NULL,
-      neg_ll_func = NULL,
-      func_T_func = NULL,
-      simulate_func = NULL,
+      K = NULL,
+      K1 = NULL,
+      K2 = NULL,
+      K3operator = NULL,
+      K4operator = NULL,
+      K2operator = NULL,
+      K2operatorAK2AT = NULL,
+      K4operatorAABB = NULL,
+      K3K3operatorAABBCC = NULL,
+      K3K3operatorABCABC = NULL,
+      K4operatorAABB_factored = NULL,
+      K3K3operatorAABBCC_factored = NULL,
+      K3K3operatorABCABC_factored = NULL,
+      ineq_constraint = NULL,
+      analytic_tvec_hat = NULL,
+      tilting_exponent = NULL,
+      neg_ll = NULL,
+      func_T = NULL,
+      rsim = NULL,
       ...) {
 
       .check_iidReps(iidReps)
@@ -389,54 +389,51 @@ MultinomialFamilyCGF <- R6::R6Class(
       }
 
       # Defaults for the multinomial family
-      final_K_func  <- if (is.null(K_func))  private$K_func_default  else K_func
-      final_K1_func <- if (is.null(K1_func)) private$K1_func_default else K1_func
-      final_K2_func <- if (is.null(K2_func)) private$K2_func_default else K2_func
+      final_K  <- if (is.null(K))  private$K_func_default  else K
+      final_K1 <- if (is.null(K1)) private$K1_func_default else K1
+      final_K2 <- if (is.null(K2)) private$K2_func_default else K2
 
-      final_K3operator_func <- if (is.null(K3operator_func)) private$K3operator_func_default else K3operator_func
-      final_K4operator_func <- if (is.null(K4operator_func)) private$K4operator_func_default else K4operator_func
+      final_K3operator <- if (is.null(K3operator)) private$K3operator_func_default else K3operator
+      final_K4operator <- if (is.null(K4operator)) private$K4operator_func_default else K4operator
 
-      final_K4operatorAABB_func <- if (is.null(K4operatorAABB_func)) private$K4operatorAABB_func_default else K4operatorAABB_func
-      final_K3K3operatorAABBCC_func <- if (is.null(K3K3operatorAABBCC_func)) private$K3K3operatorAABBCC_func_default else K3K3operatorAABBCC_func
-      final_K3K3operatorABCABC_func <- if (is.null(K3K3operatorABCABC_func)) private$K3K3operatorABCABC_func_default else K3K3operatorABCABC_func
+      final_K4operatorAABB <- if (is.null(K4operatorAABB)) private$K4operatorAABB_func_default else K4operatorAABB
+      final_K3K3operatorAABBCC <- if (is.null(K3K3operatorAABBCC)) private$K3K3operatorAABBCC_func_default else K3K3operatorAABBCC
+      final_K3K3operatorABCABC <- if (is.null(K3K3operatorABCABC)) private$K3K3operatorABCABC_func_default else K3K3operatorABCABC
 
       # func_T_func <- if (is.null(func_Tfunc)) private$func_Tfunc_default else func_Tfunc
-      final_func_T_func <- if(is.null(func_T_func)) private$func_Tfunc_default else func_T_func
+      final_func_T <- if(is.null(func_T)) private$func_Tfunc_default else func_T
 
-      final_simulate_func <- if (is.null(simulate_func)) private$simulate_func_default else simulate_func
+      final_rsim <- if (is.null(rsim)) private$simulate_func_default else rsim
 
 
 
 
       super$initialize(
-        K_func  = final_K_func,
-        K1_func = final_K1_func,
-        K2_func = final_K2_func,
-        K3operator_func = final_K3operator_func,
-        K4operator_func = final_K4operator_func,
-
-        ineq_constraint_func = ineq_constraint_func,
-        analytic_tvec_hat_func = analytic_tvec_hat_func,
-        tilting_exponent_func = tilting_exponent_func,
-
-
-        neg_ll_func  = neg_ll_func,
-        func_T_func  = final_func_T_func,
-        simulate_func = final_simulate_func,
-
-        K2operator_func      = K2operator_func,
-        K2operatorAK2AT_func = K2operatorAK2AT_func,
-
-        K4operatorAABB_func       = final_K4operatorAABB_func,
-        K3K3operatorAABBCC_func   = final_K3K3operatorAABBCC_func,
-        K3K3operatorABCABC_func   = final_K3K3operatorABCABC_func,
-
-
-        K4operatorAABB_factored_func     = K4operatorAABB_factored_func,
-        K3K3operatorAABBCC_factored_func = K3K3operatorAABBCC_factored_func,
-        K3K3operatorABCABC_factored_func = K3K3operatorABCABC_factored_func,
-
+        K  = final_K,
+        K1 = final_K1,
+        K2 = final_K2,
+        K3operator = final_K3operator,
+        K4operator = final_K4operator,
+        analytic_tvec_hat = analytic_tvec_hat,
+        rsim = final_rsim,
         op_name = op_name,
+
+        ineq_constraint = ineq_constraint,
+        tilting_exponent = tilting_exponent,
+        neg_ll  = neg_ll,
+        func_T  = final_func_T,
+
+        K2operator      = K2operator,
+        K2operatorAK2AT = K2operatorAK2AT,
+
+        K4operatorAABB      = final_K4operatorAABB,
+        K3K3operatorAABBCC  = final_K3K3operatorAABBCC,
+        K3K3operatorABCABC  = final_K3K3operatorABCABC,
+
+        K4operatorAABB_factored     = K4operatorAABB_factored,
+        K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+        K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+
         ...
       )
 
@@ -449,48 +446,48 @@ MultinomialFamilyCGF <- R6::R6Class(
 #' @keywords internal
 createMultinomialFamilyCGF <- function(iidReps = "any",
                                        op_name = "MultinomialFamilyCGF",
-                                       K_func = NULL,
-                                       K1_func = NULL,
-                                       K2_func = NULL,
-                                       K3operator_func = NULL,
-                                       K4operator_func = NULL,
-                                       K2operator_func = NULL,
-                                       K2operatorAK2AT_func = NULL,
-                                       K4operatorAABB_func = NULL,
-                                       K3K3operatorAABBCC_func = NULL,
-                                       K3K3operatorABCABC_func = NULL,
-                                       K4operatorAABB_factored_func = NULL,
-                                       K3K3operatorAABBCC_factored_func = NULL,
-                                       K3K3operatorABCABC_factored_func = NULL,
-                                       ineq_constraint_func = NULL,
-                                       analytic_tvec_hat_func = NULL,
-                                       tilting_exponent_func = NULL,
-                                       neg_ll_func = NULL,
-                                       func_T_func = NULL,
+                                       K = NULL,
+                                       K1 = NULL,
+                                       K2 = NULL,
+                                       K3operator = NULL,
+                                       K4operator = NULL,
+                                       K2operator = NULL,
+                                       K2operatorAK2AT = NULL,
+                                       K4operatorAABB = NULL,
+                                       K3K3operatorAABBCC = NULL,
+                                       K3K3operatorABCABC = NULL,
+                                       K4operatorAABB_factored = NULL,
+                                       K3K3operatorAABBCC_factored = NULL,
+                                       K3K3operatorABCABC_factored = NULL,
+                                       ineq_constraint = NULL,
+                                       analytic_tvec_hat = NULL,
+                                       tilting_exponent = NULL,
+                                       neg_ll = NULL,
+                                       func_T = NULL,
                                        ...) {
 
   .check_iidReps(iidReps)
 
   base <- MultinomialFamilyCGF$new(
     op_name = op_name,
-    K_func = K_func,
-    K1_func = K1_func,
-    K2_func = K2_func,
-    K3operator_func = K3operator_func,
-    K4operator_func = K4operator_func,
-    K2operator_func = K2operator_func,
-    K2operatorAK2AT_func = K2operatorAK2AT_func,
-    K4operatorAABB_func = K4operatorAABB_func,
-    K3K3operatorAABBCC_func = K3K3operatorAABBCC_func,
-    K3K3operatorABCABC_func = K3K3operatorABCABC_func,
-    K4operatorAABB_factored_func = K4operatorAABB_factored_func,
-    K3K3operatorAABBCC_factored_func = K3K3operatorAABBCC_factored_func,
-    K3K3operatorABCABC_factored_func = K3K3operatorABCABC_factored_func,
-    ineq_constraint_func = ineq_constraint_func,
-    analytic_tvec_hat_func = analytic_tvec_hat_func,
-    tilting_exponent_func = tilting_exponent_func,
-    neg_ll_func = neg_ll_func,
-    func_T_func = func_T_func,
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    tilting_exponent = tilting_exponent,
+    neg_ll = neg_ll,
+    func_T = func_T,
     ...
   )
 

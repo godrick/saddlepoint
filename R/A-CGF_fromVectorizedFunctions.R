@@ -53,23 +53,23 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
     # Internal helper method(s) to set child defaults for optional methods
     set_child_defaults = function(
-              tilting_exponent_func,
-              neg_ll_func,
-              func_T_func,
-              K4operatorAABB_func,
-              K3K3operatorAABBCC_func,
-              K3K3operatorABCABC_func
+              tilting_exponent,
+              neg_ll,
+              func_T,
+              K4operatorAABB,
+              K3K3operatorAABBCC,
+              K3K3operatorABCABC
     ) {
       # If user didn't supply a function, create a default implementation
-      if (is.null(tilting_exponent_func)) {
-        tilting_exponent_func <- function(tvec, p) {
+      if (is.null(tilting_exponent)) {
+        tilting_exponent <- function(tvec, p) {
           K_vals <- private$K_vectorized_func(tvec, p)
           K1_vals <- private$K1_vectorized_func(tvec, p)
           sum(K_vals - tvec * K1_vals)
         }
       }
-      if (is.null(neg_ll_func)) {
-        neg_ll_func <- function(tvec, p) {
+      if (is.null(neg_ll)) {
+        neg_ll <- function(tvec, p) {
           K2_vals <- private$K2_vectorized_func(tvec, p)
           K_vals <- private$K_vectorized_func(tvec, p)
           K1_vals <- private$K1_vectorized_func(tvec, p)
@@ -77,8 +77,8 @@ VectorizedFunctionsCGF <- R6::R6Class(
           sum(0.5 * log(2*pi*K2_vals) - tilting_vals)
         }
       }
-      if(is.null(func_T_func)){
-        func_T_func <- function(tvec, p) {
+      if(is.null(func_T)){
+        func_T <- function(tvec, p) {
           k2val <- private$K2_vectorized_func(tvec, p)
           k2sq_val <- k2val * k2val
           k3val <- private$K3_vectorized_func(tvec, p)
@@ -86,19 +86,19 @@ VectorizedFunctionsCGF <- R6::R6Class(
           sum( k4val/(8 * k2sq_val) - 5*(k3val*k3val)/(24 * k2sq_val * k2val) )
         }
       }
-      if(is.null(K4operatorAABB_func)){
-        K4operatorAABB_func <- function(tvec, p, Q1, Q2) {
+      if(is.null(K4operatorAABB)){
+        K4operatorAABB <- function(tvec, p, Q1, Q2) {
           sum(private$K4_vectorized_func(tvec, p) * diag(Q1) * diag(Q2))
         }
       }
-      if(is.null(K3K3operatorAABBCC_func)){
-        K3K3operatorAABBCC_func <- function(tvec, p, Q1, Q2, Q3) {
+      if(is.null(K3K3operatorAABBCC)){
+        K3K3operatorAABBCC <- function(tvec, p, Q1, Q2, Q3) {
           k3_vals <- private$K3_vectorized_func(tvec, p)
           sum( (diag(Q1) * k3_vals) %*% Q2 %*% (diag(Q3) * k3_vals) )
         }
       }
-      if(is.null(K3K3operatorABCABC_func)){
-        K3K3operatorABCABC_func <- function(tvec, p, Q1, Q2, Q3) {
+      if(is.null(K3K3operatorABCABC)){
+        K3K3operatorABCABC <- function(tvec, p, Q1, Q2, Q3) {
           k3_vals <- private$K3_vectorized_func(tvec, p)
           mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
           sum(mat_k3_vals %*% (Q1 * Q2 * Q3) %*% mat_k3_vals)
@@ -106,12 +106,12 @@ VectorizedFunctionsCGF <- R6::R6Class(
       }
 
       list(
-        tilting_exponent_func = tilting_exponent_func,
-        neg_ll_func           = neg_ll_func,
-        func_T_func           = func_T_func,
-        K4operatorAABB_func   = K4operatorAABB_func,
-        K3K3operatorAABBCC_func = K3K3operatorAABBCC_func,
-        K3K3operatorABCABC_func = K3K3operatorABCABC_func
+        tilting_exponent = tilting_exponent,
+        neg_ll           = neg_ll,
+        func_T           = func_T,
+        K4operatorAABB   = K4operatorAABB,
+        K3K3operatorAABBCC = K3K3operatorAABBCC,
+        K3K3operatorABCABC = K3K3operatorABCABC
       )
     }
   ),
@@ -125,21 +125,22 @@ VectorizedFunctionsCGF <- R6::R6Class(
                 K4_vectorized_func,
 
                 # Optional overrides
-                ineq_constraint_func = NULL,
-                analytic_tvec_hat_func        = NULL,
+                ineq_constraint = NULL,
+                analytic_tvec_hat = NULL,
+                rsim = NULL,
                 op_name = "UnnamedOperation",
 
-                tilting_exponent_func = NULL,
-                neg_ll_func           = NULL,
-                func_T_func           = NULL,
-                K4operatorAABB_func     = NULL,
-                K3K3operatorAABBCC_func = NULL,
-                K3K3operatorABCABC_func = NULL,
-                K4operatorAABB_factored_func = NULL,
-                K3K3operatorAABBCC_factored_func = NULL,
-                K3K3operatorABCABC_factored_func = NULL,
-                K2operator_func = NULL,
-                K2operatorAK2AT_func = NULL,
+                tilting_exponent = NULL,
+                neg_ll           = NULL,
+                func_T           = NULL,
+                K4operatorAABB     = NULL,
+                K3K3operatorAABBCC = NULL,
+                K3K3operatorABCABC = NULL,
+                K4operatorAABB_factored = NULL,
+                K3K3operatorAABBCC_factored = NULL,
+                K3K3operatorABCABC_factored = NULL,
+                K2operator = NULL,
+                K2operatorAK2AT = NULL,
                 ...
     ) {
       # Store vectorized functions in private fields
@@ -151,12 +152,12 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
       # Call child default logic
       child_defaults <- private$set_child_defaults(
-        tilting_exponent_func  = tilting_exponent_func,
-        neg_ll_func            = neg_ll_func,
-        func_T_func            = func_T_func,
-        K4operatorAABB_func    = K4operatorAABB_func,
-        K3K3operatorAABBCC_func= K3K3operatorAABBCC_func,
-        K3K3operatorABCABC_func= K3K3operatorABCABC_func
+        tilting_exponent      = tilting_exponent,
+        neg_ll                = neg_ll,
+        func_T                = func_T,
+        K4operatorAABB        = K4operatorAABB,
+        K3K3operatorAABBCC    = K3K3operatorAABBCC,
+        K3K3operatorABCABC    = K3K3operatorABCABC
       )
 
 
@@ -164,31 +165,32 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
 
       super$initialize(
-        K_func                = function(tvec, p) { sum(private$K_vectorized_func(tvec, p))  },
-        K1_func               = function(tvec, p) { private$K1_vectorized_func(tvec, p)  },
-        K2_func               = function(tvec, p) { diag(private$K2_vectorized_func(tvec, p), nrow = length(tvec)) },
-        K3operator_func       = function(tvec, p, v1, v2, v3) { sum(private$K3_vectorized_func(tvec, p) * v1 * v2 * v3) },
-        K4operator_func       = function(tvec, p, v1, v2, v3, v4) { sum(private$K4_vectorized_func(tvec, p) * v1 * v2 * v3 * v4) },
+        K = function(tvec, p) { sum(private$K_vectorized_func(tvec, p))  },
+        K1 = function(tvec, p) { private$K1_vectorized_func(tvec, p)  },
+        K2 = function(tvec, p) { diag(private$K2_vectorized_func(tvec, p), nrow = length(tvec)) },
+        K3operator = function(tvec, p, v1, v2, v3) { sum(private$K3_vectorized_func(tvec, p) * v1 * v2 * v3) },
+        K4operator = function(tvec, p, v1, v2, v3, v4) { sum(private$K4_vectorized_func(tvec, p) * v1 * v2 * v3 * v4) },
 
-        ineq_constraint_func  = ineq_constraint_func,
-        analytic_tvec_hat_func= analytic_tvec_hat_func,
-        op_name        = op_name,
+        ineq_constraint  = ineq_constraint,
+        analytic_tvec_hat = analytic_tvec_hat,
+        rsim = rsim,
+        op_name = op_name,
 
         # optional child-defaulted methods
-        tilting_exponent_func = child_defaults$tilting_exponent_func,
-        neg_ll_func           = child_defaults$neg_ll_func,
-        func_T_func           = child_defaults$func_T_func,
+        tilting_exponent = child_defaults$tilting_exponent,
+        neg_ll           = child_defaults$neg_ll,
+        func_T           = child_defaults$func_T,
 
-        K4operatorAABB_func          = child_defaults$K4operatorAABB_func,
-        K3K3operatorAABBCC_func      = child_defaults$K3K3operatorAABBCC_func,
-        K3K3operatorABCABC_func      = child_defaults$K3K3operatorABCABC_func,
+        K4operatorAABB     = child_defaults$K4operatorAABB,
+        K3K3operatorAABBCC = child_defaults$K3K3operatorAABBCC,
+        K3K3operatorABCABC = child_defaults$K3K3operatorABCABC,
 
-        K4operatorAABB_factored_func          = K4operatorAABB_factored_func,
-        K3K3operatorAABBCC_factored_func      = K3K3operatorAABBCC_factored_func,
-        K3K3operatorABCABC_factored_func      = K3K3operatorABCABC_factored_func,
+        K4operatorAABB_factored     = K4operatorAABB_factored,
+        K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+        K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
 
-        K2operator_func           = K2operator_func,
-        K2operatorAK2AT_func      = K2operatorAK2AT_func,
+        K2operator      = K2operator,
+        K2operatorAK2AT = K2operatorAK2AT,
 
 
         # K2_solve_func = function(tvec, p, rhs) {
@@ -233,8 +235,8 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' @param K1_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.
 #' @param K2_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.
 #' @param K3_vectorized_func,K4_vectorized_func Similar vectorized functions for the third and fourth derivatives.
-#' @param ineq_constraint_func Optional inequality constraint function.
-#' @param analytic_tvec_hat_func Optional tvec_hat function override.
+#' @param ineq_constraint Optional inequality constraint function.
+#' @param analytic_tvec_hat Optional `tvec_hat` function override.
 #' @param op_name Optional character string indicating the name of the operation or transformation being performed.
 #' @param tilting_exponent Optional tilting exponent function override.
 #' @param neg_ll Optional neg_ll function override.
@@ -256,8 +258,8 @@ createCGF_fromVectorisedFunctions <- function(
     K2_vectorized_func,
     K3_vectorized_func,
     K4_vectorized_func,
-    ineq_constraint_func = NULL,
-    analytic_tvec_hat_func = NULL,
+    ineq_constraint = NULL,
+    analytic_tvec_hat = NULL,
     op_name = "UnnamedOperation",
     tilting_exponent = NULL,
     neg_ll = NULL,
@@ -276,18 +278,17 @@ createCGF_fromVectorisedFunctions <- function(
 
   # user-supplied optional methods
   user_optional_methods <- list(
-    tilting_exponent_func       = tilting_exponent,
-    neg_ll_func                 = neg_ll,
-    func_T_func                 = func_T,
-    simulate_func              = rsim,
-    K4operatorAABB_func         = K4operatorAABB,
-    K3K3operatorAABBCC_func     = K3K3operatorAABBCC,
-    K3K3operatorABCABC_func     = K3K3operatorABCABC,
-    K4operatorAABB_factored_func    = K4operatorAABB_factored,
-    K3K3operatorAABBCC_factored_func= K3K3operatorAABBCC_factored,
-    K3K3operatorABCABC_factored_func= K3K3operatorABCABC_factored,
-    K2operator_func            = K2operator,
-    K2operatorAK2AT_func       = K2operatorAK2AT
+    tilting_exponent         = tilting_exponent,
+    neg_ll                   = neg_ll,
+    func_T                   = func_T,
+    K4operatorAABB           = K4operatorAABB,
+    K3K3operatorAABBCC       = K3K3operatorAABBCC,
+    K3K3operatorABCABC       = K3K3operatorABCABC,
+    K4operatorAABB_factored  = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    K2operator               = K2operator,
+    K2operatorAK2AT          = K2operatorAK2AT
   )
 
 
@@ -306,8 +307,9 @@ createCGF_fromVectorisedFunctions <- function(
       K2_vectorized_func = K2_vectorized_func,
       K3_vectorized_func = K3_vectorized_func,
       K4_vectorized_func = K4_vectorized_func,
-      ineq_constraint_func          = ineq_constraint_func,
-      analytic_tvec_hat_func        = analytic_tvec_hat_func,
+      ineq_constraint               = ineq_constraint,
+      analytic_tvec_hat             = analytic_tvec_hat,
+      rsim                          = rsim,
       op_name  = op_name
     ),
     all_optional_methods

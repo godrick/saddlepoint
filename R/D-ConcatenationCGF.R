@@ -71,7 +71,7 @@
   funcT_list   <- lapply(cgf_list, function(cg) cg$.get_private_method("func_T"))
 
   # Analytic t-hat: only if ALL children have it
-  has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat()), logical(1))
+  has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat), logical(1))
   analytic_hat_list <- if (all(has_analytic_vec)) lapply(cgf_list, function(cg) cg$analytic_tvec_hat) else NULL
 
 
@@ -504,7 +504,7 @@
 
   # simulation (only if all components can simulate)
   simulate_fun <- NULL
-  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate()), logical(1)))) {
+  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate), logical(1)))) {
     rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 
@@ -550,7 +550,7 @@
     func_T = funcTfun,
 
     ineq_constraint = ineqfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_func,
+    analytic_tvec_hat = analytic_tvec_hat_func,
 
     K2operator      = K2operatorfun,
     K2operatorAK2AT = K2operatorAK2ATfun,
@@ -627,7 +627,7 @@
 #'                     as.numeric(K1_manual)))
 #'
 #' # Analytic t-hat is available if all children have it:
-#' if (isTRUE(cg$has_analytic_tvec_hat())) {
+#' if (isTRUE(cg$has_analytic_tvec_hat)) {
 #'   x <- c(12, 5, 8, 7)  # observed data (same layout as tvec)
 #'   t_hat <- cg$analytic_tvec_hat(x, theta)
 #'   t_hat_manual <- c(cg_pois$analytic_tvec_hat(x[1], theta),

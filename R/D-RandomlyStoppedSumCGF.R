@@ -476,7 +476,7 @@
 
 
   simulate_fun <- NULL
-  if (isTRUE(count_cgf$has_simulate()) && isTRUE(summand_cgf$has_simulate())) {
+  if (isTRUE(count_cgf$has_simulate) && isTRUE(summand_cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL,
                              max_total_summands = NULL,
                              ...) {

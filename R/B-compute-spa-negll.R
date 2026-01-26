@@ -11,7 +11,7 @@
 #                                     ...) {
 #   tvec_source <- match.arg(tvec_source)
 #   if (!is.null(user_tvec) || tvec_source == "user") return(user_tvec)
-#   if (cgf$has_analytic_tvec_hat() || tvec_source == "analytic")
+#   if (isTRUE(cgf$has_analytic_tvec_hat) || tvec_source == "analytic")
 #     return(cgf$analytic_tvec_hat(observed.data, parameter_vector))
 #   # # Otherwise plain numeric solve (no AD)
 #   # solver_fun(theta = parameter_vector, y = observed.data, cgf = cgf, ...)
@@ -42,17 +42,29 @@
 # -----------------------------------------------------------------------------
 #' @noRd
 get_nonAD_tvec_hat_vals <- function(parameter_vector,
-                                    observed.data,
-                                    cgf,
-                                    user_tvec = NULL,
-                                    tvec_source = c("auto","user","analytic","newton","solver_atomic"),
-                                    solver_fun = saddlepoint.solve,
-                                    ...) {
-  tvec_source <- match.arg(tvec_source)
-  if (!is.null(user_tvec) || tvec_source == "user") return(user_tvec)
+	                                    observed.data,
+	                                    cgf,
+	                                    user_tvec = NULL,
+	                                    tvec_source = c("auto","user","analytic","newton","solver_atomic"),
+	                                    solver_fun = saddlepoint.solve,
+	                                    ...) {
+	  tvec_source <- match.arg(tvec_source)
+	  if (tvec_source == "user") {
+	    if (is.null(user_tvec)) stop("tvec_source='user' requires 'user_tvec'.", call. = FALSE)
+	    return(user_tvec)
+	  }
+	  if (!is.null(user_tvec)) return(user_tvec)
 
-  # analytic t-hat (if available, or explicitly requested)
-  if (cgf$has_analytic_tvec_hat() || tvec_source == "analytic") return(cgf$analytic_tvec_hat(observed.data, parameter_vector))
+	  # analytic t-hat (if available, or explicitly requested)
+	  if (tvec_source == "analytic") {
+	    if (!isTRUE(cgf$has_analytic_tvec_hat) || is.null(cgf$analytic_tvec_hat)) {
+	      stop("tvec_source='analytic' requires this CGF to provide 'analytic_tvec_hat'.", call. = FALSE)
+	    }
+	    return(cgf$analytic_tvec_hat(observed.data, parameter_vector))
+	  }
+	  if (isTRUE(cgf$has_analytic_tvec_hat) && !is.null(cgf$analytic_tvec_hat)) {
+	    return(cgf$analytic_tvec_hat(observed.data, parameter_vector))
+	  }
 
 
   # Pure numeric solve (no tapes). We prefer not to build a Newton tape here.
@@ -150,7 +162,12 @@ create_spa_taped_fun <- function(param_vec,
 
 
   # Analytic t-hat
-  if (tvec_source == "analytic" || (cgf$has_analytic_tvec_hat() && tvec_source == "auto")) {
+  if (tvec_source == "analytic") {
+    if (!isTRUE(cgf$has_analytic_tvec_hat) || is.null(cgf$analytic_tvec_hat)) {
+      stop("tvec_source='analytic' requires this CGF to provide 'analytic_tvec_hat'.", call. = FALSE)
+    }
+  }
+  if (tvec_source == "analytic" || (isTRUE(cgf$has_analytic_tvec_hat) && tvec_source == "auto")) {
     local_fn <- function(par) {
       tvec_vals <- cgf$analytic_tvec_hat(observed.data, par)
       chosen_spa_fn(tvec_vals, par)

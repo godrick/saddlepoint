@@ -327,7 +327,7 @@ saddlepoint.solve <- function(theta, y, cgf,
 
   if (!is(cgf, "CGF")) stop("cgf must be of class 'CGF'")
 
-  if ( cgf$has_analytic_tvec_hat()  ) {
+  if (isTRUE(cgf$has_analytic_tvec_hat)) {
     message("An analytical solution is available via `cgf$analytic_tvec_hat(...)`. ",
             "Consider using that instead of numeric optimization.")
   }
@@ -526,7 +526,6 @@ compute.std.error <- function(observed.data,
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)), inverse.hessian = inverse.hessian)
 }
-
 
 
 

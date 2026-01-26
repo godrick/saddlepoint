@@ -11,14 +11,14 @@ createCGF(
   K3operator,
   K4operator,
   ineq_constraint = NULL,
-  analytic_tvec_hat_func = NULL,
+  analytic_tvec_hat = NULL,
+  rsim = NULL,
   op_name = "UnnamedOperation",
   tilting_exponent = NULL,
   neg_ll = NULL,
   func_T = NULL,
   K2_solve = NULL,
   logdetK2 = NULL,
-  rsim = NULL,
   K4operatorAABB = NULL,
   K3K3operatorAABBCC = NULL,
   K3K3operatorABCABC = NULL,
@@ -43,7 +43,7 @@ createCGF(
 
 \item{ineq_constraint}{Optional function for inequality constraints.}
 
-\item{analytic_tvec_hat_func}{Optional function for an analytic solution
+\item{analytic_tvec_hat}{Optional function for an analytic solution
 of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(x, param)}.}
 
 \item{op_name}{A descriptive label for the CGF object/operation. Default is "UnnamedOperation".}
@@ -65,8 +65,8 @@ Useful for wrapper CGFs that can compute this without materializing the full \co
 
 \item{rsim}{Optional simulation method.
 A function of the form \verb{function(n, vector_length, parameter_vector, tvec = NULL, ...)}
-returning a \verb{vector_length x n} matrix.
-If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate()}.}
+returning a numeric vector of length \code{n * vector_length} or a \verb{vector_length x n} matrix.
+If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate}.}
 
 \item{K4operatorAABB_factored, K3K3operatorAABBCC_factored, K3K3operatorABCABC_factored}{(optional) Overriding factored-operator methods.}
 

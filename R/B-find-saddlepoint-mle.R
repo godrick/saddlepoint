@@ -54,7 +54,7 @@ configure.opts <- function(opts.user) {
                                         ub.tvec) {
 
   # Analytic saddlepoint (if provided by CGF)
-  if (isTRUE(cgf$has_analytic_tvec_hat())) {
+  if (isTRUE(cgf$has_analytic_tvec_hat)) {
     t_hat <- as.numeric(cgf$analytic_tvec_hat(observed.data, theta_hat))
     return(list(t_hat = t_hat, t_source = "analytic"))
   }
@@ -243,7 +243,7 @@ configure.opts <- function(opts.user) {
   }
 
   has_cgf_ineq <- (length(ineq_try) > 0L)
-  has_analytic_t_hat <- isTRUE(cgf$has_analytic_tvec_hat())
+  has_analytic_t_hat <- isTRUE(cgf$has_analytic_tvec_hat)
   # If an analytic t-hat exists, keep the fast auto/analytic pathway.
   # Otherwise, if the CGF is constrained, fall back to the constrained numeric solver.
   tvec_source_use <- if (has_analytic_t_hat) "auto" else if (has_cgf_ineq) "solver_atomic" else "auto"

@@ -366,7 +366,7 @@
   # e.g. chunk x => pass each chunk to cgf$analytic_tvec_hat => combine?
   #### Check if this doesn't make sense, (default to NULL if that's the case)
   analytic_tvec_hat_func <- NULL # If the base CGF had no valid function, just return NULL
-  if (cgf$has_analytic_tvec_hat()) {
+  if (isTRUE(cgf$has_analytic_tvec_hat)) {
     analytic_tvec_hat_func <- function(x, param) {
       N <- length(x)
       d_cur <- .block_size_value(block_size, param)
@@ -450,7 +450,7 @@
   # so simulation can be forwarded directly.
   # ------------------------------------------------------------------
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate())) {
+  if (isTRUE(cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       d_cur <- .block_size_value(block_size, parameter_vector)
       lay <- .resolve_rep_layout(vector_length, block_size = d_cur, iidReps = iidReps)
@@ -507,7 +507,7 @@
     K3operator = K3operatorfun,
     K4operator = K4operatorfun,
     ineq_constraint = ineq_constraintfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_func,
+    analytic_tvec_hat = analytic_tvec_hat_func,
     tilting_exponent = tiltingfun,
     neg_ll = negllfun,
     func_T = func_Tfun,
@@ -642,7 +642,6 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
   )
 
 }
-
 
 
 

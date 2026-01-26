@@ -110,11 +110,11 @@
       pm <- prep_par(tvec, param)
       K4_elem(tvec, pm)
     },
-    analytic_tvec_hat_func = function(x, param) {
+    analytic_tvec_hat = function(x, param) {
       pm <- prep_par(x, param)
       t_hat_elem(x, pm)
     },
-    ineq_constraint_func = if (!is.null(ineq_elem)) {
+    ineq_constraint = if (!is.null(ineq_elem)) {
       function(tvec, param) {
         pm <- prep_par(tvec, param)
         ineq_elem(tvec, pm)

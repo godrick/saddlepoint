@@ -72,7 +72,7 @@
     cgf$ineq_constraint(tvec, param_adaptor(param))
   }
 
-  if(cgf$has_analytic_tvec_hat()) {
+  if (isTRUE(cgf$has_analytic_tvec_hat)) {
     wrapped_analytic_tvec_hat_func <- function(x, param) {
       cgf$analytic_tvec_hat(x, param_adaptor(param))
     }
@@ -109,7 +109,7 @@
   }
 
   wrapped_rsim <- NULL
-  if (isTRUE(cgf$has_simulate())) {
+  if (isTRUE(cgf$has_simulate)) {
     # This becomes *simulate_func* in the wrapped CGF.
     # Always return a matrix; flattening is handled by the public CGF$rsim().
     wrapped_rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
@@ -137,7 +137,7 @@
     K3operator = wrapped_K3operator,
     K4operator = wrapped_K4operator,
     ineq_constraint = wrapped_ineq_constraint,
-    analytic_tvec_hat_func = wrapped_analytic_tvec_hat_func,
+    analytic_tvec_hat = wrapped_analytic_tvec_hat_func,
     op_name = op_name,
 
     tilting_exponent = wrapped_tilting_exponent,

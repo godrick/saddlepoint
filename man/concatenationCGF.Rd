@@ -61,7 +61,7 @@ stopifnot(all.equal(as.numeric(cg$K1(tvec, theta)),
                     as.numeric(K1_manual)))
 
 # Analytic t-hat is available if all children have it:
-if (isTRUE(cg$has_analytic_tvec_hat())) {
+if (isTRUE(cg$has_analytic_tvec_hat)) {
   x <- c(12, 5, 8, 7)  # observed data (same layout as tvec)
   t_hat <- cg$analytic_tvec_hat(x, theta)
   t_hat_manual <- c(cg_pois$analytic_tvec_hat(x[1], theta),

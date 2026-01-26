@@ -107,7 +107,7 @@
 
   #
   analytic_tvec_hat_func <- NULL
-  if (isTRUE(base_cgf$has_analytic_tvec_hat())) {
+  if (isTRUE(base_cgf$has_analytic_tvec_hat)) {
     hat0 <- base_cgf$analytic_tvec_hat
     analytic_tvec_hat_func <- function(x, param) {
       b <- b_at(param, length(x))
@@ -117,7 +117,7 @@
 
   # Simulation: if X can simulate, Y = X + b(theta) can simulate by shifting draws.
   simulate_fun <- NULL
-  if (isTRUE(base_cgf$has_simulate())) {
+  if (isTRUE(base_cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       X_sim <- base_cgf$rsim(
         n = n,
@@ -150,7 +150,7 @@
     rsim = simulate_fun,
 
     ineq_constraint = ineqfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_func,
+    analytic_tvec_hat = analytic_tvec_hat_func,
 
     # pass-through “fast” linear algebra / operators
     K2operator      = K2opfun,

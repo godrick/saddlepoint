@@ -53,7 +53,7 @@
   K3K3ABCABC_fact0 <- base_cgf$.get_private_method("K3K3operatorABCABC_factored")
 
   # Analytic t-hat: if the base has one, we can shift it back by h
-  has_analytic <- isTRUE(base_cgf$has_analytic_tvec_hat())
+  has_analytic <- isTRUE(base_cgf$has_analytic_tvec_hat)
   hat0 <- if (has_analytic) base_cgf$analytic_tvec_hat else NULL
 
   # Helper: expand h(theta) to length(tvec)
@@ -189,7 +189,7 @@
   # This does NOT imply a general exact sampler from the tilted law.
   # rsim is only available if the base CGF can simulate under a tilt (tvec != NULL).
   simulate_fun <- NULL
-  if (isTRUE(base_cgf$has_simulate())) {
+  if (isTRUE(base_cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       h <- expand_h(tilt_fn(parameter_vector), vector_length)
       t_total <- if (is.null(tvec)) h else (h + tvec)
@@ -233,7 +233,7 @@
     K3K3operatorABCABC_factored = K3K3ABCABC_fact_fun,
 
     ineq_constraint = ineqfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_fun,
+    analytic_tvec_hat = analytic_tvec_hat_fun,
     rsim = simulate_fun,
 
     op_name = op_name_vec,

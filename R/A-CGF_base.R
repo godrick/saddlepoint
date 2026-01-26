@@ -21,7 +21,7 @@
 #  - All names you intend to overwrite in the constructor must be declared
 #    in 'public = list(...)' or 'private = list(...)' to avoid "cannot add bindings
 #    to a locked environment" errors.
-#  - By default, this class is not aware of the "param_adaptor". If you need parameter adaptation, see adaptCGF function.
+#  - By default, this class is not aware of the "param_adaptor". If you need parameter adaptation, see adaptCGF().
 #
 #  EXTENSIBILITY:
 #  - The 'initialize' method accepts '...' for additional named methods or overrides.
@@ -30,63 +30,15 @@
 # --------------------------------------------------------------------
 
 
-
-
-# --------------------------------------------------------------------
-# Base CGF Class (R6)
-# This is the base class for implementing CGF objects for various distributions.
-# --------------------------------------------------------------------
-#
-# Required methods (subclass or createCGF construction):
-#   1) K(tvec, parameter_vector)
-#   2) K1(tvec, parameter_vector)
-#   3) K2(tvec, parameter_vector)
-#   4) K3operator(tvec, parameter_vector, v1, v2, v3)
-#   5) K4operator(tvec, parameter_vector, v1, v2, v3, v4)
-#
-# Optional methods:
-#   - tilting_exponent(tvec, parameter_vector)
-#   - neg_ll(tvec, parameter_vector)
-#   - func_T(tvec, parameter_vector)
-#   - K2operator(tvec, parameter_vector, x, y)
-#   - K2operatorAK2AT(tvec, parameter_vector, A)
-#   - K4operatorAABB(tvec, parameter_vector, Q1, Q2)
-#   - K3K3operatorAABBCC(tvec, parameter_vector, Q1, Q2, Q3)
-#   - K3K3operatorABCABC(tvec, parameter_vector, Q1, Q2, Q3)
-#   - K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A2, d2)
-#   - K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-#   - K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-#   - ineq_constraint(tvec, parameter_vector)
-#   - compute_analytic_tvec_hat(x, parameter_vector)
-#
-# Other objects:
-#   - analytic_tvec_hat_func: a function that computes tvec from y and parameters
-#   - op_name: a label for debugging/call history
-#
-# The 'initialize' method either uses the user-supplied or default implementation
-# for each optional method.
-# --------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
 # ------------------------------------------------------------------------
 # Helper function: check_fun_sig
 # This check that the user-supplied function has the right signature
 # Currently not used.
 # ------------------------------------------------------------------------
 check_fun_sig <- function(fn, expected_args) {
-  # If 'fn' is not a function, fail immediately
   if (!is.function(fn)) stop("Supplied object is not a function.")
   formals_list <- formals(fn)
   actual_args <- names(formals_list)
-  # Compare argument names
   if (!identical(actual_args, expected_args)) {
     stop(
       "Invalid function signature. Expected arguments: ",
@@ -95,41 +47,15 @@ check_fun_sig <- function(fn, expected_args) {
       paste(actual_args, collapse = ", ")
     )
   }
-  # If we get here, 'fn' has the exact signature we want
 }
-
-
-
-
-# #------------------------------------------------------------------------
-# ### Preliminary helpers for logdet and inverse/solve
-# ### The issue is that Eigen's .inverse() seems more stable for near-singular matrices.
-# ### But, RTMB uses the solve() function in the reverse mode of determinant(..., log = T).
-# ### As a temporary workaround, we use a new atomic function via "ADjoint",
-# ### which computes the inverse using Eigen's .inverse() function.
-# my_matinv <- function(x){
-#   if (is(x, "advector")) {
-#     return(matinv_TMBad(x)) # exported from atomic::matinv
-#   }
-#   matinv_double(x) # Eigen's .inverse()
-# }
-# my_logdet <- ADjoint(
-#   function(x) determinant(x, log=TRUE)$modulus,
-#   function(x, y, dy) {
-#     my_matinv(x) * dy[1]
-#   },
-#   name = "my_logdet")
-# #------------------------------------------------------------------------
-
 
 
 #------------------------------------------------------------------------
 # NOTE (log-determinants under RTMB):
-# Earlier versions included an ADjoint-based `my_logdet()` helper to customize
-# reverse-mode behaviour for log|det(K2)|. We have abandoned that
-# approach and rely on determinant() instead.
+# Earlier versions included an ADjoint-based helper to customize reverse-mode
+# behaviour for log|det(K2)|. We rely on determinant() instead.
 #
-# The recommended pattern  is now:
+# Recommended pattern:
 #   * use cgf$logdetK2(t, theta) whenever you need log|det(K2(t,theta))|
 #   * use cgf$K2_solve(t, theta, rhs) whenever you need (K2)^{-1} rhs
 #
@@ -139,373 +65,33 @@ check_fun_sig <- function(fn, expected_args) {
 #------------------------------------------------------------------------
 
 
-
-
-#' @noRd
-CGF <- R6::R6Class(
-  classname = "CGF",
-
-  # ----------------------------------------------------------
-  # Private fields / methods
-  # ----------------------------------------------------------
-  private = list(
-
-    # --- CORE user-supplied method pointers ---
-    K_func = NULL,
-    K1_func = NULL,
-    K2_func = NULL,
-    K3operator_func = NULL,
-    K4operator_func = NULL,
-
-    # --- OPTIONAL user-supplied method pointers ---
-    ineq_constraint_func = NULL,
-    analytic_tvec_hat_func = NULL,
-    simulate_func = NULL,
-
-
-    # "Hidden" or private-labeled methods:
-    #  These are the default or user-supplied tilting_exponent, neg_ll, func_T, etc.
-    tilting_exponent = NULL,
-    neg_ll = NULL,
-    func_T = NULL,
-    K4operatorAABB_factored = NULL,
-    K3K3operatorAABBCC_factored = NULL,
-    K3K3operatorABCABC_factored = NULL,
-
-
-    # Additional optional operator pointers
-    K4operatorAABB_func = NULL,
-    K3K3operatorAABBCC_func = NULL,
-    K3K3operatorABCABC_func = NULL,
-    K2operator_func = NULL,
-    K2operatorAK2AT_func = NULL
-  ),
-
-  # ----------------------------------------------------------
-  # Public members (accessible via $ on CGF object)
-  # ----------------------------------------------------------
-  public = list(
-
-    # Keep a call_history for debugging/tracking
-    call_history = NULL,
-
-    # Pre-declare optional public methods here so we can safely overwrite them in `initialize`.
-    K2operator = NULL,
-    K2operatorAK2AT = NULL,
-    K4operatorAABB  = NULL,
-    K3K3operatorAABBCC = NULL,
-    K3K3operatorABCABC = NULL,
-    ineq_constraint = NULL,
-    has_analytic_tvec_hat = NULL,
-    analytic_tvec_hat = NULL,
-
-    # Simulation (optional)
-    has_simulate = NULL,
-    rsim = NULL,
-
-    # Optional computational helpers (can be overridden for efficiency)
-    K2_solve = NULL,
-    logdetK2 = NULL,
-
-    # -----------------------------------------------------------------------
-    # CONSTRUCTOR
-    # -----------------------------------------------------------------------
-    initialize = function(K_func, K1_func, K2_func, K3operator_func, K4operator_func,
-                          ineq_constraint_func = NULL,
-                          # param_adaptor = function(x) x,
-                          analytic_tvec_hat_func = NULL,
-                          tilting_exponent_func = NULL,
-                          neg_ll_func = NULL,
-                          func_T_func = NULL,
-                          ##
-                          K2_solve_func = NULL,
-                          logdetK2_func = NULL,
-                          simulate_func = NULL,
-                          ##
-                          K4operatorAABB_func = NULL,
-                          K3K3operatorAABBCC_func = NULL,
-                          K3K3operatorABCABC_func = NULL,
-                          K4operatorAABB_factored_func = NULL,
-                          K3K3operatorAABBCC_factored_func = NULL,
-                          K3K3operatorABCABC_factored_func = NULL,
-                          K2operator_func = NULL,
-                          K2operatorAK2AT_func = NULL,
-                          op_name = "UnnamedOperation",
-                          ...
-    ) {
-      # --- Store core user-supplied methods ---
-      private$K_func <- K_func
-      private$K1_func <- K1_func
-      private$K2_func <- K2_func
-      private$K3operator_func <- K3operator_func
-      private$K4operator_func <- K4operator_func
-
-
-      # --- Store optional user-supplied methods ---
-      private$ineq_constraint_func <- ineq_constraint_func
-      private$analytic_tvec_hat_func <- analytic_tvec_hat_func
-      if (!is.null(simulate_func) && !is.function(simulate_func)) {
-        stop("'simulate_func' must be NULL or a function.")
-      }
-      private$simulate_func <- simulate_func
-      private$K2operator_func <- K2operator_func
-      private$K2operatorAK2AT_func <- K2operatorAK2AT_func
-      private$K4operatorAABB_func <- K4operatorAABB_func
-      private$K3K3operatorAABBCC_func <- K3K3operatorAABBCC_func
-      private$K3K3operatorABCABC_func <- K3K3operatorABCABC_func
-
-
-
-      # --- Assign or default for "factored" private methods ---
-      if (!is.null(K4operatorAABB_factored_func)) {
-        ##### We may use check_fun_sig here to ensure the user's function has the correct number of arguments
-        ###   check_fun_sig(fn = K4operatorAABB_factored_func, expected_args = c("tvec", "parameter_vector", "A1", "d1", "A2", "d2"))
-        ###   private$K4operatorAABB_factored <- K4operatorAABB_factored_func
-        ##### But that check looks a bit strict.
-        ##### For now we will simply wrap the supplied function which for now will ensure a universal signature.
-        private$K4operatorAABB_factored <- function(tvec, parameter_vector, A1, d1, A2, d2) K4operatorAABB_factored_func(tvec, parameter_vector, A1, d1, A2, d2)
-      } else {
-        private$K4operatorAABB_factored <- function(tvec, parameter_vector, A1, d1, A2, d2) {
-          r1 <- length(d1)
-          r2 <- length(d2)
-          res <- 0
-          for (m1 in seq_len(r1)) {
-            for (m2 in seq_len(r2)) {
-              res <- res + d1[m1]*d2[m2]*self$K4operator(
-                tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2], A2[,m2]
-              )
-            }
-          }
-          res
-        }
-      }
-
-      if (!is.null(K3K3operatorAABBCC_factored_func)) {
-        private$K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) K3K3operatorAABBCC_factored_func(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-      } else {
-        private$K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-          r1 <- length(d1)
-          r2 <- length(d2)
-          r3 <- length(d3)
-          res <- 0
-          for (m2 in seq_len(r2)) {
-            factor1 <- 0
-            for (m1 in seq_len(r1)) {
-              factor1 <- factor1 + d1[m1]*self$K3operator(tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2])
-            }
-            factor2 <- 0
-            for (m3 in seq_len(r3)) {
-              factor2 <- factor2 + d3[m3]*self$K3operator(tvec, parameter_vector, A2[,m2], A3[,m3], A3[,m3])
-            }
-            res <- res + d2[m2]*factor1*factor2
-          }
-          res
-        }
-      }
-
-      if (!is.null(K3K3operatorABCABC_factored_func)) {
-        private$K3K3operatorABCABC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) K3K3operatorABCABC_factored_func(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-      } else {
-        private$K3K3operatorABCABC_factored <- function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-          r1 <- length(d1)
-          r2 <- length(d2)
-          r3 <- length(d3)
-          message("The discrepancy option/compute.funcT has initiated a computation that may take a few moments...")
-          res <- 0
-          for (m1 in seq_len(r1)) {
-            for (m2 in seq_len(r2)) {
-              for (m3 in seq_len(r3)) {
-                val <- self$K3operator(tvec, parameter_vector, A1[,m1], A2[,m2], A3[,m3])
-                res <- res + d1[m1]*d2[m2]*d3[m3]*(val*val)
-              }
-            }
-          }
-          res
-        }
-      }
-
-      # --- Assign or default for private tilting_exponent, neg_ll, and func_T ---
-      if (!is.null(tilting_exponent_func)) {
-        private$tilting_exponent <- function(tvec, parameter_vector) tilting_exponent_func(tvec, parameter_vector)
-      } else {
-        private$tilting_exponent <- function(tvec, parameter_vector) {
-          self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
-        }
-      }
-
-# ---------------------------------------------------------------------
-# Optional computational helpers:
-#   - K2_solve(t,theta,rhs) : linear solve against K2 without necessarily building K2
-#   - logdetK2(t,theta)     : log|det(K2)| without necessarily building K2
-#
-# Defaults use solve()/determinant() on self$K2(). Wrapper CGFs can override
-# these to exploit structure (block-diagonal, low-rank, etc.).
-# ---------------------------------------------------------------------
-if (!is.null(K2_solve_func)) {
-  self$K2_solve <- function(tvec, parameter_vector, rhs) {
-    K2_solve_func(tvec, parameter_vector, rhs)
+CGF_public_defaults <- list(
+  K2operator = function(tvec, parameter_vector, x, y) {
+    K2_val <- self$K2(tvec, parameter_vector)
+    as.vector(t(x) %*% (K2_val %*% y))
   }
-} else {
-  self$K2_solve <- function(tvec, parameter_vector, rhs) {
-    solve(self$K2(tvec, parameter_vector), rhs)
+  ,
+  K2operatorAK2AT = function(tvec, parameter_vector, A) {
+    K2_val <- self$K2(tvec, parameter_vector)
+    A %*% K2_val %*% t(A)
   }
-}
-
-if (!is.null(logdetK2_func)) {
-  self$logdetK2 <- function(tvec, parameter_vector) {
-    logdetK2_func(tvec, parameter_vector)
+  ,
+  # Default behaviour uses solve(K2, rhs), but can be overridden for structure/speed.
+  K2_solve = function(tvec, parameter_vector, rhs) {
+    K2_val <- self$K2(tvec, parameter_vector)
+    solve(K2_val, rhs)
   }
-} else {
-  self$logdetK2 <- function(tvec, parameter_vector) {
-    determinant(self$K2(tvec, parameter_vector), logarithm = TRUE)$modulus
+  ,
+  # Default uses determinant() for RTMB compatibility.
+  logdetK2 = function(tvec, parameter_vector) {
+    K2_val <- self$K2(tvec, parameter_vector)
+    determinant(K2_val, logarithm = TRUE)$modulus
   }
-}
-
-      if (!is.null(neg_ll_func)) {
-        private$neg_ll <- function(tvec, parameter_vector) neg_ll_func(tvec, parameter_vector)
-      } else {
-        private$neg_ll <- function(tvec, parameter_vector) {
-          te <- private$tilting_exponent(tvec, parameter_vector)
-            # K2_val <- self$K2(tvec, parameter_vector)
-            # val_logdet <- determinant(K2_val, logarithm = TRUE)$modulus
-            # # val_logdet <- my_logdet(as.matrix(K2_val))
-          val_logdet <- self$logdetK2(tvec, parameter_vector)
-          0.5 * val_logdet + 0.5 * length(tvec)*log(2*pi) - te
-        }
-      }
-
-      if (!is.null(func_T_func)) {
-        private$func_T <- function(tvec, parameter_vector) func_T_func(tvec, parameter_vector)
-      } else {
-        private$func_T <- function(tvec, parameter_vector) {
-          K2_val <- self$K2(tvec, parameter_vector)
-          K2_inv <- solve(K2_val)
-          chol_K2_inv <- chol(K2_inv)
-          diag_K2_inv <- diag(chol_K2_inv)
-          d <- diag_K2_inv*diag_K2_inv
-          A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
-
-          K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
-          K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-          K3K3_ABC  <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-          K4_AABB/8 - K3K3_ABBC/8 - K3K3_ABC/12
-        }
-      }
-
-
-      # --- Record operation name in the call history ---
-      if (!is.character(op_name)) stop("'operation' must be of type character")
-      self$call_history <- if (!is.null(self$call_history)) {
-        c(self$call_history, op_name)
-      } else {
-        op_name
-      }
-
-
-      # ---------------------------------------------------------------------
-      # Overwrite the public optional operators if the user supplied custom versions
-      # Otherwise, assign defaults
-      #---------------------------------------------------------------------
-
-      # K2operator
-      if (!is.null(K2operator_func)) {
-        self$K2operator <- function(tvec, parameter_vector, x, y) {
-          K2operator_func(tvec, parameter_vector, x, y)
-        }
-      } else {
-        self$K2operator <- function(tvec, parameter_vector, x, y) {
-          K2_val <- self$K2(tvec, parameter_vector)
-          as.vector(t(x) %*% (K2_val %*% y))
-        }
-      }
-
-      # K2operatorAK2AT
-      if (!is.null(K2operatorAK2AT_func)) {
-        self$K2operatorAK2AT <- function(tvec, parameter_vector, A) {
-          K2operatorAK2AT_func(tvec, parameter_vector, A)
-        }
-      } else {
-        self$K2operatorAK2AT <- function(tvec, parameter_vector, A) {
-          K2_val <- self$K2(tvec, parameter_vector)
-          A %*% K2_val %*% t(A)
-        }
-      }
-
-      # K4operatorAABB
-      if (!is.null(K4operatorAABB_func)) {
-        self$K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
-          K4operatorAABB_func(tvec, parameter_vector, Q1, Q2)
-        }
-      } else {
-        self$K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
-          chol_Q1 <- chol(Q1)
-          diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1 * diag_Q1
-          A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-          private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1)
-        }
-      }
-
-      # K3K3operatorAABBCC
-      if (!is.null(K3K3operatorAABBCC_func)) {
-        self$K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
-          K3K3operatorAABBCC_func(tvec, parameter_vector, Q1, Q2, Q3)
-        }
-      } else {
-        self$K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
-          chol_Q1 <- chol(Q1)
-          diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1 * diag_Q1
-          A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-          private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
-        }
-      }
-
-      # K3K3operatorABCABC
-      if (!is.null(K3K3operatorABCABC_func)) {
-        self$K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
-          K3K3operatorABCABC_func(tvec, parameter_vector, Q1, Q2, Q3)
-        }
-      } else {
-        self$K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
-          chol_Q1 <- chol(Q1)
-          diag_Q1 <- diag(chol_Q1)
-          d1 <- diag_Q1*diag_Q1
-          A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-          private$K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
-        }
-      }
-
-      # ineq_constraint
-      if (!is.null(ineq_constraint_func)) {
-        self$ineq_constraint <- function(tvec, parameter_vector) {
-          ineq_constraint_func(tvec, parameter_vector)
-        }
-      } else {
-        self$ineq_constraint <- function(tvec, parameter_vector) {
-          numeric(0)
-        }
-      }
-
-      # has_analytic_tvec_hat / analytic_tvec_hat
-      self$has_analytic_tvec_hat <- function() {
-        !is.null(private$analytic_tvec_hat_func)
-      }
-      if(self$has_analytic_tvec_hat()) {
-        self$analytic_tvec_hat <- function(x, parameter_vector) {
-          private$analytic_tvec_hat_func(x, parameter_vector)
-        }
-      } else {
-        self$analytic_tvec_hat <- NULL
-      }
-
-  # has_simulate / rsim
-  self$has_simulate <- function() {
-    !is.null(private$simulate_func)
-  }
-  self$rsim <- function(n, vector_length, parameter_vector, tvec = NULL, flatten = FALSE, ...) {
-    if (!self$has_simulate()) {
-      stop("This CGF does not implement simulation (no 'simulate_func').", call. = FALSE)
+  ,
+  # Simulation wrapper. Always present, but errors unless has_simulate == TRUE.
+  rsim = function(n, vector_length, parameter_vector, tvec = NULL, flatten = FALSE, ...) {
+    if (!isTRUE(self$has_simulate) || is.null(private$simulate_func)) {
+      stop("This CGF does not implement simulation (no 'rsim' supplied).", call. = FALSE)
     }
     if (length(n) != 1L || !is.finite(n) || n < 1L || n != as.integer(n)) {
       stop("'n' must be a positive integer.", call. = FALSE)
@@ -527,21 +113,17 @@ if (!is.null(logdetK2_func)) {
       if (length(tvec) != vector_length) {
         stop("'tvec' must have length == vector_length.", call. = FALSE)
       }
+      if (any(!is.finite(tvec))) stop("'tvec' must be finite.", call. = FALSE)
     }
 
-    out <- private$simulate_func(
-      n = n,
-      vector_length = vector_length,
-      parameter_vector = parameter_vector,
-      tvec = tvec,
-      ...
-    )
+    out <- private$simulate_func(n, vector_length, parameter_vector, tvec, ...)
 
+    # Enforce: either a numeric vector of length n*vector_length, or a (vector_length x n) numeric matrix
     if (is.null(dim(out))) {
-      if (!is.numeric(out)) stop("simulate_func must return a numeric vector or matrix.", call. = FALSE)
+      if (!is.numeric(out)) stop("rsim must return a numeric vector or matrix.", call. = FALSE)
       if (length(out) != n * vector_length) {
         stop(
-          "simulate_func returned a vector of length ", length(out),
+          "rsim returned a vector of length ", length(out),
           ", expected ", n * vector_length, " (= n * vector_length).",
           call. = FALSE
         )
@@ -549,10 +131,10 @@ if (!is.null(logdetK2_func)) {
       out <- matrix(out, nrow = vector_length, ncol = n)
     } else {
       out <- as.matrix(out)
-      if (!is.numeric(out)) stop("simulate_func must return a numeric vector or matrix.", call. = FALSE)
+      if (!is.numeric(out)) stop("rsim must return a numeric vector or matrix.", call. = FALSE)
       if (nrow(out) != vector_length || ncol(out) != n) {
         stop(
-          "simulate_func returned a matrix with dim=", paste(dim(out), collapse = "x"),
+          "rsim returned a matrix with dim=", paste(dim(out), collapse = "x"),
           ", expected ", vector_length, "x", n, " (= vector_length x n).",
           call. = FALSE
         )
@@ -562,42 +144,280 @@ if (!is.null(logdetK2_func)) {
     if (flatten) return(as.numeric(out))
     out
   }
+  ,
+  K4operatorAABB = function(tvec, parameter_vector, Q1, Q2) {
+    chol_Q1 <- chol(Q1)
+    diag_Q1 <- diag(chol_Q1)
+    d1 <- diag_Q1 * diag_Q1
+    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
+    private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1)
+  }
+  ,
+  K3K3operatorAABBCC = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    chol_Q1 <- chol(Q1)
+    diag_Q1 <- diag(chol_Q1)
+    d1 <- diag_Q1 * diag_Q1
+    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
+    private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
+  }
+  ,
+  K3K3operatorABCABC = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    chol_Q1 <- chol(Q1)
+    diag_Q1 <- diag(chol_Q1)
+    d1 <- diag_Q1 * diag_Q1
+    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
+    private$K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
+  }
+  ,
+  ineq_constraint = function(tvec, parameter_vector) {
+    numeric(0)
+  }
+)
 
+CGF_private_defaults <- list(
+  tilting_exponent = function(tvec, parameter_vector) {
+    self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
+  }
+  ,
+  neg_ll = function(tvec, parameter_vector) {
+    te <- private$tilting_exponent(tvec, parameter_vector)
+    val_logdet <- self$logdetK2(tvec, parameter_vector)
+    0.5 * val_logdet + 0.5 * length(tvec) * log(2*pi) - te
+  }
+  ,
+  func_T = function(tvec, parameter_vector) {
+    K2_val <- self$K2(tvec, parameter_vector)
+    K2_inv <- solve(K2_val)
+    chol_K2_inv <- chol(K2_inv)
+    diag_K2_inv <- diag(chol_K2_inv)
+    d <- diag_K2_inv * diag_K2_inv
+    A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
+
+    K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
+    K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
+    K3K3_ABC  <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
+    K4_AABB/8 - K3K3_ABBC/8 - K3K3_ABC/12
+  }
+  ,
+  K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
+    r1 <- length(d1)
+    r2 <- length(d2)
+    res <- 0
+    for (m1 in seq_len(r1)) {
+      for (m2 in seq_len(r2)) {
+        res <- res + d1[m1]*d2[m2]*self$K4operator(
+          tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2], A2[,m2]
+        )
+      }
+    }
+    res
+  }
+  ,
+  K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
+    r1 <- length(d1)
+    r2 <- length(d2)
+    r3 <- length(d3)
+    res <- 0
+    for (m2 in seq_len(r2)) {
+      factor1 <- 0
+      for (m1 in seq_len(r1)) {
+        factor1 <- factor1 + d1[m1]*self$K3operator(tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2])
+      }
+      factor2 <- 0
+      for (m3 in seq_len(r3)) {
+        factor2 <- factor2 + d3[m3]*self$K3operator(tvec, parameter_vector, A2[,m2], A3[,m3], A3[,m3])
+      }
+      res <- res + d2[m2]*factor1*factor2
+    }
+    res
+  }
+  ,
+  K3K3operatorABCABC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
+    r1 <- length(d1)
+    r2 <- length(d2)
+    r3 <- length(d3)
+    message("The discrepancy option/compute.funcT has initiated a computation that may take a few moments...")
+    res <- 0
+    for (m1 in seq_len(r1)) {
+      for (m2 in seq_len(r2)) {
+        for (m3 in seq_len(r3)) {
+          val <- self$K3operator(tvec, parameter_vector, A1[,m1], A2[,m2], A3[,m3])
+          res <- res + d1[m1]*d2[m2]*d3[m3]*(val*val)
+        }
+      }
+    }
+    res
+  }
+)
+
+
+#' @noRd
+CGF <- R6::R6Class(
+  classname = "CGF",
+
+  private = c(CGF_private_defaults, list(
+    analytic_tvec_hat_func = NULL,
+    simulate_func = NULL
+  )),
+
+  public = c(CGF_public_defaults, list(
+    call_history = NULL,
+
+    has_analytic_tvec_hat = FALSE,
+    analytic_tvec_hat = NULL,
+
+    has_simulate = FALSE,
+
+    additional_methods = list(),
+
+    # Required methods (set in initialize)
+    K = NULL,
+    K1 = NULL,
+    K2 = NULL,
+    K3operator = NULL,
+    K4operator = NULL,
+
+    initialize = function(
+      K, K1, K2, K3operator, K4operator,
+      analytic_tvec_hat = NULL,
+      rsim = NULL,
+      op_name = "UnnamedOperation",
+      ...
+    ) {
+      # Make supplied functions behave like R6 methods (access to self/private).
+      # Keeps the original lexical scope via parent.env().
+      as_method <- function(m) {
+        if (!is.function(m)) return(m)
+        env_with_self <- new.env(parent = environment(fun = m), size = 2L, hash = FALSE)
+        assign("self", value = self, envir = env_with_self)
+        assign("private", value = private, envir = env_with_self)
+        environment(m) <- env_with_self
+        m
+      }
+
+      if (!is.function(K)) stop("'K' must be a function.", call. = FALSE)
+      if (!is.function(K1)) stop("'K1' must be a function.", call. = FALSE)
+      if (!is.function(K2)) stop("'K2' must be a function.", call. = FALSE)
+      if (!is.function(K3operator)) stop("'K3operator' must be a function.", call. = FALSE)
+      if (!is.function(K4operator)) stop("'K4operator' must be a function.", call. = FALSE)
+
+      core_K <- as_method(K)
+      core_K1 <- as_method(K1)
+      core_K2 <- as_method(K2)
+      core_K3operator <- as_method(K3operator)
+      core_K4operator <- as_method(K4operator)
+
+      self$K <- function(tvec, parameter_vector) core_K(tvec, parameter_vector)
+      self$K1 <- function(tvec, parameter_vector) core_K1(tvec, parameter_vector)
+      self$K2 <- function(tvec, parameter_vector) core_K2(tvec, parameter_vector)
+      self$K3operator <- function(tvec, parameter_vector, v1, v2, v3) {
+        core_K3operator(tvec, parameter_vector, v1, v2, v3)
+      }
+      self$K4operator <- function(tvec, parameter_vector, v1, v2, v3, v4) {
+        core_K4operator(tvec, parameter_vector, v1, v2, v3, v4)
+      }
+
+      if (!is.null(analytic_tvec_hat)) {
+        if (!is.function(analytic_tvec_hat)) stop("'analytic_tvec_hat' must be NULL or a function.", call. = FALSE)
+        self$has_analytic_tvec_hat <- TRUE
+        private$analytic_tvec_hat_func <- as_method(analytic_tvec_hat)
+        self$analytic_tvec_hat <- function(x, parameter_vector) {
+          if (!is.numeric(x)) stop("'x' must be numeric.", call. = FALSE)
+          if (any(!is.finite(x))) stop("'x' must be finite.", call. = FALSE)
+          private$analytic_tvec_hat_func(x, parameter_vector)
+        }
+      } else {
+        self$has_analytic_tvec_hat <- FALSE
+        private$analytic_tvec_hat_func <- NULL
+        self$analytic_tvec_hat <- NULL
+      }
+
+      if (!is.null(rsim)) {
+        if (!is.function(rsim)) stop("'rsim' must be NULL or a function.", call. = FALSE)
+        self$has_simulate <- TRUE
+        private$simulate_func <- as_method(rsim)
+      } else {
+        self$has_simulate <- FALSE
+        private$simulate_func <- NULL
+      }
+
+      if (!is.character(op_name)) stop("'op_name' must be of type character", call. = FALSE)
+      self$call_history <- if (!is.null(self$call_history)) c(self$call_history, op_name) else op_name
+
+      # Extra named method overrides in ...
+      extra_args <- list(...)
+      n_extra <- length(extra_args)
+      extra_names <- names(extra_args)
+      if (n_extra > 0L && is.null(extra_names)) {
+        extra_names <- rep("", n_extra)
+      }
+
+      keep_non_null <- !vapply(extra_args, is.null, logical(1))
+      if (any(!keep_non_null)) {
+        extra_args <- extra_args[keep_non_null]
+        extra_names <- extra_names[keep_non_null]
+      }
+      if (length(extra_args) > 0L && any(!nzchar(extra_names))) {
+        warning("Unnamed entries in '...' are ignored. Please provide named overrides.", call. = FALSE)
+      }
+
+      wrap_override <- function(n, m) {
+        m <- as_method(m)
+        switch(
+          n,
+          tilting_exponent = function(tvec, parameter_vector) m(tvec, parameter_vector),
+          neg_ll = function(tvec, parameter_vector) m(tvec, parameter_vector),
+          func_T = function(tvec, parameter_vector) m(tvec, parameter_vector),
+          K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
+            m(tvec, parameter_vector, A1, d1, A2, d2)
+          },
+          K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
+            m(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
+          },
+          K3K3operatorABCABC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
+            m(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
+          },
+          K2operator = function(tvec, parameter_vector, x, y) m(tvec, parameter_vector, x, y),
+          K2operatorAK2AT = function(tvec, parameter_vector, A) m(tvec, parameter_vector, A),
+          K2_solve = function(tvec, parameter_vector, rhs) m(tvec, parameter_vector, rhs),
+          logdetK2 = function(tvec, parameter_vector) m(tvec, parameter_vector),
+          K4operatorAABB = function(tvec, parameter_vector, Q1, Q2) m(tvec, parameter_vector, Q1, Q2),
+          K3K3operatorAABBCC = function(tvec, parameter_vector, Q1, Q2, Q3) m(tvec, parameter_vector, Q1, Q2, Q3),
+          K3K3operatorABCABC = function(tvec, parameter_vector, Q1, Q2, Q3) m(tvec, parameter_vector, Q1, Q2, Q3),
+          ineq_constraint = function(tvec, parameter_vector) m(tvec, parameter_vector),
+          m
+        )
+      }
+
+      override_name <- function(n, e) {
+        m <- extra_args[[n]]
+        if (!is.function(m)) {
+          stop("Override for '", n, "' must be a function (or NULL to keep default).", call. = FALSE)
+        }
+        m <- wrap_override(n, m)
+        unlockBinding(n, e)
+        assign(n, m, envir = e)
+        lockBinding(n, e)
+      }
+
+      private_subset <- (nzchar(extra_names)) & (extra_names %in% names(CGF_private_defaults))
+      if (any(private_subset)) {
+        lapply(extra_names[private_subset], override_name, e = private)
+      }
+
+      public_subset <- (nzchar(extra_names)) & (extra_names %in% names(CGF_public_defaults))
+      if (any(public_subset)) {
+        lapply(extra_names[public_subset], override_name, e = self)
+      }
+
+      additional_subset <- (nzchar(extra_names)) &
+        !(extra_names %in% names(CGF_private_defaults)) &
+        !(extra_names %in% names(CGF_public_defaults))
+      if (any(additional_subset)) {
+        self$additional_methods <- modifyList(self$additional_methods, extra_args[additional_subset])
+      }
     },
 
-
-
-
-    # -----------------------------------------------------------------------
-    # REQUIRED PUBLIC METHODS
-    # -----------------------------------------------------------------------
-    K = function(tvec, parameter_vector) {
-      private$K_func(tvec, parameter_vector)
-    },
-
-    K1 = function(tvec, parameter_vector) {
-      private$K1_func(tvec, parameter_vector)
-    },
-
-    K2 = function(tvec, parameter_vector) {
-      private$K2_func(tvec, parameter_vector)
-    },
-
-    K3operator = function(tvec, parameter_vector, v1, v2, v3) {
-      private$K3operator_func(tvec, parameter_vector, v1, v2, v3)
-    },
-
-    K4operator = function(tvec, parameter_vector, v1, v2, v3, v4) {
-      private$K4operator_func(tvec, parameter_vector, v1, v2, v3, v4)
-    },
-
-
-
-
-
-    # -----------------------------------------------------------------------
-    # Print method
-    # -----------------------------------------------------------------------
     print = function(...) {
       cat("<CGF Object>\n")
       if (!is.null(self$call_history)) {
@@ -608,9 +428,6 @@ if (!is.null(logdetK2_func)) {
       invisible(self)
     },
 
-    # -----------------------------------------------------------------------
-    # CONTROLLED ACCESS to Private Methods
-    # -----------------------------------------------------------------------
     .get_private_method = function(method_name) {
       if (!is.character(method_name) || length(method_name) != 1) {
         stop("'method_name' must be a single character string.")
@@ -618,15 +435,8 @@ if (!is.null(logdetK2_func)) {
       if (!method_name %in% names(private)) {
         stop(paste0("'", method_name, "' is not a private method in the CGF class."))
       }
-      # a whitelist of allowed private methods
-      allowed_methods <- c(
-        "neg_ll",
-        "tilting_exponent",
-        "K4operatorAABB_factored",
-        "K3K3operatorAABBCC_factored",
-        "K3K3operatorABCABC_factored",
-        "func_T"
-      )
+
+      allowed_methods <- names(CGF_private_defaults)
       if (!(method_name %in% allowed_methods)) {
         stop(paste0("Access to private method '", method_name, "' is not permitted."))
       }
@@ -638,31 +448,26 @@ if (!is.null(logdetK2_func)) {
       method_
     },
 
-    # -----------------------------------------------------------------------
-    # EXAMPLE Additional Method: compute.spa.negll
-    # (calls a global compute.spa.negll function with the cgf object)
-    # -----------------------------------------------------------------------
-    compute.spa.negll = function(parameter_vector,
-                                 observed.data,
-                                 tvec.hat = NULL,
-                                 gradient = FALSE,
-                                 hessian  = FALSE,
-                                 spa_method = "standard",
-                                 ...) {
-      compute.spa.negll(
-        cgf              = self,
-        parameter_vector = parameter_vector,
-        observed.data    = observed.data,
-        tvec.hat         = tvec.hat,
-        gradient         = gradient,
-        hessian          = hessian,
-        spa_method       = spa_method,
-        ...
-      )
-    }
-  )
+	    compute.spa.negll = function(parameter_vector,
+	                                 observed.data,
+	                                 tvec.hat = NULL,
+	                                 gradient = FALSE,
+	                                 hessian  = FALSE,
+	                                 spa_method = "standard",
+	                                 ...) {
+	      compute.spa.negll(
+	        cgf              = self,
+	        parameter_vector = parameter_vector,
+	        observed.data    = observed.data,
+	        tvec.hat         = tvec.hat,
+	        gradient         = gradient,
+	        hessian          = hessian,
+	        spa_method       = spa_method,
+	        ...
+	      )
+	    }
+  ))
 )
-
 
 
 # ------------------------------------------------------------------------
@@ -670,13 +475,11 @@ if (!is.null(logdetK2_func)) {
 # ------------------------------------------------------------------------
 #' Create a CGF object from user-defined functions
 #'
-#'
 #' @description
-#' This creates an object of type CGF using user-supplied functions. You supply
+#' This creates an object of type `CGF` using user-supplied functions. You supply
 #' the five essential methods (`K`, `K1`, `K2`, `K3operator`, `K4operator`) plus
 #' any optional overrides (e.g., `tilting_exponent` or `neg_ll`), and it returns
 #' a `CGF` instance.
-#'
 #'
 #' @param K A function `K(tvec, parameter_vector) -> numeric scalar`.
 #' @param K1 A function `K1(tvec, parameter_vector) -> numeric vector`.
@@ -685,43 +488,34 @@ if (!is.null(logdetK2_func)) {
 #' @param K4operator A function implementing the fourth-order operator.
 #'
 #' @param ineq_constraint Optional function for inequality constraints.
-#'
-#' @param analytic_tvec_hat_func Optional function for an analytic solution
+#' @param analytic_tvec_hat Optional function for an analytic solution
 #'   of the saddlepoint equation. If provided, call it via `cgf$analytic_tvec_hat(x, param)`.
+#' @param rsim Optional simulation method. A function of the form
+#'   `function(n, vector_length, parameter_vector, tvec = NULL, ...)` returning
+#'   a numeric vector of length `n * vector_length` or a `vector_length x n` matrix.
+#'   If supplied, the resulting CGF exposes `$rsim()` and `$has_simulate`.
 #' @param op_name A descriptive label for the CGF object/operation. Default is "UnnamedOperation".
 #'
 #' @param tilting_exponent (optional) Overriding function for the tilting exponent.
 #' @param neg_ll (optional) Overriding function for the negative log-likelihood.
 #' @param func_T (optional) Overriding function for the first-order correction term.
+#' @param K2_solve,logdetK2 (optional) Overriding numerical helper methods.
 #' @param K2operator,K2operatorAK2AT,K4operatorAABB,K3K3operatorAABBCC,K3K3operatorABCABC (optional) Overriding operator methods.
 #' @param K4operatorAABB_factored,K3K3operatorAABBCC_factored,K3K3operatorABCABC_factored (optional) Overriding factored-operator methods.
-#' @param K2_solve Optional computational helper.
-#'   A function of the form `function(tvec, parameter_vector, rhs)` returning
-#'   the solution to `K2(tvec, parameter_vector) %*% x = rhs`.
-#'   `rhs` may be a vector or a matrix (solve column-wise).
-#' @param logdetK2 Optional computational helper.
-#'   A function of the form `function(tvec, parameter_vector)` returning `log(det(K2(tvec, parameter_vector)))`
-#'   Useful for wrapper CGFs that can compute this without materializing the full `K2`.
-#' @param rsim Optional simulation method.
-#'   A function of the form `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
-#'   returning a `vector_length x n` matrix.
-#'   If supplied, the resulting CGF exposes `$rsim()` and `$has_simulate()`.
 #' @param ... Additional named methods or overrides.
 #'
 #' @return An object of class `CGF`.
 #' @export
 createCGF <- function(K, K1, K2, K3operator, K4operator,
                       ineq_constraint = NULL,
-                      analytic_tvec_hat_func = NULL,
+                      analytic_tvec_hat = NULL,
+                      rsim = NULL,
                       op_name = "UnnamedOperation",
                       tilting_exponent = NULL,
                       neg_ll = NULL,
                       func_T = NULL,
-                      ##
-                          K2_solve = NULL,
-                          logdetK2 = NULL,
-                          rsim = NULL,
-                      ##
+                      K2_solve = NULL,
+                      logdetK2 = NULL,
                       K4operatorAABB = NULL,
                       K3K3operatorAABBCC = NULL,
                       K3K3operatorABCABC = NULL,
@@ -732,43 +526,42 @@ createCGF <- function(K, K1, K2, K3operator, K4operator,
                       K2operatorAK2AT = NULL,
                       ...
 ) {
-  # Collect optional methods into a list
   user_optional_methods <- list(
-    tilting_exponent_func          = tilting_exponent,
-    neg_ll_func                    = neg_ll,
-    func_T_func                    = func_T,
-    ##
-        K2_solve_func = K2_solve,
-        logdetK2_func = logdetK2,
-        simulate_func = rsim,
-    ##
-    K4operatorAABB_func           = K4operatorAABB,
-    K3K3operatorAABBCC_func       = K3K3operatorAABBCC,
-    K3K3operatorABCABC_func       = K3K3operatorABCABC,
-    K4operatorAABB_factored_func  = K4operatorAABB_factored,
-    K3K3operatorAABBCC_factored_func = K3K3operatorAABBCC_factored,
-    K3K3operatorABCABC_factored_func = K3K3operatorABCABC_factored,
-    K2operator_func               = K2operator,
-    K2operatorAK2AT_func          = K2operatorAK2AT
+    ineq_constraint             = ineq_constraint,
+    tilting_exponent            = tilting_exponent,
+    neg_ll                      = neg_ll,
+    func_T                      = func_T,
+    K2_solve                    = K2_solve,
+    logdetK2                    = logdetK2,
+    K4operatorAABB              = K4operatorAABB,
+    K3K3operatorAABBCC          = K3K3operatorAABBCC,
+    K3K3operatorABCABC          = K3K3operatorABCABC,
+    K4operatorAABB_factored     = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    K2operator                  = K2operator,
+    K2operatorAK2AT             = K2operatorAK2AT
   )
 
-  # Any additional named overrides passed via ...
   additional_methods <- list(...)
+  if (length(additional_methods) > 0L && is.null(names(additional_methods))) {
+    warning("Unnamed entries in '...' are ignored. Please provide named overrides.", call. = FALSE)
+    additional_methods <- list()
+  }
 
-  # Merge user-supplied with additional; latter has precedence
   all_optional_methods <- modifyList(user_optional_methods, additional_methods)
+  all_optional_methods <- all_optional_methods[!vapply(all_optional_methods, is.null, logical(1))]
 
-  # Construct and return the CGF object
   do.call(CGF$new, c(
     list(
-      K_func               = K,
-      K1_func              = K1,
-      K2_func              = K2,
-      K3operator_func      = K3operator,
-      K4operator_func      = K4operator,
-      ineq_constraint_func = ineq_constraint,
-      analytic_tvec_hat_func = analytic_tvec_hat_func,
-      op_name = op_name
+      K                 = K,
+      K1                = K1,
+      K2                = K2,
+      K3operator        = K3operator,
+      K4operator        = K4operator,
+      analytic_tvec_hat = analytic_tvec_hat,
+      rsim              = rsim,
+      op_name           = op_name
     ),
     all_optional_methods
   ))

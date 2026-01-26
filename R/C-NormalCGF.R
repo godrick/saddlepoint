@@ -327,7 +327,7 @@ GaussianModelCGF <- NormalModelCGF
     K2operatorAK2AT = K2operatorAK2ATfun,
     K3operator = K3opfun,
     K4operator = K4opfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_fun,
+    analytic_tvec_hat = analytic_tvec_hat_fun,
     tilting_exponent = tiltingfun,
     func_T = func_Tfun,
 

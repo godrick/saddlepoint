@@ -217,7 +217,7 @@
 
 
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate())) {
+  if (isTRUE(cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       A_current <- get_sparse_A(parameter_vector)
       d_out <- nrow(A_current)
@@ -248,7 +248,7 @@
   # # Optional simulator: if X ~ cgf and Y = A X then Y_sim = A %*% X_sim
   # # ------------------------------------------------------------------
   # simulate_fun <- NULL
-  # if (isTRUE(cgf$has_simulate())) {
+  # if (isTRUE(cgf$has_simulate)) {
   #   simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
   #     A_current <- get_sparse_A(parameter_vector)
   #     d_out <- nrow(A_current)
@@ -310,7 +310,7 @@
     K3operator = K3operatorfun,
     K4operator = K4operatorfun,
     ineq_constraint = ineq_constraintfun,
-    analytic_tvec_hat_func = NULL,
+    analytic_tvec_hat = NULL,
     tilting_exponent = tiltingfun,
     # neg_ll = negllfun,
     func_T = func_Tfun,

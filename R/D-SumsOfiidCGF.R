@@ -196,7 +196,7 @@
 
   # Analytic t-hat mapping:
   #   Solve n*K1_X(t) = y  <=>  K1_X(t) = y/n.
-  if (cgf$has_analytic_tvec_hat()) {
+  if (isTRUE(cgf$has_analytic_tvec_hat)) {
     analytic_tvec_hat_func <- function(y, param) {
       n_val <- .get_n(param)
       cgf$analytic_tvec_hat(y / n_val, param)
@@ -208,7 +208,7 @@
 
   # simulation (only if base cgf can simulate)
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate())) {
+  if (isTRUE(cgf$has_simulate)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       n_num <- .get_n(parameter_vector)
       if (abs(n_num - round(n_num)) > 1e-8) {
@@ -279,7 +279,7 @@
     K3K3operatorABCABC_factored = K3K3ABCABC_factored_fun,
 
     ineq_constraint = ineqfun,
-    analytic_tvec_hat_func = analytic_tvec_hat_func,
+    analytic_tvec_hat = analytic_tvec_hat_func,
 
     op_name = c(cgf$call_history, "sumOfiidCGF"),
     ...
