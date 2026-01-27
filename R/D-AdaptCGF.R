@@ -80,12 +80,12 @@
     wrapped_analytic_tvec_hat_func <- NULL
   }
 
-  tilting_exponent <- cgf$.get_private_method("tilting_exponent")
-  neg_ll <- cgf$.get_private_method("neg_ll")
-  func_T <- cgf$.get_private_method("func_T")
-  K4operatorAABB_factored     <- cgf$.get_private_method("K4operatorAABB_factored")
-  K3K3operatorAABBCC_factored <- cgf$.get_private_method("K3K3operatorAABBCC_factored")
-  K3K3operatorABCABC_factored <- cgf$.get_private_method("K3K3operatorABCABC_factored")
+  tilting_exponent <- cgf$.private_api$tilting_exponent
+  neg_ll <- cgf$.private_api$neg_ll
+  func_T <- cgf$.private_api$func_T
+  K4operatorAABB_factored     <- cgf$.private_api$K4operatorAABB_factored
+  K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
+  K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
 
   wrapped_tilting_exponent <- function(tvec, param) tilting_exponent(tvec, param_adaptor(param))
   wrapped_neg_ll <- function(tvec, param) neg_ll(tvec, param_adaptor(param))

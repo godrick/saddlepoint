@@ -54,7 +54,7 @@ assert_equal(
   as.numeric(toy$K(tvec, theta))
 )
 
-te_ref <- toy$.get_private_method("tilting_exponent")(tvec, theta)
+te_ref <- toy$.private_api$tilting_exponent(tvec, theta)
 assert_equal(
   as.numeric(toy$additional_methods$te_via_private(tvec, theta)),
   as.numeric(te_ref)

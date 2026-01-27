@@ -23,7 +23,7 @@ test_that("NormalCGF: basic univariate identities", {
 
   # tilting_exponent(t) = K(t) - t^T K1(t) = -0.5 sigma^2 sum(t^2)
   te_ref <- -0.5 * sigma^2 * sum(tvec^2)
-  te_val <- NormalCGF$.get_private_method("tilting_exponent")(tvec, theta)
+  te_val <- NormalCGF$.private_api$tilting_exponent(tvec, theta)
   expect_equal(as.numeric(te_val), te_ref, tolerance = 1e-12)
 })
 

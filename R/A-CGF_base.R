@@ -291,6 +291,13 @@ CGF <- R6::R6Class(
     simulate_func = NULL
   )),
 
+  active = list(
+    .private_api = function(value) {
+      if (!missing(value)) stop("'.private_api' is read-only.", call. = FALSE)
+      private
+    }
+  ),
+
   public = c(CGF_public_defaults, list(
     call_history = NULL,
 

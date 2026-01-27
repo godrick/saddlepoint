@@ -89,7 +89,7 @@
   }
 
   # Key identity: K_Y(t) - t^T K_Y'(t) = K_X(A^T t) - t^T A K_X'(A^T t) = K_X(A^T t) - (A^T t)^T K_X'(A^T t)
-  tilting_exponent <- cgf$.get_private_method("tilting_exponent")
+  tilting_exponent <- cgf$.private_api$tilting_exponent
   tiltingfun <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     tilting_exponent(as.vector(t(A_current) %*% tvec), parameter_vector)
@@ -179,7 +179,7 @@
 
   # For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
   # Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r
-  K4operatorAABB_factored <- cgf$.get_private_method("K4operatorAABB_factored")
+  K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
   K4operatorAABB_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
@@ -188,7 +188,7 @@
     K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2)
   }
 
-  K3K3operatorAABBCC_factored <- cgf$.get_private_method("K3K3operatorAABBCC_factored")
+  K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
   K3K3operatorAABBCC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
@@ -198,7 +198,7 @@
     K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
   }
 
-  K3K3operatorABCABC_factored <- cgf$.get_private_method("K3K3operatorABCABC_factored")
+  K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
   K3K3operatorABCABC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)

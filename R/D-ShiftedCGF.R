@@ -56,14 +56,14 @@
   ineq0 <- base_cgf$ineq_constraint
 
   # Private methods that are *invariant* under shifts (safe to reuse)
-  tilt0  <- base_cgf$.get_private_method("tilting_exponent")
-  negll0 <- base_cgf$.get_private_method("neg_ll")
-  funcT0 <- base_cgf$.get_private_method("func_T")
+  tilt0  <- base_cgf$.private_api$tilting_exponent
+  negll0 <- base_cgf$.private_api$neg_ll
+  funcT0 <- base_cgf$.private_api$func_T
 
   # Factored-operator private methods (also invariant under shifts)
-  K4AABB_fact0 <- base_cgf$.get_private_method("K4operatorAABB_factored")
-  K3K3A_fact0  <- base_cgf$.get_private_method("K3K3operatorAABBCC_factored")
-  K3K3B_fact0  <- base_cgf$.get_private_method("K3K3operatorABCABC_factored")
+  K4AABB_fact0 <- base_cgf$.private_api$K4operatorAABB_factored
+  K3K3A_fact0  <- base_cgf$.private_api$K3K3operatorAABBCC_factored
+  K3K3B_fact0  <- base_cgf$.private_api$K3K3operatorABCABC_factored
 
   # Helper: b(theta) expanded to length(tvec)
   b_at <- function(theta, n) {

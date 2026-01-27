@@ -24,9 +24,9 @@
 
 
   # fetch some private methods from the base CGF
-  tilting_exponent <- cgf$.get_private_method("tilting_exponent")
-  neg_ll <- cgf$.get_private_method("neg_ll")
-  func_T <- cgf$.get_private_method("func_T")
+  tilting_exponent <- cgf$.private_api$tilting_exponent
+  neg_ll <- cgf$.private_api$neg_ll
+  func_T <- cgf$.private_api$func_T
 
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
@@ -642,6 +642,5 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
   )
 
 }
-
 
 

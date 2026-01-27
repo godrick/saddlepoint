@@ -27,7 +27,7 @@
   K2opAK2AT_list  <- lapply(cgf_list, function(cg) cg$K2operatorAK2AT)
   K4AABB_list     <- lapply(cgf_list, function(cg) cg$K4operatorAABB)
 
-  tilting_list <- lapply(cgf_list, function(cg) cg$.get_private_method("tilting_exponent"))
+  tilting_list <- lapply(cgf_list, function(cg) cg$.private_api$tilting_exponent)
 
   ineq_list <- lapply(cgf_list, function(cg) cg$ineq_constraint)
 

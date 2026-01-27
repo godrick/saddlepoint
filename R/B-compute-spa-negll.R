@@ -93,9 +93,9 @@ choose_spa_function <- function(spa_method, cgf) {
     ))
   }
 
-  neg_ll_fun  <- cgf$.get_private_method("neg_ll")          # function(tvec, theta)
-  tilt_fun    <- cgf$.get_private_method("tilting_exponent")
-  funcT_first <- cgf$.get_private_method("func_T")
+  neg_ll_fun  <- cgf$.private_api$neg_ll          # function(tvec, theta)
+  tilt_fun    <- cgf$.private_api$tilting_exponent
+  funcT_first <- cgf$.private_api$func_T
 
   if (spa_method == "negll_standard") {
     return(neg_ll_fun)

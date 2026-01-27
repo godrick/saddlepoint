@@ -45,8 +45,8 @@
 .sumOfiidCGF_internal <- function(cgf, n_fn, ...) {
 
   # private methods from the base CGF
-  base_tilt <- cgf$.get_private_method("tilting_exponent")
-  base_T    <- cgf$.get_private_method("func_T")
+  base_tilt <- cgf$.private_api$tilting_exponent
+  base_T    <- cgf$.private_api$func_T
 
   .get_n <- function(param) {
     n_val <- n_fn(param)
@@ -168,9 +168,9 @@
   # These reuse the BASE CGF's private factored methods (if they are optimized),
   # then apply the appropriate scaling.
 
-  base_K4AABB_factored   <- cgf$.get_private_method("K4operatorAABB_factored")
-  base_K3K3AABBCC_fact   <- cgf$.get_private_method("K3K3operatorAABBCC_factored")
-  base_K3K3ABCABC_fact   <- cgf$.get_private_method("K3K3operatorABCABC_factored")
+  base_K4AABB_factored   <- cgf$.private_api$K4operatorAABB_factored
+  base_K3K3AABBCC_fact   <- cgf$.private_api$K3K3operatorAABBCC_factored
+  base_K3K3ABCABC_fact   <- cgf$.private_api$K3K3operatorABCABC_factored
 
   K4AABB_factored_fun <- function(tvec, param, A1, d1, A2, d2) {
     n_val <- .get_n(param)

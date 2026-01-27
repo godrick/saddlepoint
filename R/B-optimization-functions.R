@@ -26,7 +26,7 @@ get.saddlepoint.nll.function <- function(tvec, theta, cgf
   stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
   a_init <- c(tvec, theta)
 
-  neg_ll <- cgf$.get_private_method("neg_ll")
+  neg_ll <- cgf$.private_api$neg_ll
   neg_ll_spa_wrapper <- function(a){
     tvec_extracted <- a[1:length(tvec)]
     theta_extracted <- a[(length(tvec)+1):length(a)]
@@ -68,7 +68,7 @@ get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf) {
   stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
   a_init <- c(tvec, theta)
 
-  tilting_exponent <- cgf$.get_private_method("tilting_exponent")
+  tilting_exponent <- cgf$.private_api$tilting_exponent
   neg_tilting_exponent_wrapper <- function(a){
     -tilting_exponent(tvec = a[1:length(tvec)],
                        parameter_vector = tail(a, length(theta)) )
@@ -526,7 +526,6 @@ compute.std.error <- function(observed.data,
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)), inverse.hessian = inverse.hessian)
 }
-
 
 
 

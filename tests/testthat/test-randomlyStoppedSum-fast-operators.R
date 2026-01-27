@@ -79,9 +79,9 @@ test_that("RSS fast AABB / K3K3 operators and func_T agree with base factored im
   A <- t(U) %*% diag(1 / diagU)
 
   # Base factored methods from CGF class
-  K4_factored    <- rss$.get_private_method("K4operatorAABB_factored")
-  K3K3_AABB_fact <- rss$.get_private_method("K3K3operatorAABBCC_factored")
-  K3K3_ABC_fact  <- rss$.get_private_method("K3K3operatorABCABC_factored")
+  K4_factored    <- rss$.private_api$K4operatorAABB_factored
+  K3K3_AABB_fact <- rss$.private_api$K3K3operatorAABBCC_factored
+  K3K3_ABC_fact  <- rss$.private_api$K3K3operatorABCABC_factored
 
   # Reference  values
   K4_ref    <- K4_factored(tvec, theta, A, dvec, A, dvec)
@@ -98,7 +98,7 @@ test_that("RSS fast AABB / K3K3 operators and func_T agree with base factored im
   expect_equal(as.numeric(ABC_fast),  as.numeric(ABC_ref),  tolerance = 1e-8)
 
   # func_T comparison
-  func_T_fast <- rss$.get_private_method("func_T")
+  func_T_fast <- rss$.private_api$func_T
   T_fast <- as.numeric(func_T_fast(tvec, theta))
   T_ref  <- as.numeric(K4_ref / 8 - AABB_ref / 8 - ABC_ref / 12)
   expect_equal(T_fast, T_ref, tolerance = 1e-8)

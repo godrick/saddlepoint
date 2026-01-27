@@ -48,9 +48,9 @@
   ineq0 <- base_cgf$ineq_constraint
 
   # Factored private operators used by default func_T() implementations
-  K4AABB_fact0     <- base_cgf$.get_private_method("K4operatorAABB_factored")
-  K3K3AABBCC_fact0 <- base_cgf$.get_private_method("K3K3operatorAABBCC_factored")
-  K3K3ABCABC_fact0 <- base_cgf$.get_private_method("K3K3operatorABCABC_factored")
+  K4AABB_fact0     <- base_cgf$.private_api$K4operatorAABB_factored
+  K3K3AABBCC_fact0 <- base_cgf$.private_api$K3K3operatorAABBCC_factored
+  K3K3ABCABC_fact0 <- base_cgf$.private_api$K3K3operatorABCABC_factored
 
   # Analytic t-hat: if the base has one, we can shift it back by h
   has_analytic <- isTRUE(base_cgf$has_analytic_tvec_hat)

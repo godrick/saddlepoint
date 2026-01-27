@@ -66,9 +66,9 @@
   ineq_list       <- lapply(cgf_list, function(cg) cg$ineq_constraint)
 
   #
-  tilting_list <- lapply(cgf_list, function(cg) cg$.get_private_method("tilting_exponent"))
-  negll_list   <- lapply(cgf_list, function(cg) cg$.get_private_method("neg_ll"))
-  funcT_list   <- lapply(cgf_list, function(cg) cg$.get_private_method("func_T"))
+  tilting_list <- lapply(cgf_list, function(cg) cg$.private_api$tilting_exponent)
+  negll_list   <- lapply(cgf_list, function(cg) cg$.private_api$neg_ll)
+  funcT_list   <- lapply(cgf_list, function(cg) cg$.private_api$func_T)
 
   # Analytic t-hat: only if ALL children have it
   has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat), logical(1))
