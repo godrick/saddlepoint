@@ -487,7 +487,7 @@
 
   # simulation (only if all components can simulate)
   simulate_fun <- NULL
-  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_simulate), logical(1)))) {
+  if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_rsim), logical(1)))) {
     rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 

@@ -189,7 +189,7 @@
   # This does NOT imply a general exact sampler from the tilted law.
   # rsim is only available if the base CGF can simulate under a tilt (tvec != NULL).
   simulate_fun <- NULL
-  if (isTRUE(base_cgf$has_simulate)) {
+  if (isTRUE(base_cgf$has_rsim)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       h <- expand_h(tilt_fn(parameter_vector), vector_length)
       t_total <- if (is.null(tvec)) h else (h + tvec)

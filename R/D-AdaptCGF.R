@@ -109,8 +109,8 @@
   }
 
   wrapped_rsim <- NULL
-  if (isTRUE(cgf$has_simulate)) {
-    # This becomes *simulate_func* in the wrapped CGF.
+  if (isTRUE(cgf$has_rsim)) {
+    # This becomes *rsim_func* in the wrapped CGF.
     # Always return a matrix; flattening is handled by the public CGF$rsim().
     wrapped_rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       cgf$rsim(

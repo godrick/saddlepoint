@@ -215,7 +215,7 @@
 
 
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate)) {
+  if (isTRUE(cgf$has_rsim)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       A_current <- get_sparse_A(parameter_vector)
       d_out <- nrow(A_current)
@@ -246,7 +246,7 @@
   # # Optional simulator: if X ~ cgf and Y = A X then Y_sim = A %*% X_sim
   # # ------------------------------------------------------------------
   # simulate_fun <- NULL
-  # if (isTRUE(cgf$has_simulate)) {
+  # if (isTRUE(cgf$has_rsim)) {
   #   simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
   #     A_current <- get_sparse_A(parameter_vector)
   #     d_out <- nrow(A_current)

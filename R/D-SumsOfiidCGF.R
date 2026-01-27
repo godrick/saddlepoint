@@ -208,7 +208,7 @@
 
   # simulation (only if base cgf can simulate)
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate)) {
+  if (isTRUE(cgf$has_rsim)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       n_num <- .get_n(parameter_vector)
       if (abs(n_num - round(n_num)) > 1e-8) {

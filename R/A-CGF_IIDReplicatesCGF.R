@@ -450,7 +450,7 @@
   # so simulation can be forwarded directly.
   # ------------------------------------------------------------------
   simulate_fun <- NULL
-  if (isTRUE(cgf$has_simulate)) {
+  if (isTRUE(cgf$has_rsim)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       d_cur <- .block_size_value(block_size, parameter_vector)
       lay <- .resolve_rep_layout(vector_length, block_size = d_cur, iidReps = iidReps)
@@ -642,5 +642,4 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
   )
 
 }
-
 

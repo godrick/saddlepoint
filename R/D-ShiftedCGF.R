@@ -117,7 +117,7 @@
 
   # Simulation: if X can simulate, Y = X + b(theta) can simulate by shifting draws.
   simulate_fun <- NULL
-  if (isTRUE(base_cgf$has_simulate)) {
+  if (isTRUE(base_cgf$has_rsim)) {
     simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       X_sim <- base_cgf$rsim(
         n = n,

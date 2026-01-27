@@ -87,9 +87,9 @@ CGF_public_defaults <- list(
     determinant(K2_val, logarithm = TRUE)$modulus
   }
   ,
-  # Simulation wrapper. Always present, but errors unless has_simulate == TRUE.
+  # Simulation wrapper. Always present, but errors unless has_rsim == TRUE.
   rsim = function(n, vector_length, parameter_vector, tvec = NULL, flatten = FALSE, ...) {
-    if (!isTRUE(self$has_simulate) || is.null(private$simulate_func)) {
+    if (!isTRUE(self$has_rsim) || is.null(private$rsim_func)) {
       stop("This CGF does not implement simulation (no 'rsim' supplied).", call. = FALSE)
     }
     if (length(n) != 1L || !is.finite(n) || n < 1L || n != as.integer(n)) {
@@ -115,7 +115,7 @@ CGF_public_defaults <- list(
       if (any(!is.finite(tvec))) stop("'tvec' must be finite.", call. = FALSE)
     }
 
-    out <- private$simulate_func(n, vector_length, parameter_vector, tvec, ...)
+    out <- private$rsim_func(n, vector_length, parameter_vector, tvec, ...)
 
     # Enforce: either a numeric vector of length n*vector_length, or a (vector_length x n) numeric matrix
     if (is.null(dim(out))) {
@@ -287,7 +287,7 @@ CGF <- R6::R6Class(
 
   private = c(CGF_private_defaults, list(
     analytic_tvec_hat_func = NULL,
-    simulate_func = NULL
+    rsim_func = NULL
   )),
 
   active = list(
@@ -303,7 +303,7 @@ CGF <- R6::R6Class(
     has_analytic_tvec_hat = FALSE,
     analytic_tvec_hat = NULL,
 
-    has_simulate = FALSE,
+    has_rsim = FALSE,
 
     additional_methods = list(),
 
@@ -407,11 +407,11 @@ CGF <- R6::R6Class(
 
       if (!is.null(rsim)) {
         if (!is.function(rsim)) stop("'rsim' must be NULL or a function.", call. = FALSE)
-        self$has_simulate <- TRUE
-        private$simulate_func <- as_method(rsim)
+        self$has_rsim <- TRUE
+        private$rsim_func <- as_method(rsim)
       } else {
-        self$has_simulate <- FALSE
-        private$simulate_func <- NULL
+        self$has_rsim <- FALSE
+        private$rsim_func <- NULL
       }
 
       if (!is.character(op_name)) stop("'op_name' must be of type character", call. = FALSE)
@@ -524,7 +524,7 @@ CGF <- R6::R6Class(
 #' @param rsim Optional simulation method. A function of the form
 #'   `function(n, vector_length, parameter_vector, tvec = NULL, ...)` returning
 #'   a numeric vector of length `n * vector_length` or a `vector_length x n` matrix.
-#'   If supplied, the resulting CGF exposes `$rsim()` and `$has_simulate`.
+#'   If supplied, the resulting CGF exposes `$rsim()` and `$has_rsim`.
 #' @param op_name A descriptive label for the CGF object/operation. Default is "UnnamedOperation".
 #'
 #' @param tilting_exponent (optional) Overriding function for the tilting exponent.
