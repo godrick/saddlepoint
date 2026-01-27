@@ -6,9 +6,9 @@
 \alias{GaussianCGF}
 \title{Univariate Normal CGF object}
 \format{
-An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 24.
+An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 25.
 
-An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 24.
+An object of class \code{VectorizedFunctionsCGF} (inherits from \code{CGF}, \code{R6}) of length 25.
 }
 \usage{
 NormalCGF

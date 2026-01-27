@@ -46,6 +46,11 @@ createCGF(
 \item{analytic_tvec_hat}{Optional function for an analytic solution
 of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_hat(x, param)}.}
 
+\item{rsim}{Optional simulation method. A function of the form
+\verb{function(n, vector_length, parameter_vector, tvec = NULL, ...)} returning
+a numeric vector of length \code{n * vector_length} or a \verb{vector_length x n} matrix.
+If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate}.}
+
 \item{op_name}{A descriptive label for the CGF object/operation. Default is "UnnamedOperation".}
 
 \item{tilting_exponent}{(optional) Overriding function for the tilting exponent.}
@@ -54,19 +59,7 @@ of the saddlepoint equation. If provided, call it via \code{cgf$analytic_tvec_ha
 
 \item{func_T}{(optional) Overriding function for the first-order correction term.}
 
-\item{K2_solve}{Optional computational helper.
-A function of the form \verb{function(tvec, parameter_vector, rhs)} returning
-the solution to \code{K2(tvec, parameter_vector) \%*\% x = rhs}.
-\code{rhs} may be a vector or a matrix (solve column-wise).}
-
-\item{logdetK2}{Optional computational helper.
-A function of the form \verb{function(tvec, parameter_vector)} returning \code{log(det(K2(tvec, parameter_vector)))}
-Useful for wrapper CGFs that can compute this without materializing the full \code{K2}.}
-
-\item{rsim}{Optional simulation method.
-A function of the form \verb{function(n, vector_length, parameter_vector, tvec = NULL, ...)}
-returning a numeric vector of length \code{n * vector_length} or a \verb{vector_length x n} matrix.
-If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate}.}
+\item{K2_solve, logdetK2}{(optional) Overriding numerical helper methods.}
 
 \item{K4operatorAABB_factored, K3K3operatorAABBCC_factored, K3K3operatorABCABC_factored}{(optional) Overriding factored-operator methods.}
 
@@ -78,7 +71,7 @@ If supplied, the resulting CGF exposes \verb{$rsim()} and \verb{$has_simulate}.}
 An object of class \code{CGF}.
 }
 \description{
-This creates an object of type CGF using user-supplied functions. You supply
+This creates an object of type \code{CGF} using user-supplied functions. You supply
 the five essential methods (\code{K}, \code{K1}, \code{K2}, \code{K3operator}, \code{K4operator}) plus
 any optional overrides (e.g., \code{tilting_exponent} or \code{neg_ll}), and it returns
 a \code{CGF} instance.

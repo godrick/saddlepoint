@@ -174,6 +174,23 @@ CGF_public_defaults <- list(
   }
 )
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 CGF_private_defaults <- list(
   tilting_exponent = function(tvec, parameter_vector) {
     self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
@@ -251,6 +268,20 @@ CGF_private_defaults <- list(
 )
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' @noRd
 CGF <- R6::R6Class(
   classname = "CGF",
@@ -271,11 +302,21 @@ CGF <- R6::R6Class(
     additional_methods = list(),
 
     # Required methods (set in initialize)
-    K = NULL,
-    K1 = NULL,
-    K2 = NULL,
-    K3operator = NULL,
-    K4operator = NULL,
+    K = function(tvec, parameter_vector) {
+      stop("CGF$K is not initialized.", call. = FALSE)
+    },
+    K1 = function(tvec, parameter_vector) {
+      stop("CGF$K1 is not initialized.", call. = FALSE)
+    },
+    K2 = function(tvec, parameter_vector) {
+      stop("CGF$K2 is not initialized.", call. = FALSE)
+    },
+    K3operator = function(tvec, parameter_vector, v1, v2, v3) {
+      stop("CGF$K3operator is not initialized.", call. = FALSE)
+    },
+    K4operator = function(tvec, parameter_vector, v1, v2, v3, v4) {
+      stop("CGF$K4operator is not initialized.", call. = FALSE)
+    },
 
     initialize = function(
       K, K1, K2, K3operator, K4operator,
@@ -285,7 +326,7 @@ CGF <- R6::R6Class(
       ...
     ) {
       # Make supplied functions behave like R6 methods (access to self/private).
-      # Keeps the original lexical scope via parent.env().
+      # Keeps the original scope via parent.env().
       as_method <- function(m) {
         if (!is.function(m)) return(m)
         env_with_self <- new.env(parent = environment(fun = m), size = 2L, hash = FALSE)
@@ -295,26 +336,52 @@ CGF <- R6::R6Class(
         m
       }
 
+      # Wrap a user-supplied function to match the formal arguments of a target
+      # method, while still calling the user function with its preferred argument
+      # names (mapped positionally) to avoid unused-argument errors.
+      wrap_like <- function(target_fun, user_fun) {
+        if (!is.function(target_fun)) {
+          stop("Internal error: target method is not a function.", call. = FALSE)
+        }
+        if (!is.function(user_fun)) {
+          stop("Internal error: supplied override is not a function.", call. = FALSE)
+        }
+
+        target_formals <- formals(target_fun)
+        target_names <- names(target_formals)
+
+        user_names <- names(formals(user_fun))
+        if (is.null(user_names)) user_names <- character(0)
+
+        dots_pos <- match("...", user_names, nomatch = length(user_names) + 1L)
+        n_map <- min(length(target_names), dots_pos - 1L, length(user_names))
+
+        call_names <- target_names
+        if (n_map > 0L) call_names[seq_len(n_map)] <- user_names[seq_len(n_map)]
+
+        call_args <- lapply(target_names, as.name)
+        names(call_args) <- call_names
+        call_expr <- as.call(c(list(quote(user_fun)), call_args))
+
+        env <- new.env(parent = environment(user_fun), size = 1L, hash = FALSE)
+        env$user_fun <- user_fun
+        eval(call("function", as.pairlist(target_formals), call_expr), env)
+      }
+
       if (!is.function(K)) stop("'K' must be a function.", call. = FALSE)
       if (!is.function(K1)) stop("'K1' must be a function.", call. = FALSE)
       if (!is.function(K2)) stop("'K2' must be a function.", call. = FALSE)
       if (!is.function(K3operator)) stop("'K3operator' must be a function.", call. = FALSE)
       if (!is.function(K4operator)) stop("'K4operator' must be a function.", call. = FALSE)
 
-      core_K <- as_method(K)
-      core_K1 <- as_method(K1)
-      core_K2 <- as_method(K2)
-      core_K3operator <- as_method(K3operator)
-      core_K4operator <- as_method(K4operator)
-
-      self$K <- function(tvec, parameter_vector) core_K(tvec, parameter_vector)
-      self$K1 <- function(tvec, parameter_vector) core_K1(tvec, parameter_vector)
-      self$K2 <- function(tvec, parameter_vector) core_K2(tvec, parameter_vector)
-      self$K3operator <- function(tvec, parameter_vector, v1, v2, v3) {
-        core_K3operator(tvec, parameter_vector, v1, v2, v3)
-      }
-      self$K4operator <- function(tvec, parameter_vector, v1, v2, v3, v4) {
-        core_K4operator(tvec, parameter_vector, v1, v2, v3, v4)
+      required <- list(K = K, K1 = K1, K2 = K2, K3operator = K3operator, K4operator = K4operator)
+      for (nm in names(required)) {
+        user_fun <- as_method(required[[nm]])
+        target_fun <- self[[nm]]
+        wrapped <- wrap_like(target_fun, user_fun)
+        unlockBinding(nm, self)
+        self[[nm]] <- wrapped
+        lockBinding(nm, self)
       }
 
       if (!is.null(analytic_tvec_hat)) {
@@ -361,40 +428,17 @@ CGF <- R6::R6Class(
         warning("Unnamed entries in '...' are ignored. Please provide named overrides.", call. = FALSE)
       }
 
-      wrap_override <- function(n, m) {
-        m <- as_method(m)
-        switch(
-          n,
-          tilting_exponent = function(tvec, parameter_vector) m(tvec, parameter_vector),
-          neg_ll = function(tvec, parameter_vector) m(tvec, parameter_vector),
-          func_T = function(tvec, parameter_vector) m(tvec, parameter_vector),
-          K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
-            m(tvec, parameter_vector, A1, d1, A2, d2)
-          },
-          K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-            m(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-          },
-          K3K3operatorABCABC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-            m(tvec, parameter_vector, A1, d1, A2, d2, A3, d3)
-          },
-          K2operator = function(tvec, parameter_vector, x, y) m(tvec, parameter_vector, x, y),
-          K2operatorAK2AT = function(tvec, parameter_vector, A) m(tvec, parameter_vector, A),
-          K2_solve = function(tvec, parameter_vector, rhs) m(tvec, parameter_vector, rhs),
-          logdetK2 = function(tvec, parameter_vector) m(tvec, parameter_vector),
-          K4operatorAABB = function(tvec, parameter_vector, Q1, Q2) m(tvec, parameter_vector, Q1, Q2),
-          K3K3operatorAABBCC = function(tvec, parameter_vector, Q1, Q2, Q3) m(tvec, parameter_vector, Q1, Q2, Q3),
-          K3K3operatorABCABC = function(tvec, parameter_vector, Q1, Q2, Q3) m(tvec, parameter_vector, Q1, Q2, Q3),
-          ineq_constraint = function(tvec, parameter_vector) m(tvec, parameter_vector),
-          m
-        )
-      }
-
       override_name <- function(n, e) {
         m <- extra_args[[n]]
         if (!is.function(m)) {
           stop("Override for '", n, "' must be a function (or NULL to keep default).", call. = FALSE)
         }
-        m <- wrap_override(n, m)
+        m <- as_method(m)
+        target_fun <- get(n, envir = e, inherits = FALSE)
+        if (!is.function(target_fun)) {
+          stop("Cannot override non-function member '", n, "'.", call. = FALSE)
+        }
+        m <- wrap_like(target_fun, m)
         unlockBinding(n, e)
         assign(n, m, envir = e)
         lockBinding(n, e)
