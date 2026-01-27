@@ -20,3 +20,4 @@
 ^index\.md$
 ^doc$
 ^Meta$
+^tests/testthat/more-examples$

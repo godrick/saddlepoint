@@ -458,7 +458,8 @@ CGF <- R6::R6Class(
         !(extra_names %in% names(CGF_private_defaults)) &
         !(extra_names %in% names(CGF_public_defaults))
       if (any(additional_subset)) {
-        self$additional_methods <- modifyList(self$additional_methods, extra_args[additional_subset])
+        extras <- lapply(extra_args[additional_subset], as_method)
+        self$additional_methods <- modifyList(self$additional_methods, extras)
       }
     },
 
