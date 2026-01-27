@@ -11,10 +11,9 @@
 #       - K4operator(tvec, parameter_vector, v1, v2, v3, v4)
 #  3) The class also supports optional methods (tilting_exponent, neg_ll, func_T, etc.). Users
 #     can supply them or rely on defaults.
-#  4) Some methods are private (e.g., neg_ll, func_T, and operator "factored" forms). We do not want
-#     them directly accessible via $ from an instance. They remain hidden in the private environment.
-#  5) Public methods include a few optional operators (like K2operator) and the `.get_private_method`
-#     for controlled access to certain private methods.
+#  4) Some methods are private (e.g., neg_ll, func_T, and operator "factored" forms). They remain
+#     in the private environment, and are exposed via the public `.private_api` handle to avoid
+#     cluttering the public method list.
 #  6) The `createCGF()` factory function at the end makes it easy to instantiate a CGF without subclassing.
 #
 #  NOTE ON ENVIRONMENTS:
@@ -480,30 +479,10 @@ CGF <- R6::R6Class(
       invisible(self)
     },
 
-    .get_private_method = function(method_name) {
-      if (!is.character(method_name) || length(method_name) != 1) {
-        stop("'method_name' must be a single character string.")
-      }
-      if (!method_name %in% names(private)) {
-        stop(paste0("'", method_name, "' is not a private method in the CGF class."))
-      }
-
-      allowed_methods <- names(CGF_private_defaults)
-      if (!(method_name %in% allowed_methods)) {
-        stop(paste0("Access to private method '", method_name, "' is not permitted."))
-      }
-
-      method_ <- private[[method_name]]
-      if (!is.function(method_)) {
-        stop(paste0("Private member '", method_name, "' is not a function."))
-      }
-      method_
-    },
-
-	    compute.spa.negll = function(parameter_vector,
-	                                 observed.data,
-	                                 tvec.hat = NULL,
-	                                 gradient = FALSE,
+		    compute.spa.negll = function(parameter_vector,
+		                                 observed.data,
+		                                 tvec.hat = NULL,
+		                                 gradient = FALSE,
 	                                 hessian  = FALSE,
 	                                 spa_method = "standard",
 	                                 ...) {

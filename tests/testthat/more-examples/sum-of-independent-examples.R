@@ -20,7 +20,7 @@
 #   K3_list   <- lapply(cgf_list, function(cg) cg$K3operator)
 #   K4_list   <- lapply(cgf_list, function(cg) cg$K4operator)
 #
-#   tilting_list <- lapply(cgf_list, function(cg) cg$.get_private_method("tilting_exponent"))
+#   tilting_list <- lapply(cgf_list, function(cg) cg$.private_api$tilting_exponent)
 #   ineq_list    <- lapply(cgf_list, function(cg) cg$ineq_constraint)
 #
 #   Kfun <- function(tvec, param) {
@@ -128,20 +128,20 @@
 # stopifnot(isTRUE(all.equal(cgf_slow$K1(tvec, theta), cgf_fast$K1(tvec, theta), tol = 1e-12)))
 # stopifnot(isTRUE(all.equal(cgf_slow$K2(tvec, theta), cgf_fast$K2(tvec, theta), tol = 1e-12)))
 #
-# ## Factored operator checks (call private methods by whitelist)
+# ## Factored operator checks (call private methods via `.private_api`)
 # Q <- crossprod(matrix(rnorm(d*d), d, d)) + diag(d)*0.1
 # eig <- eigen(Q, symmetric = TRUE)
 # A <- eig$vectors
 # dvals <- eig$values
 #
-# K4slow <- cgf_slow$.get_private_method("K4operatorAABB_factored")
-# K4fast <- cgf_fast$.get_private_method("K4operatorAABB_factored")
+# K4slow <- cgf_slow$.private_api$K4operatorAABB_factored
+# K4fast <- cgf_fast$.private_api$K4operatorAABB_factored
 #
-# ABBCslow <- cgf_slow$.get_private_method("K3K3operatorAABBCC_factored")
-# ABBCfast <- cgf_fast$.get_private_method("K3K3operatorAABBCC_factored")
+# ABBCslow <- cgf_slow$.private_api$K3K3operatorAABBCC_factored
+# ABBCfast <- cgf_fast$.private_api$K3K3operatorAABBCC_factored
 #
-# ABCslow <- cgf_slow$.get_private_method("K3K3operatorABCABC_factored")
-# ABCfast <- cgf_fast$.get_private_method("K3K3operatorABCABC_factored")
+# ABCslow <- cgf_slow$.private_api$K3K3operatorABCABC_factored
+# ABCfast <- cgf_fast$.private_api$K3K3operatorABCABC_factored
 #
 # r1 <- K4slow(tvec, theta, A, dvals, A, dvals)
 # r2 <- K4fast(tvec, theta, A, dvals, A, dvals)

@@ -273,24 +273,7 @@
 
 
 
-  # # func_T => sum of child func_T
-  # func_T_list <- lapply(cgf_list, function(cg) cg$.get_private_method("func_T"))
-  # funcTfun <- function(tvec, param) {
-  #   if (length(tvec)!= total_dim) {
-  #     stop(sprintf("`tvec` length mismatch in func_T: got %d, expected %d",
-  #                  length(tvec), total_dim))
-  #   }
-  #   total_res <- 0
-  #   current_start <- 1
-  #   for (i in seq_along(func_T_list)) {
-  #     len_i <- component_dims[i]
-  #     idx <- current_start:(current_start + len_i - 1)
-  #     # Typically, child$func_T(t_sub, param) is a scalar
-  #     total_res <- total_res + func_T_list[[i]](tvec[idx], param)
-  #     current_start <- current_start + len_i
-  #   }
-  #   total_res
-  # }
+  # func_T: sum of child func_T (blockwise).
 
   funcTfun <- function(tvec, param) {
     if (length(tvec) != total_dim) stop("func_T: tvec length mismatch.")

@@ -30,16 +30,16 @@ create_tvec_hat_K2_solve_fn <- function(cgf) {
 #   }
 #   
 #   # Access the CGF private methods just once here:
-#   neg_ll_fun  <- cgf$.get_private_method("neg_ll")             # function(t, theta)
-#   tilt_fun    <- cgf$.get_private_method("tilting_exponent")   # function(t, theta)
-#   funcT_first <- cgf$.get_private_method("func_T")             # (t, theta)
+#   neg_ll_fun  <- cgf$.private_api$neg_ll             # function(t, theta)
+#   tilt_fun    <- cgf$.private_api$tilting_exponent   # function(t, theta)
+#   funcT_first <- cgf$.private_api$func_T             # function(t, theta)
 #   
 #   # Return whichever function is appropriate:
 #   if (method == "negll_standard") {
 #     return(neg_ll_fun)
 #     
 #   } else if (method == "negll_zeroth") {
-#     return(function(tvec, parameter_vector) {- tilt_fun(t, parameter_vector)} )
+#     return(function(tvec, parameter_vector) { -tilt_fun(tvec, parameter_vector) })
 #     
 #   } else if (method == "correction_standard") {
 #     return(funcT_first)
@@ -98,7 +98,6 @@ create_tvec_hat_K2_solve_fn <- function(cgf) {
 #   }
 #   out_list
 # }
-
 
 
 

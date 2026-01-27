@@ -95,9 +95,7 @@
     tilting_exponent(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
 
-  # neg_ll: cgf's neg_ll will be used.
-  # # neg_ll <- cgf$.get_private_method("neg_ll")
-  # negllfun <- NULL
+  # neg_ll: cgf's default neg_ll will be used (no override here).
 
   # Key identity: x^T K_Y'' y = x^T A K_X'' A^T y = (A^T x)^T K_X'' A^T y
   K2operatorfun <- function(tvec, parameter_vector, x, y) {
