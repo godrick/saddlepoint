@@ -123,13 +123,13 @@ vector</li>
 <p>Often very useful:</p>
 <ul>
 <li>
-<code>ineq_constraint_func(tvec,param)</code> returning a numeric
-vector of constraints
+<code>ineq_constraint(tvec, param)</code> returning a numeric vector
+of constraints
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>t</mi><mo>,</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">g(t,\theta)</annotation></semantics></math>
 with feasibility defined by
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mo>≤</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">g \le 0</annotation></semantics></math>,</li>
 <li>
-<code>analytic_tvec_hat_func(x,param)</code> if you can solve
+<code>analytic_tvec_hat(x,param)</code> if you can solve
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>K</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>t</mi><mo accent="true">̂</mo></mover><mo>;</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>x</mi></mrow><annotation encoding="application/x-tex">K_1(\hat t;\theta)=x</annotation></semantics></math>
 in closed form</li>
 </ul>
@@ -172,7 +172,7 @@ K_4(t)=0.
 <span>  K4_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
 <span></span>
 <span>  <span class="co"># Optional: analytic saddlepoint t-hat for K1(t)=x</span></span>
-<span>  analytic_tvec_hat_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  analytic_tvec_hat <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span>    <span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">param</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span>    <span class="op">(</span><span class="va">x</span> <span class="op">-</span> <span class="va">mu</span><span class="op">)</span> <span class="op">/</span> <span class="va">s2</span></span>
@@ -255,7 +255,7 @@ is only defined when
 implement:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="va">ineq_constraint_func</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="va">ineq_constraint</span> <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># return a numeric vector; feasible if all entries &lt;= 0</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Example: if a univariate CGF is defined for

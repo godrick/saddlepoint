@@ -13,7 +13,7 @@ PoissonCGF
 ## Format
 
 An object of class `VectorizedFunctionsCGF` (inherits from `CGF`, `R6`)
-of length 24.
+of length 25.
 
 ## Examples
 

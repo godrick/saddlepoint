@@ -31,9 +31,9 @@ you provide 5 vectorized functions:
 
 Often very useful:
 
-- `ineq_constraint_func(tvec,param)` returning a numeric vector of
+- `ineq_constraint(tvec, param)` returning a numeric vector of
   constraints $g(t,\theta)$ with feasibility defined by $g \leq 0$,
-- `analytic_tvec_hat_func(x,param)` if you can solve
+- `analytic_tvec_hat(x,param)` if you can solve
   $K_{1}\left( \widehat{t};\theta \right) = x$ in closed form
 
 ## Example:
@@ -67,7 +67,7 @@ NormalLogSigma2CGF <- createCGF_fromVectorisedFunctions(
   K4_vectorized_func = function(tvec, param) rep(0, length(tvec)) * param[1],
 
   # Optional: analytic saddlepoint t-hat for K1(t)=x
-  analytic_tvec_hat_func = function(x, param) {
+  analytic_tvec_hat = function(x, param) {
     mu <- param[1]
     s2 <- exp(param[2])
     (x - mu) / s2
@@ -146,7 +146,7 @@ is only defined when $g(t,\theta) \leq 0$, implement:
 
 ``` r
 
-ineq_constraint_func = function(tvec, param) {
+ineq_constraint = function(tvec, param) {
   # return a numeric vector; feasible if all entries <= 0
 }
 ```

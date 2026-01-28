@@ -12,8 +12,8 @@ createCGF_fromVectorisedFunctions(
   K2_vectorized_func,
   K3_vectorized_func,
   K4_vectorized_func,
-  ineq_constraint_func = NULL,
-  analytic_tvec_hat_func = NULL,
+  ineq_constraint = NULL,
+  analytic_tvec_hat = NULL,
   op_name = "UnnamedOperation",
   tilting_exponent = NULL,
   neg_ll = NULL,
@@ -52,13 +52,13 @@ createCGF_fromVectorisedFunctions(
 
   Similar vectorized functions for the third and fourth derivatives.
 
-- ineq_constraint_func:
+- ineq_constraint:
 
   Optional inequality constraint function.
 
-- analytic_tvec_hat_func:
+- analytic_tvec_hat:
 
-  Optional tvec_hat function override.
+  Optional `tvec_hat` function override.
 
 - op_name:
 

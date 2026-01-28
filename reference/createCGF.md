@@ -1,6 +1,6 @@
 # Create a CGF object from user-defined functions
 
-This creates an object of type CGF using user-supplied functions. You
+This creates an object of type `CGF` using user-supplied functions. You
 supply the five essential methods (`K`, `K1`, `K2`, `K3operator`,
 `K4operator`) plus any optional overrides (e.g., `tilting_exponent` or
 `neg_ll`), and it returns a `CGF` instance.
@@ -15,14 +15,14 @@ createCGF(
   K3operator,
   K4operator,
   ineq_constraint = NULL,
-  analytic_tvec_hat_func = NULL,
+  analytic_tvec_hat = NULL,
+  rsim = NULL,
   op_name = "UnnamedOperation",
   tilting_exponent = NULL,
   neg_ll = NULL,
   func_T = NULL,
   K2_solve = NULL,
   logdetK2 = NULL,
-  rsim = NULL,
   K4operatorAABB = NULL,
   K3K3operatorAABBCC = NULL,
   K3K3operatorABCABC = NULL,
@@ -61,10 +61,18 @@ createCGF(
 
   Optional function for inequality constraints.
 
-- analytic_tvec_hat_func:
+- analytic_tvec_hat:
 
   Optional function for an analytic solution of the saddlepoint
   equation. If provided, call it via `cgf$analytic_tvec_hat(x, param)`.
+
+- rsim:
+
+  Optional simulation method. A function of the form
+  `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
+  returning a numeric vector of length `n * vector_length` or a
+  `vector_length x n` matrix. If supplied, the resulting CGF exposes
+  `$rsim()` and `$has_rsim`.
 
 - op_name:
 
@@ -83,26 +91,9 @@ createCGF(
 
   (optional) Overriding function for the first-order correction term.
 
-- K2_solve:
+- K2_solve, logdetK2:
 
-  Optional computational helper. A function of the form
-  `function(tvec, parameter_vector, rhs)` returning the solution to
-  `K2(tvec, parameter_vector) %*% x = rhs`. `rhs` may be a vector or a
-  matrix (solve column-wise).
-
-- logdetK2:
-
-  Optional computational helper. A function of the form
-  `function(tvec, parameter_vector)` returning
-  `log(det(K2(tvec, parameter_vector)))` Useful for wrapper CGFs that
-  can compute this without materializing the full `K2`.
-
-- rsim:
-
-  Optional simulation method. A function of the form
-  `function(n, vector_length, parameter_vector, tvec = NULL, ...)`
-  returning a `vector_length x n` matrix. If supplied, the resulting CGF
-  exposes `$rsim()` and `$has_simulate()`.
+  (optional) Overriding numerical helper methods.
 
 - K4operatorAABB_factored, K3K3operatorAABBCC_factored,
   K3K3operatorABCABC_factored:
