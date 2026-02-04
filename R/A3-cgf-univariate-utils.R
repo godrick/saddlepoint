@@ -87,26 +87,26 @@
   }
 
   createCGF_fromVectorisedFunctions(
-    K_vectorized_func  = function(tvec, param) {
+    K_vectorized  = function(tvec, param) {
       pm <- prep_par(tvec, param)
       K_elem(tvec, pm)
     },
-    K1_vectorized_func = function(tvec, param) {
+    K1_vectorized = function(tvec, param) {
       # print(class(tvec))
       # print(class(param))
       pm <- prep_par(tvec, param)
       # print(class(pm))
       K1_elem(tvec, pm)
     },
-    K2_vectorized_func = function(tvec, param) {
+    K2_vectorized = function(tvec, param) {
       pm <- prep_par(tvec, param)
       K2_elem(tvec, pm)  # returns a length-N vector (interpreted as diag)
     },
-    K3_vectorized_func = function(tvec, param) {
+    K3_vectorized = function(tvec, param) {
       pm <- prep_par(tvec, param)
       K3_elem(tvec, pm)
     },
-    K4_vectorized_func = function(tvec, param) {
+    K4_vectorized = function(tvec, param) {
       pm <- prep_par(tvec, param)
       K4_elem(tvec, pm)
     },

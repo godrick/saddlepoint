@@ -5,11 +5,11 @@
 \title{Create a \code{CGF} object from vectorized functions}
 \usage{
 createCGF_fromVectorisedFunctions(
-  K_vectorized_func,
-  K1_vectorized_func,
-  K2_vectorized_func,
-  K3_vectorized_func,
-  K4_vectorized_func,
+  K_vectorized,
+  K1_vectorized,
+  K2_vectorized,
+  K3_vectorized,
+  K4_vectorized,
   ineq_constraint = NULL,
   analytic_tvec_hat = NULL,
   op_name = "UnnamedOperation",
@@ -29,13 +29,13 @@ createCGF_fromVectorisedFunctions(
 )
 }
 \arguments{
-\item{K_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.}
+\item{K_vectorized}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.}
 
-\item{K1_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.}
+\item{K1_vectorized}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.}
 
-\item{K2_vectorized_func}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.}
+\item{K2_vectorized}{A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.}
 
-\item{K3_vectorized_func, K4_vectorized_func}{Similar vectorized functions for the third and fourth derivatives.}
+\item{K3_vectorized, K4_vectorized}{Similar vectorized functions for the third and fourth derivatives.}
 
 \item{ineq_constraint}{Optional inequality constraint function.}
 

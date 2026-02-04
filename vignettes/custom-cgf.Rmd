@@ -34,11 +34,11 @@ where you provide vectorized derivative functions that operate elementwise on `t
 
 For `createCGF_fromVectorisedFunctions()`, you provide 5 vectorized functions:
 
-- `K_vectorized_func(tvec, param)` returning a numeric vector of length `length(tvec)`
-- `K1_vectorized_func(tvec, param)` returning a numeric vector
-- `K2_vectorized_func(tvec, param)` returning a numeric vector (diagonal of the Hessian)
-- `K3_vectorized_func(tvec, param)` returning a numeric vector
-- `K4_vectorized_func(tvec, param)` returning a numeric vector
+- `K_vectorized(tvec, param)` returning a numeric vector of length `length(tvec)`
+- `K1_vectorized(tvec, param)` returning a numeric vector
+- `K2_vectorized(tvec, param)` returning a numeric vector (diagonal of the Hessian)
+- `K3_vectorized(tvec, param)` returning a numeric vector
+- `K4_vectorized(tvec, param)` returning a numeric vector
 
 
 Often very useful:
@@ -65,22 +65,22 @@ Below we implement a Normal CGF parameterized by $(\mu, \log\sigma^2)$.
 ```{r}
 
 NormalLogSigma2CGF <- createCGF_fromVectorisedFunctions(
-  K_vectorized_func = function(tvec, param) {
+  K_vectorized = function(tvec, param) {
     mu <- param[1]
     s2 <- exp(param[2])
     mu * tvec + 0.5 * s2 * tvec * tvec
   },
-  K1_vectorized_func = function(tvec, param) {
+  K1_vectorized = function(tvec, param) {
     mu <- param[1]
     s2 <- exp(param[2])
     mu + s2 * tvec
   },
-  K2_vectorized_func = function(tvec, param) {
+  K2_vectorized = function(tvec, param) {
     s2 <- exp(param[2])
     rep(s2, length(tvec))
   },
-  K3_vectorized_func = function(tvec, param) rep(0, length(tvec)) * param[1],
-  K4_vectorized_func = function(tvec, param) rep(0, length(tvec)) * param[1],
+  K3_vectorized = function(tvec, param) rep(0, length(tvec)) * param[1],
+  K4_vectorized = function(tvec, param) rep(0, length(tvec)) * param[1],
 
   # Optional: analytic saddlepoint t-hat for K1(t)=x
   analytic_tvec_hat = function(x, param) {

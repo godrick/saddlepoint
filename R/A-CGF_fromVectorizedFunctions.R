@@ -4,7 +4,7 @@
 # The Setup of the followiing class.
 # Compulsory Methods:
 # The child class VectorizedFunctionsCGF requires the five vectorized functions
-# (K_vectorized_func, K1_vectorized_func, etc.) as explicit arguments in its initialize method.
+# (K_vectorized, K1_vectorized, etc.) as explicit arguments in its initialize method.
 #
 #
 # Child Defaults for Optional Methods:
@@ -45,11 +45,11 @@ VectorizedFunctionsCGF <- R6::R6Class(
   inherit = CGF,  # base CGF
 
   private = list(
-    K_vectorized_func  = NULL,
-    K1_vectorized_func = NULL,
-    K2_vectorized_func = NULL,
-    K3_vectorized_func = NULL,
-    K4_vectorized_func = NULL,
+    K_vectorized  = NULL,
+    K1_vectorized = NULL,
+    K2_vectorized = NULL,
+    K3_vectorized = NULL,
+    K4_vectorized = NULL,
 
     # Internal helper method(s) to set child defaults for optional methods
     set_child_defaults = function(
@@ -63,43 +63,43 @@ VectorizedFunctionsCGF <- R6::R6Class(
       # If user didn't supply a function, create a default implementation
       if (is.null(tilting_exponent)) {
         tilting_exponent <- function(tvec, p) {
-          K_vals <- private$K_vectorized_func(tvec, p)
-          K1_vals <- private$K1_vectorized_func(tvec, p)
+          K_vals <- private$K_vectorized(tvec, p)
+          K1_vals <- private$K1_vectorized(tvec, p)
           sum(K_vals - tvec * K1_vals)
         }
       }
       if (is.null(neg_ll)) {
         neg_ll <- function(tvec, p) {
-          K2_vals <- private$K2_vectorized_func(tvec, p)
-          K_vals <- private$K_vectorized_func(tvec, p)
-          K1_vals <- private$K1_vectorized_func(tvec, p)
+          K2_vals <- private$K2_vectorized(tvec, p)
+          K_vals <- private$K_vectorized(tvec, p)
+          K1_vals <- private$K1_vectorized(tvec, p)
           tilting_vals <- K_vals - tvec * K1_vals
           sum(0.5 * log(2*pi*K2_vals) - tilting_vals)
         }
       }
       if(is.null(func_T)){
         func_T <- function(tvec, p) {
-          k2val <- private$K2_vectorized_func(tvec, p)
+          k2val <- private$K2_vectorized(tvec, p)
           k2sq_val <- k2val * k2val
-          k3val <- private$K3_vectorized_func(tvec, p)
-          k4val <- private$K4_vectorized_func(tvec, p)
+          k3val <- private$K3_vectorized(tvec, p)
+          k4val <- private$K4_vectorized(tvec, p)
           sum( k4val/(8 * k2sq_val) - 5*(k3val*k3val)/(24 * k2sq_val * k2val) )
         }
       }
       if(is.null(K4operatorAABB)){
         K4operatorAABB <- function(tvec, p, Q1, Q2) {
-          sum(private$K4_vectorized_func(tvec, p) * diag(Q1) * diag(Q2))
+          sum(private$K4_vectorized(tvec, p) * diag(Q1) * diag(Q2))
         }
       }
       if(is.null(K3K3operatorAABBCC)){
         K3K3operatorAABBCC <- function(tvec, p, Q1, Q2, Q3) {
-          k3_vals <- private$K3_vectorized_func(tvec, p)
+          k3_vals <- private$K3_vectorized(tvec, p)
           sum( (diag(Q1) * k3_vals) %*% Q2 %*% (diag(Q3) * k3_vals) )
         }
       }
       if(is.null(K3K3operatorABCABC)){
         K3K3operatorABCABC <- function(tvec, p, Q1, Q2, Q3) {
-          k3_vals <- private$K3_vectorized_func(tvec, p)
+          k3_vals <- private$K3_vectorized(tvec, p)
           mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
           sum(mat_k3_vals %*% (Q1 * Q2 * Q3) %*% mat_k3_vals)
         }
@@ -118,11 +118,11 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
   public = list(
     initialize = function(
-                K_vectorized_func,
-                K1_vectorized_func,
-                K2_vectorized_func,
-                K3_vectorized_func,
-                K4_vectorized_func,
+                K_vectorized,
+                K1_vectorized,
+                K2_vectorized,
+                K3_vectorized,
+                K4_vectorized,
 
                 # Optional overrides
                 ineq_constraint = NULL,
@@ -144,11 +144,11 @@ VectorizedFunctionsCGF <- R6::R6Class(
                 ...
     ) {
       # Store vectorized functions in private fields
-      private$K_vectorized_func  <- K_vectorized_func
-      private$K1_vectorized_func <- K1_vectorized_func
-      private$K2_vectorized_func <- K2_vectorized_func
-      private$K3_vectorized_func <- K3_vectorized_func
-      private$K4_vectorized_func <- K4_vectorized_func
+      private$K_vectorized  <- K_vectorized
+      private$K1_vectorized <- K1_vectorized
+      private$K2_vectorized <- K2_vectorized
+      private$K3_vectorized <- K3_vectorized
+      private$K4_vectorized <- K4_vectorized
 
       # Call child default logic
       child_defaults <- private$set_child_defaults(
@@ -165,11 +165,11 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
 
       super$initialize(
-        K = function(tvec, p) { sum(private$K_vectorized_func(tvec, p))  },
-        K1 = function(tvec, p) { private$K1_vectorized_func(tvec, p)  },
-        K2 = function(tvec, p) { diag(private$K2_vectorized_func(tvec, p), nrow = length(tvec)) },
-        K3operator = function(tvec, p, v1, v2, v3) { sum(private$K3_vectorized_func(tvec, p) * v1 * v2 * v3) },
-        K4operator = function(tvec, p, v1, v2, v3, v4) { sum(private$K4_vectorized_func(tvec, p) * v1 * v2 * v3 * v4) },
+        K = function(tvec, p) { sum(private$K_vectorized(tvec, p))  },
+        K1 = function(tvec, p) { private$K1_vectorized(tvec, p)  },
+        K2 = function(tvec, p) { diag(private$K2_vectorized(tvec, p), nrow = length(tvec)) },
+        K3operator = function(tvec, p, v1, v2, v3) { sum(private$K3_vectorized(tvec, p) * v1 * v2 * v3) },
+        K4operator = function(tvec, p, v1, v2, v3, v4) { sum(private$K4_vectorized(tvec, p) * v1 * v2 * v3 * v4) },
 
         ineq_constraint  = ineq_constraint,
         analytic_tvec_hat = analytic_tvec_hat,
@@ -194,13 +194,13 @@ VectorizedFunctionsCGF <- R6::R6Class(
 
 
         # K2_solve_func = function(tvec, p, rhs) {
-        #   k2 <- private$K2_vectorized_func(tvec, p)  # length = length(tvec)
+        #   k2 <- private$K2_vectorized(tvec, p)  # length = length(tvec)
         #   # rhs can be vector or matrix; recycling works columnwise for matrices
         #   rhs / k2
         # },
         #
         # logdetK2_func = function(tvec, p) {
-        #   sum(log(private$K2_vectorized_func(tvec, p)))
+        #   sum(log(private$K2_vectorized(tvec, p)))
         # },
 
 
@@ -231,10 +231,10 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' This function allows you to create a `CGF` object using vectorized functions
 #' along with any optional operators or methods.
 #'
-#' @param K_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.
-#' @param K1_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.
-#' @param K2_vectorized_func A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.
-#' @param K3_vectorized_func,K4_vectorized_func Similar vectorized functions for the third and fourth derivatives.
+#' @param K_vectorized A function of the form \code{function(tvec, param) -> numeric vector} that returns the CGF values.
+#' @param K1_vectorized A function of the form \code{function(tvec, param) -> numeric vector} that returns the first derivative values.
+#' @param K2_vectorized A function of the form \code{function(tvec, param) -> numeric vector} that returns the second derivative values.
+#' @param K3_vectorized,K4_vectorized Similar vectorized functions for the third and fourth derivatives.
 #' @param ineq_constraint Optional inequality constraint function.
 #' @param analytic_tvec_hat Optional `tvec_hat` function override.
 #' @param op_name Optional character string indicating the name of the operation or transformation being performed.
@@ -253,11 +253,11 @@ VectorizedFunctionsCGF <- R6::R6Class(
 #' @return A `CGF` object.
 #' @export
 createCGF_fromVectorisedFunctions <- function(
-    K_vectorized_func,
-    K1_vectorized_func,
-    K2_vectorized_func,
-    K3_vectorized_func,
-    K4_vectorized_func,
+    K_vectorized,
+    K1_vectorized,
+    K2_vectorized,
+    K3_vectorized,
+    K4_vectorized,
     ineq_constraint = NULL,
     analytic_tvec_hat = NULL,
     op_name = "UnnamedOperation",
@@ -302,11 +302,11 @@ createCGF_fromVectorisedFunctions <- function(
 
   do.call(VectorizedFunctionsCGF$new, c(
     list(
-      K_vectorized_func  = K_vectorized_func,
-      K1_vectorized_func = K1_vectorized_func,
-      K2_vectorized_func = K2_vectorized_func,
-      K3_vectorized_func = K3_vectorized_func,
-      K4_vectorized_func = K4_vectorized_func,
+      K_vectorized  = K_vectorized,
+      K1_vectorized = K1_vectorized,
+      K2_vectorized = K2_vectorized,
+      K3_vectorized = K3_vectorized,
+      K4_vectorized = K4_vectorized,
       ineq_constraint               = ineq_constraint,
       analytic_tvec_hat             = analytic_tvec_hat,
       rsim                          = rsim,
