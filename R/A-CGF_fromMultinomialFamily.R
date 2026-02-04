@@ -82,7 +82,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     ###
     # K(t) = N * log( sum_i p_i exp(t_i) )
     # where p_i = odds_i / sum(odds)
-    K_func_default = function(tvec, parameter_vector) {
+    K_default = function(tvec, parameter_vector) {
       private$.check_block(tvec, parameter_vector, where = "K")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
@@ -92,7 +92,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
 
     # K'(t) = N * v(t)
-    K1_func_default = function(tvec, parameter_vector) {
+    K1_default = function(tvec, parameter_vector) {
       private$.check_block(tvec, parameter_vector, where = "K1")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
@@ -101,7 +101,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
 
     # K''(t) = N * (diag(v) - v v^T)
-    K2_func_default = function(tvec, parameter_vector) {
+    K2_default = function(tvec, parameter_vector) {
       d <- private$.check_block(tvec, parameter_vector, where = "K2")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
@@ -118,7 +118,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     #                 - mu3 * sum_i v_i u1_i u2_i
     #                 + 2 mu1 mu2 mu3
     # then multiplied by N.
-    K3operator_func_default = function(tvec, parameter_vector, u1, u2, u3) {
+    K3operator_default = function(tvec, parameter_vector, u1, u2, u3) {
       d <- private$.check_block(tvec, parameter_vector, where = "K3operator")
       if (length(u1) != d || length(u2) != d || length(u3) != d) {
         stop("MultinomialFamilyCGF::K3operator: u1/u2/u3 must have length d.")
@@ -142,7 +142,7 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
 
     # 4th-order cumulant tensor contraction for u1,u2,u3,u4, multiplied by N.
-    K4operator_func_default = function(tvec, parameter_vector, u1, u2, u3, u4) {
+    K4operator_default = function(tvec, parameter_vector, u1, u2, u3, u4) {
       d <- private$.check_block(tvec, parameter_vector, where = "K4operator")
       if (length(u1) != d || length(u2) != d || length(u3) != d || length(u4) != d) {
         stop("MultinomialFamilyCGF::K4operator: u1/u2/u3/u4 must have length d.")
@@ -193,7 +193,7 @@ MultinomialFamilyCGF <- R6::R6Class(
 
     # K4operatorAABB(t, Q1, Q2) for the multinomial:
     # This implementation assumes Q1 == Q2 (and ignores Q2).
-    K4operatorAABB_func_default = function(tvec, parameter_vector, Q1, Q2) {
+    K4operatorAABB_default = function(tvec, parameter_vector, Q1, Q2) {
       d <- private$.check_block(tvec, parameter_vector, where = "K4operatorAABB")
       private$.check_Q(Q1, d, where = "K4operatorAABB")
       # Q2 is ignored by design (the calling code uses Q1 == Q2)
@@ -219,7 +219,7 @@ MultinomialFamilyCGF <- R6::R6Class(
 
     # K3K3operatorAABBCC(t, Q1, Q2, Q3) for the multinomial.
     # This implementation assumes Q1 == Q2 == Q3 (and ignores Q2, Q3).
-    K3K3operatorAABBCC_func_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    K3K3operatorAABBCC_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
       d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorAABBCC")
       private$.check_Q(Q1, d, where = "K3K3operatorAABBCC")
       N_val    <- parameter_vector[1]
@@ -262,7 +262,7 @@ MultinomialFamilyCGF <- R6::R6Class(
 
     # K3K3operatorABCABC(t, Q1, Q2, Q3) for the multinomial.
     # This implementation assumes Q1 == Q2 == Q3 (and ignores Q2, Q3).
-    K3K3operatorABCABC_func_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    K3K3operatorABCABC_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
       d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorABCABC")
       private$.check_Q(Q1, d, where = "K3K3operatorABCABC")
       N_val    <- parameter_vector[1]
@@ -290,16 +290,7 @@ MultinomialFamilyCGF <- R6::R6Class(
                    4  * vQv^3)
     },
 
-    # Default correction term T(t) for SPA:
-    func_Tfunc_default = function(tvec, parameter_vector) {
-      Q <- solve(private$K2_func_default(tvec, parameter_vector))
-      K3K3operatorABCABC_val <- private$K3K3operatorABCABC_func_default(tvec, parameter_vector, Q, Q, Q)
-      K3K3operatorAABBCC_val <- private$K3K3operatorAABBCC_func_default(tvec, parameter_vector, Q, Q, Q)
-      K4operatorAABB_val     <- private$K4operatorAABB_func_default(tvec, parameter_vector, Q, Q)
-      K4operatorAABB_val / 8 - K3K3operatorAABBCC_val / 8 - K3K3operatorABCABC_val / 12
-    },
-
-    simulate_func_default = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    simulate_default = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       if (length(parameter_vector) < 2) {
         stop("MultinomialFamilyCGF$rsim: 'parameter_vector' must be c(N, odds[1:d]) with length >= 2.", call. = FALSE)
       }
@@ -389,21 +380,32 @@ MultinomialFamilyCGF <- R6::R6Class(
       }
 
       # Defaults for the multinomial family
-      final_K  <- if (is.null(K))  private$K_func_default  else K
-      final_K1 <- if (is.null(K1)) private$K1_func_default else K1
-      final_K2 <- if (is.null(K2)) private$K2_func_default else K2
+      final_K  <- if (is.null(K))  private$K_default  else K
+      final_K1 <- if (is.null(K1)) private$K1_default else K1
+      final_K2 <- if (is.null(K2)) private$K2_default else K2
 
-      final_K3operator <- if (is.null(K3operator)) private$K3operator_func_default else K3operator
-      final_K4operator <- if (is.null(K4operator)) private$K4operator_func_default else K4operator
+      final_K3operator <- if (is.null(K3operator)) private$K3operator_default else K3operator
+      final_K4operator <- if (is.null(K4operator)) private$K4operator_default else K4operator
 
-      final_K4operatorAABB <- if (is.null(K4operatorAABB)) private$K4operatorAABB_func_default else K4operatorAABB
-      final_K3K3operatorAABBCC <- if (is.null(K3K3operatorAABBCC)) private$K3K3operatorAABBCC_func_default else K3K3operatorAABBCC
-      final_K3K3operatorABCABC <- if (is.null(K3K3operatorABCABC)) private$K3K3operatorABCABC_func_default else K3K3operatorABCABC
+      final_K4operatorAABB <- if (is.null(K4operatorAABB)) private$K4operatorAABB_default else K4operatorAABB
+      final_K3K3operatorAABBCC <- if (is.null(K3K3operatorAABBCC)) private$K3K3operatorAABBCC_default else K3K3operatorAABBCC
+      final_K3K3operatorABCABC <- if (is.null(K3K3operatorABCABC)) private$K3K3operatorABCABC_default else K3K3operatorABCABC
 
-      # func_T_func <- if (is.null(func_Tfunc)) private$func_Tfunc_default else func_Tfunc
-      final_func_T <- if(is.null(func_T)) private$func_Tfunc_default else func_T
+      # Build func_T: if not provided, create a closure that uses the final_* functions
+      # (not the *_default versions, which would ignore user overrides)
+      if (is.null(func_T)) {
+        final_func_T <- function(tvec, parameter_vector) {
+          Q <- solve(final_K2(tvec, parameter_vector))
+          K3K3operatorABCABC_val <- final_K3K3operatorABCABC(tvec, parameter_vector, Q, Q, Q)
+          K3K3operatorAABBCC_val <- final_K3K3operatorAABBCC(tvec, parameter_vector, Q, Q, Q)
+          K4operatorAABB_val <- final_K4operatorAABB(tvec, parameter_vector, Q, Q)
+          K4operatorAABB_val / 8 - K3K3operatorAABBCC_val / 8 - K3K3operatorABCABC_val / 12
+        }
+      } else {
+        final_func_T <- func_T
+      }
 
-      final_rsim <- if (is.null(rsim)) private$simulate_func_default else rsim
+      final_rsim <- if (is.null(rsim)) private$simulate_default else rsim
 
 
 
