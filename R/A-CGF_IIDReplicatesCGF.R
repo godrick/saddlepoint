@@ -24,9 +24,9 @@
 
 
   # fetch some private methods from the base CGF
-  tilting_exponent <- cgf$.private_api$tilting_exponent
-  neg_ll <- cgf$.private_api$neg_ll
-  func_T <- cgf$.private_api$func_T
+  base_tilting_exponent <- cgf$.private_api$tilting_exponent
+  base_neg_ll <- cgf$.private_api$neg_ll
+  base_func_T <- cgf$.private_api$func_T
 
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
@@ -34,7 +34,7 @@
 
 
   # K => sum over blocks
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     N <- length(tvec)
 
     d_cur <- .block_size_value(block_size, param)
@@ -66,7 +66,7 @@
   # complications with operator overloading.
   # ------------------------------------------------------------------
   # K1 => piecewise concatenation
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     N <- length(tvec)
 
     d_cur <- .block_size_value(block_size, param)
@@ -102,7 +102,7 @@
 
 
   # K2 => block-diagonal
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -128,7 +128,7 @@
 
 
   # tilting_exponent => sum
-  tiltingfun <- function(tvec, param) {
+  tilting_exponent <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -140,14 +140,14 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      total <- total + tilting_exponent(tvec[idx], param)
+      total <- total + base_tilting_exponent(tvec[idx], param)
     }
     total
   }
 
 
   # neg_ll => sum
-  negllfun <- function(tvec, param) {
+  neg_ll <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -159,14 +159,14 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      total <- total + neg_ll(tvec[idx], param)
+      total <- total + base_neg_ll(tvec[idx], param)
     }
     total
   }
 
 
   # func_T => sum
-  func_Tfun <- function(tvec, param) {
+  func_T <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -178,13 +178,13 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      total <- total + func_T(tvec[idx], param)
+      total <- total + base_func_T(tvec[idx], param)
     }
     total
   }
 
   # K2operator => sum
-  K2operatorfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -203,7 +203,7 @@
 
 
 
-  K2operatorAK2ATfun <- function(tvec, param, Bmat) {
+  K2operatorAK2AT <- function(tvec, param, Bmat) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
@@ -229,7 +229,7 @@
 
 
   # K3operator => sum
-  K3operatorfun <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -247,7 +247,7 @@
   }
 
   # K4operator => sum
-  K4operatorfun <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -266,7 +266,7 @@
 
 
   # K4operatorAABB => sum
-  K4operatorAABBfun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -289,7 +289,7 @@
 
 
   # K3K3operatorAABBCC => sum
-  K3K3operatorAABBCCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -310,7 +310,7 @@
   }
 
   # K3K3operatorABCABC => sum
-  K3K3operatorABCABCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -332,7 +332,7 @@
 
 
   # ineq_constraint => concatenation
-  ineq_constraintfun <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -361,13 +361,13 @@
     out_
   }
 
-  # for the analytic_tvec_hat_func:
+  # for the analytic_tvec_hat:
   # We'll do a chunk approach if cgf$analytic_tvec_hat() is non-NULL:
   # e.g. chunk x => pass each chunk to cgf$analytic_tvec_hat => combine?
   #### Check if this doesn't make sense, (default to NULL if that's the case)
-  analytic_tvec_hat_func <- NULL # If the base CGF had no valid function, just return NULL
+  analytic_tvec_hat <- NULL # If the base CGF had no valid function, just return NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
-    analytic_tvec_hat_func <- function(x, param) {
+    analytic_tvec_hat <- function(x, param) {
       N <- length(x)
       d_cur <- .block_size_value(block_size, param)
       # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -401,7 +401,7 @@
 
 
 
-  K2_solve_fun <- function(tvec, param, rhs) {
+  K2_solve <- function(tvec, param, rhs) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
@@ -430,7 +430,7 @@
   }
 
 
-  logdetK2_fun <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
@@ -449,9 +449,9 @@
   # iidReplicatesCGF only changes how long tvec vectors are interpreted (block sums),
   # so simulation can be forwarded directly.
   # ------------------------------------------------------------------
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       d_cur <- .block_size_value(block_size, parameter_vector)
       lay <- .resolve_rep_layout(vector_length, block_size = d_cur, iidReps = iidReps)
       d <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
@@ -500,31 +500,31 @@
   # ------------------------------------------------------------------
   # Build the new CGF object
   # ------------------------------------------------------------------
-  createCGF(
-    K = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3operatorfun,
-    K4operator = K4operatorfun,
-    ineq_constraint = ineq_constraintfun,
-    analytic_tvec_hat = analytic_tvec_hat_func,
-    tilting_exponent = tiltingfun,
-    neg_ll = negllfun,
-    func_T = func_Tfun,
-    K4operatorAABB = K4operatorAABBfun,
-    K3K3operatorAABBCC = K3K3operatorAABBCCfun,
-    K3K3operatorABCABC = K3K3operatorABCABCfun,
-    # K4operatorAABB_factored = K4operatorAABB_factoredfun,
-    # K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factoredfun,
-    # K3K3operatorABCABC_factored = K3K3operatorABCABC_factoredfun,
-    K2_solve = K2_solve_fun,
-    logdetK2 = logdetK2_fun,
-    rsim = simulate_fun,
+  op_name <- c(cgf$call_history, op_label)
 
-    K2operator = K2operatorfun,
-    K2operatorAK2AT = K2operatorAK2ATfun,
-    op_name = c(cgf$call_history, op_label)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    neg_ll = neg_ll,
+    func_T = func_T,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    rsim = rsim,
+    op_name = op_name
   )
+
+  do.call(createCGF, cgf_args)
 
 }
 
