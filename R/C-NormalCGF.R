@@ -210,7 +210,7 @@ GaussianModelCGF <- NormalModelCGF
     list(d = d, mu = mu, Sigma = Sigma)
   }
 
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
@@ -219,21 +219,21 @@ GaussianModelCGF <- NormalModelCGF
     sum(mu * tvec) + 0.5 * sum(tvec * (Sigma %*% tvec))
   }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
     as.vector(sp$mu + sp$Sigma %*% tvec)
   }
 
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
     sp$Sigma
   }
 
-  tiltingfun <- function(tvec, param) {
+  tilting_exponent <- function(tvec, param) {
     # K(t) - t^T K1(t) = -0.5 * t^T Sigma t
     sp <- .split_param(param)
     d <- sp$d
@@ -241,7 +241,7 @@ GaussianModelCGF <- NormalModelCGF
     -0.5 * sum(tvec * (sp$Sigma %*% tvec))
   }
 
-  K2opfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
@@ -249,7 +249,7 @@ GaussianModelCGF <- NormalModelCGF
     sum(x * (sp$Sigma %*% y))
   }
 
-  K2operatorAK2ATfun <- function(tvec, param, Bmat) {
+  K2operatorAK2AT <- function(tvec, param, Bmat) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(tvec) != d) stop("MultivariateNormal: length(tvec) must equal d.")
@@ -260,7 +260,7 @@ GaussianModelCGF <- NormalModelCGF
   }
 
   # Analytic saddlepoint t-hat: Sigma^{-1} (y - mu)
-  analytic_tvec_hat_fun <- function(y, param) {
+  analytic_tvec_hat <- function(y, param) {
     sp <- .split_param(param)
     d <- sp$d
     if (length(y) != d) stop("MultivariateNormal: length(y) must equal d.")
@@ -268,7 +268,7 @@ GaussianModelCGF <- NormalModelCGF
   }
 
   # Simulation: draw n samples from N(mu + Sigma*t, Sigma), return d x n.
-  simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+  rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 
     # Parse params (dimension d inferred from parameter_vector length)
     sp <- .split_param(parameter_vector)
@@ -310,41 +310,34 @@ GaussianModelCGF <- NormalModelCGF
   }
 
 
-  K3opfun <- function(tvec, param, v1, v2, v3) 0
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) 0
-  func_Tfun <- function(tvec, param) 0
+  K3operator <- function(tvec, param, v1, v2, v3) 0
+  K4operator <- function(tvec, param, v1, v2, v3, v4) 0
+  func_T <- function(tvec, param) 0
 
-  K4AABBfun <- function(tvec, param, Q1, Q2) 0
-  K3K3AABBCCfun <- function(tvec, param, Q1, Q2, Q3) 0
-  K3K3ABCABCfun <- function(tvec, param, Q1, Q2, Q3) 0
+  K4operatorAABB <- function(tvec, param, Q1, Q2) 0
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) 0
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) 0
 
 
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K2operator = K2opfun,
-    K2operatorAK2AT = K2operatorAK2ATfun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-    analytic_tvec_hat = analytic_tvec_hat_fun,
-    tilting_exponent = tiltingfun,
-    func_T = func_Tfun,
-
-    # #
-    # K2_solve = K2_solve_fun,
-    # logdetK2 = logdetK2_fun,
-
-    #
-    K4operatorAABB = K4AABBfun,
-    K3K3operatorAABBCC = K3K3AABBCCfun,
-    K3K3operatorABCABC = K3K3ABCABCfun,
-
-    rsim = simulate_fun,
-
-    op_name = op_name,
-    ...
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    func_T = func_T,
+    analytic_tvec_hat = analytic_tvec_hat,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    rsim = rsim,
+    op_name = op_name
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 #' Create a Multivariate Normal CGF Object
