@@ -33,7 +33,7 @@
 # -----------------------------------------------------------------------------
 
 #' @noRd
-.subunitaryMultinomial_K_func_default <- function(tvec, parameter_vector) {
+.subunitaryMultinomial_K_default <- function(tvec, parameter_vector) {
 
   d <- length(parameter_vector) - 1L
   if (d < 1L) {
@@ -110,7 +110,7 @@
 #' @export
 SubunitaryMultinomialCGF <- createMultinomialFamilyCGF(
   op_name = "SubunitaryMultinomialCGF",
-  K_func  = .subunitaryMultinomial_K_func_default
+  K = .subunitaryMultinomial_K_default
 )
 
 
@@ -199,7 +199,7 @@ SubunitaryMultinomialModelCGF <- function(n,
   sub_cgf <- createMultinomialFamilyCGF(
     iidReps = iidReps,
     op_name = "SubunitaryMultinomialModelCGF",
-    K_func  = .subunitaryMultinomial_K_func_default,
+    K = .subunitaryMultinomial_K_default,
     ...
   )
 
