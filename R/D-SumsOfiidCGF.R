@@ -60,34 +60,34 @@
 
 
 
-  Kfun  <- function(tvec, param) {
+  K <- function(tvec, param) {
     n_val <- .get_n(param)
     n_val * cgf$K(tvec, param)
   }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     n_val <- .get_n(param)
     n_val * cgf$K1(tvec, param)
   }
 
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     n_val <- .get_n(param)
     .scale_like_K2(cgf$K2(tvec, param), n_val)
   }
 
-  K3opfun <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     n_val <- .get_n(param)
     n_val * cgf$K3operator(tvec, param, v1, v2, v3)
   }
 
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     n_val <- .get_n(param)
     n_val * cgf$K4operator(tvec, param, v1, v2, v3, v4)
   }
 
 
   # tilting_exponent_Y(t) = n * tilting_exponent_X(t)
-  tiltingfun <- function(tvec, param) {
+  tilting_exponent <- function(tvec, param) {
     n_val <- .get_n(param)
     n_val * base_tilt(tvec, param)
   }
@@ -98,14 +98,14 @@
   # ------------------------------------------------------------------
 
   # K2_Y = n * K2_X  =>  (K2_Y)^{-1} rhs = (1/n) * (K2_X)^{-1} rhs
-  K2_solve_fun <- function(tvec, param, rhs) {
+  K2_solve <- function(tvec, param, rhs) {
     n_val <- .get_n(param)
     cgf$K2_solve(tvec, param, rhs) / n_val
   }
 
   # log det(K2_Y) = log det(n*K2_X) = log det(K2_X) + d * log(n)
   # where d = dim(tvec) for this evaluation.
-  logdetK2_fun <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     n_val <- .get_n(param)
     cgf$logdetK2(tvec, param) + length(tvec) * log(n_val)
   }
@@ -115,12 +115,12 @@
   # Bilinear/linear operators
   # ------------------------------------------------------------------
 
-  K2opfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     n_val <- .get_n(param)
     n_val * cgf$K2operator(tvec, param, x, y)
   }
 
-  K2opAK2ATfun <- function(tvec, param, A) {
+  K2operatorAK2AT <- function(tvec, param, A) {
     n_val <- .get_n(param)
     .scale_like_K2(cgf$K2operatorAK2AT(tvec, param, A), n_val)
   }
@@ -135,7 +135,7 @@
   #   Q_Y = (K2_Y)^{-1} = (1/n) Q_X
   # and the standard SPA correction term T scales as 1/n:
   #   T_Y = T_X / n.
-  func_Tfun <- function(tvec, param) {
+  func_T <- function(tvec, param) {
     n_val <- .get_n(param)
     base_T(tvec, param) / n_val
   }
@@ -145,17 +145,17 @@
   # Higher-order Q-operators
   # ------------------------------------------------------------------
 
-  K4AABBfun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     n_val <- .get_n(param)
     n_val * cgf$K4operatorAABB(tvec, param, Q1, Q2)
   }
 
-  K3K3AABBCCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     n_val <- .get_n(param)
     (n_val * n_val) * cgf$K3K3operatorAABBCC(tvec, param, Q1, Q2, Q3)
   }
 
-  K3K3ABCABCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
     n_val <- .get_n(param)
     (n_val * n_val) * cgf$K3K3operatorABCABC(tvec, param, Q1, Q2, Q3)
   }
@@ -172,17 +172,17 @@
   base_K3K3AABBCC_fact   <- cgf$.private_api$K3K3operatorAABBCC_factored
   base_K3K3ABCABC_fact   <- cgf$.private_api$K3K3operatorABCABC_factored
 
-  K4AABB_factored_fun <- function(tvec, param, A1, d1, A2, d2) {
+  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
     n_val <- .get_n(param)
     n_val * base_K4AABB_factored(tvec, param, A1, d1, A2, d2)
   }
 
-  K3K3AABBCC_factored_fun <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
     n_val <- .get_n(param)
     (n_val * n_val) * base_K3K3AABBCC_fact(tvec, param, A1, d1, A2, d2, A3, d3)
   }
 
-  K3K3ABCABC_factored_fun <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
     n_val <- .get_n(param)
     (n_val * n_val) * base_K3K3ABCABC_fact(tvec, param, A1, d1, A2, d2, A3, d3)
   }
@@ -192,24 +192,23 @@
   # Constraints + analytic t-hat
   # ------------------------------------------------------------------
 
-  ineqfun <- function(tvec, param) cgf$ineq_constraint(tvec, param)
+  ineq_constraint <- function(tvec, param) cgf$ineq_constraint(tvec, param)
 
   # Analytic t-hat mapping:
   #   Solve n*K1_X(t) = y  <=>  K1_X(t) = y/n.
+  analytic_tvec_hat <- NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
-    analytic_tvec_hat_func <- function(y, param) {
+    analytic_tvec_hat <- function(y, param) {
       n_val <- .get_n(param)
       cgf$analytic_tvec_hat(y / n_val, param)
     }
-  } else {
-    analytic_tvec_hat_func <- NULL
   }
 
 
   # simulation (only if base cgf can simulate)
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       n_num <- .get_n(parameter_vector)
       if (abs(n_num - round(n_num)) > 1e-8) {
         stop("sumOfiidCGF$rsim: n(theta) must be an integer to simulate a sum of i.i.d. terms.",
@@ -247,43 +246,32 @@
     }
   }
 
-
-
-  # ------------------------------------------------------------------
-  # Build the new CGF
-  # ------------------------------------------------------------------
-
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-
-    tilting_exponent = tiltingfun,
-    func_T           = func_Tfun,
-
-    K2_solve  = K2_solve_fun,
-    logdetK2  = logdetK2_fun,
-    rsim = simulate_fun,
-
-    K2operator      = K2opfun,
-    K2operatorAK2AT = K2opAK2ATfun,
-
-    K4operatorAABB     = K4AABBfun,
-    K3K3operatorAABBCC = K3K3AABBCCfun,
-    K3K3operatorABCABC = K3K3ABCABCfun,
-
-    K4operatorAABB_factored     = K4AABB_factored_fun,
-    K3K3operatorAABBCC_factored = K3K3AABBCC_factored_fun,
-    K3K3operatorABCABC_factored = K3K3ABCABC_factored_fun,
-
-    ineq_constraint = ineqfun,
-    analytic_tvec_hat = analytic_tvec_hat_func,
-
-    op_name = c(cgf$call_history, "sumOfiidCGF"),
-    ...
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    func_T = func_T,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    rsim = rsim,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    op_name = c(cgf$call_history, "sumOfiidCGF")
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

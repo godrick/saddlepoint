@@ -27,19 +27,19 @@
   #   Wrap the five required CGF methods
   # ----------------------------------------------------------------
 
-  wrapped_K <- function(tvec, param) {
+  K <- function(tvec, param) {
     cgf$K(tvec, param_adaptor(param))
   }
-  wrapped_K1 <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     cgf$K1(tvec, param_adaptor(param))
   }
-  wrapped_K2 <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     cgf$K2(tvec, param_adaptor(param))
   }
-  wrapped_K3operator <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     cgf$K3operator(tvec, param_adaptor(param), v1, v2, v3)
   }
-  wrapped_K4operator <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     cgf$K4operator(tvec, param_adaptor(param), v1, v2, v3, v4)
   }
 
@@ -47,72 +47,71 @@
   #    Wrap optional public methods
   #    (like K2operator, K2operatorAK2AT, K4operatorAABB, etc.)
   # ----------------------------------------------------------------
-  wrapped_K2operator <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     cgf$K2operator(tvec, param_adaptor(param), x, y)
   }
 
 
-  wrapped_K2operatorAK2AT <- function(tvec, param, A) {
+  K2operatorAK2AT <- function(tvec, param, A) {
     cgf$K2operatorAK2AT(tvec, param_adaptor(param), A)
   }
 
-  wrapped_K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     cgf$K4operatorAABB(tvec, param_adaptor(param), Q1, Q2)
   }
 
-  wrapped_K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     cgf$K3K3operatorAABBCC(tvec, param_adaptor(param), Q1, Q2, Q3)
   }
 
-  wrapped_K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
     cgf$K3K3operatorABCABC(tvec, param_adaptor(param), Q1, Q2, Q3)
   }
 
-  wrapped_ineq_constraint <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     cgf$ineq_constraint(tvec, param_adaptor(param))
   }
 
+  analytic_tvec_hat <- NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
-    wrapped_analytic_tvec_hat_func <- function(x, param) {
+    analytic_tvec_hat <- function(x, param) {
       cgf$analytic_tvec_hat(x, param_adaptor(param))
     }
-  } else {
-    wrapped_analytic_tvec_hat_func <- NULL
   }
 
-  tilting_exponent <- cgf$.private_api$tilting_exponent
-  neg_ll <- cgf$.private_api$neg_ll
-  func_T <- cgf$.private_api$func_T
-  K4operatorAABB_factored     <- cgf$.private_api$K4operatorAABB_factored
-  K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
-  K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
+  base_tilting_exponent <- cgf$.private_api$tilting_exponent
+  base_neg_ll <- cgf$.private_api$neg_ll
+  base_func_T <- cgf$.private_api$func_T
+  base_K4operatorAABB_factored     <- cgf$.private_api$K4operatorAABB_factored
+  base_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
+  base_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
 
-  wrapped_tilting_exponent <- function(tvec, param) tilting_exponent(tvec, param_adaptor(param))
-  wrapped_neg_ll <- function(tvec, param) neg_ll(tvec, param_adaptor(param))
-  wrapped_func_T <- function(tvec, param) func_T(tvec, param_adaptor(param))
-  wrapped_K4operatorAABB_factored     <- function(tvec, param, A1, d1, A2, d2) K4operatorAABB_factored(tvec, param_adaptor(param), A1, d1, A2, d2)
-  wrapped_K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) K3K3operatorAABBCC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
-  wrapped_K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) K3K3operatorABCABC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
-
-
+  tilting_exponent <- function(tvec, param) base_tilting_exponent(tvec, param_adaptor(param))
+  neg_ll <- function(tvec, param) base_neg_ll(tvec, param_adaptor(param))
+  func_T <- function(tvec, param) base_func_T(tvec, param_adaptor(param))
+  K4operatorAABB_factored     <- function(tvec, param, A1, d1, A2, d2) base_K4operatorAABB_factored(tvec, param_adaptor(param), A1, d1, A2, d2)
+  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) base_K3K3operatorAABBCC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
+  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) base_K3K3operatorABCABC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
 
 
 
 
 
-  wrapped_K2_solve <- function(tvec, param, rhs) {
+
+
+  K2_solve <- function(tvec, param, rhs) {
     cgf$K2_solve(tvec, param_adaptor(param), rhs)
   }
 
-  wrapped_logdetK2 <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     cgf$logdetK2(tvec, param_adaptor(param))
   }
 
-  wrapped_rsim <- NULL
+  rsim <- NULL
   if (isTRUE(cgf$has_rsim)) {
     # This becomes *rsim_func* in the wrapped CGF.
     # Always return a matrix; flattening is handled by the public CGF$rsim().
-    wrapped_rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       cgf$rsim(
         n = n,
         vector_length = vector_length,
@@ -124,43 +123,38 @@
     }
   }
 
-  op_name = paste0("A-{", cgf$call_history, "}")
+  op_name <- paste0("A-{", cgf$call_history, "}")
 
   # ----------------------------------------------------------------
   # New CGF using createCGF(), passing these wrappers
   # ----------------------------------------------------------------
 
-  createCGF(
-    K = wrapped_K,
-    K1 = wrapped_K1,
-    K2 = wrapped_K2,
-    K3operator = wrapped_K3operator,
-    K4operator = wrapped_K4operator,
-    ineq_constraint = wrapped_ineq_constraint,
-    analytic_tvec_hat = wrapped_analytic_tvec_hat_func,
-    op_name = op_name,
-
-    tilting_exponent = wrapped_tilting_exponent,
-    neg_ll = wrapped_neg_ll,
-    func_T = wrapped_func_T,
-    K4operatorAABB = wrapped_K4operatorAABB,
-    K3K3operatorAABBCC = wrapped_K3K3operatorAABBCC,
-    K3K3operatorABCABC = wrapped_K3K3operatorABCABC,
-    K4operatorAABB_factored = wrapped_K4operatorAABB_factored,
-    K3K3operatorAABBCC_factored = wrapped_K3K3operatorAABBCC_factored,
-    K3K3operatorABCABC_factored = wrapped_K3K3operatorABCABC_factored,
-    K2operator = wrapped_K2operator,
-    K2operatorAK2AT = wrapped_K2operatorAK2AT,
-
-    #
-    K2_solve = wrapped_K2_solve,
-    logdetK2 = wrapped_logdetK2,
-
-    #
-    rsim = wrapped_rsim,
-
-    ...
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    neg_ll = neg_ll,
+    func_T = func_T,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    rsim = rsim,
+    op_name = op_name
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

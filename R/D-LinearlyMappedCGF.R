@@ -63,42 +63,42 @@
 
 
   #---------------------------------------------
-  # # Single-block linearlyMapped CGF (iidReps = 1 OR {iidReps = NULL AND block_size = NULL})
-  # # Overrides for K, K1, K2, etc., where 'A_current' = get_sparse_A(parameter_vector)
+  # Single-block linearlyMapped CGF (iidReps = 1 OR {iidReps = NULL AND block_size = NULL})
+  # Overrides for K, K1, K2, etc., where 'A_current' = get_sparse_A(parameter_vector)
   #---------------------------------------------
 
   # Key identity: K_Y(t) = K_X(A^T t) (with t assumed to be a column vector)
-  Kfun <- function(tvec, parameter_vector) {
+  K <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     if (nrow(A_current) != length(tvec)) stop("Dimension mismatch: nrow(matrix_A) != length(tvec).")
     cgf$K(t(A_current) %*% tvec, parameter_vector)
   }
 
   # Key identity: K_Y' = A K_X'
-  K1fun <- function(tvec, parameter_vector) {
+  K1 <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     if (nrow(A_current) != length(tvec)) stop("Dimension mismatch: nrow(matrix_A) != length(tvec).")
     A_current %*% cgf$K1(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
 
   # Key identity: K_Y'' = A K_X'' A^T
-  K2fun <- function(tvec, parameter_vector) {
+  K2 <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     k2_base <- cgf$K2(as.vector(t(A_current) %*% tvec), parameter_vector)
     A_current %*% k2_base %*% t(A_current)
   }
 
   # Key identity: K_Y(t) - t^T K_Y'(t) = K_X(A^T t) - t^T A K_X'(A^T t) = K_X(A^T t) - (A^T t)^T K_X'(A^T t)
-  tilting_exponent <- cgf$.private_api$tilting_exponent
-  tiltingfun <- function(tvec, parameter_vector) {
+  base_tilting_exponent <- cgf$.private_api$tilting_exponent
+  tilting_exponent <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
-    tilting_exponent(as.vector(t(A_current) %*% tvec), parameter_vector)
+    base_tilting_exponent(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
 
   # neg_ll: cgf's default neg_ll will be used (no override here).
 
   # Key identity: x^T K_Y'' y = x^T A K_X'' A^T y = (A^T x)^T K_X'' A^T y
-  K2operatorfun <- function(tvec, parameter_vector, x, y) {
+  K2operator <- function(tvec, parameter_vector, x, y) {
     A_current <- get_sparse_A(parameter_vector)
     cgf$K2operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
@@ -109,14 +109,13 @@
 
   # Returns B K_Y'' B^T as a function of the supplied (non-parameter) argument B
   # Key identity: B K_Y'' B^T = B A K_X'' A^T B^T = (B A) K_X'' (B A)^T
-  K2operatorAK2ATfun <- function(tvec, parameter_vector, B) {
+  K2operatorAK2AT <- function(tvec, parameter_vector, B) {
     A_current <- get_sparse_A(parameter_vector)
     B_A <- B %*% A_current
-    # cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A) %*% t(B_A)
     cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A)
   }
 
-  K3operatorfun <- function(tvec, parameter_vector, v1, v2, v3) {
+  K3operator <- function(tvec, parameter_vector, v1, v2, v3) {
     A_current <- get_sparse_A(parameter_vector)
     cgf$K3operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
@@ -126,7 +125,7 @@
     )
   }
 
-  K4operatorfun <- function(tvec, parameter_vector, v1, v2, v3, v4) {
+  K4operator <- function(tvec, parameter_vector, v1, v2, v3, v4) {
     A_current <- get_sparse_A(parameter_vector)
     cgf$K4operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
@@ -139,91 +138,82 @@
 
 
   # All the operator forms involving matrices Q are equivalent to applying the same method for BaseCGF with Q_inner = A^T Q A
-  K4operatorAABBfun <- function(tvec, parameter_vector, Q1, Q2) {
+  K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     Q1_inner <- tA %*% Q1 %*% A_current
-    # Q2_inner <- tA %*% Q2 %*% A_current
     cgf$K4operatorAABB(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner)
   }
 
-  K3K3operatorAABBCCfun <- function(tvec, parameter_vector, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     Q1_inner <- tA %*% Q1 %*% A_current
-    # Q2_inner <- tA %*% Q2 %*% A_current
-    # Q3_inner <- tA %*% Q3 %*% A_current
     cgf$K3K3operatorAABBCC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
   }
 
-  K3K3operatorABCABCfun <- function(tvec, parameter_vector, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     Q1_inner <- tA %*% Q1 %*% A_current
-    # Q2_inner <- tA %*% Q2 %*% A_current
-    # Q3_inner <- tA %*% Q3 %*% A_current
     cgf$K3K3operatorABCABC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
   }
 
-  #### We avoid the factored forms for now (avoiding the potentially expensive loops)
-  func_Tfun <- function(tvec, parameter_vector) {
-    Q <- solve(K2fun(tvec, parameter_vector))
-    K3K3operatorABCABC_val <- K3K3operatorABCABCfun(tvec, parameter_vector, Q, Q, Q)
-    K3K3operatorAABBCC_val <- K3K3operatorAABBCCfun(tvec, parameter_vector, Q, Q, Q)
-    K4operatorAABB_val <- K4operatorAABBfun(tvec, parameter_vector, Q, Q)
+  # We avoid the factored forms for now (avoiding the potentially expensive loops)
+  func_T <- function(tvec, parameter_vector) {
+    Q <- solve(K2(tvec, parameter_vector))
+    K3K3operatorABCABC_val <- K3K3operatorABCABC(tvec, parameter_vector, Q, Q, Q)
+    K3K3operatorAABBCC_val <- K3K3operatorAABBCC(tvec, parameter_vector, Q, Q, Q)
+    K4operatorAABB_val <- K4operatorAABB(tvec, parameter_vector, Q, Q)
     K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12
   }
 
 
   # For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
   # Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r
-  K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
-  K4operatorAABB_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2) {
+  base_K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
+  K4operatorAABB_factored <- function(tvec, parameter_vector, B1, d1, B2, d2) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B1_inner <- tA %*% B1
     B2_inner <- tA %*% B2
-    K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2)
+    base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2)
   }
 
-  K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
-  K3K3operatorAABBCC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
+  base_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
+  K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B1_inner <- tA %*% B1
     B2_inner <- tA %*% B2
     B3_inner <- tA %*% B3
-    K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
+    base_K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
   }
 
-  K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
-  K3K3operatorABCABC_factoredfun <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
+  base_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
+  K3K3operatorABCABC_factored <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B1_inner <- tA %*% B1
     B2_inner <- tA %*% B2
     B3_inner <- tA %*% B3
-    K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
+    base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
   }
 
   # inequality constraints for the transformed variable Y = A * X are the same as those
   # for the original variable X, evaluated at the transformed input A.transpose() * tvec.
-  ineq_constraintfun <- function(tvec, parameter_vector) {
+  ineq_constraint <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     cgf$ineq_constraint(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
 
 
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       A_current <- get_sparse_A(parameter_vector)
       d_out <- nrow(A_current)
       d_in  <- ncol(A_current)
-
-      # # single-block only
-      # if (vector_length != d_out) stop("linearlyMappedCGF$rsim: 'vector_length' must equal nrow(A).", call. = FALSE)
-      #
 
       # tilt propagation: t_x = A^T t_y
       t_inner <- if (is.null(tvec)) NULL else as.vector(t(A_current) %*% tvec)
@@ -298,32 +288,30 @@
   #   }
   # }
 
-  # ------------------------------------------------------------------
-  # # Build the new mapped CGF using createCGF
-  # ------------------------------------------------------------------
-  createCGF(
-    K = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3operatorfun,
-    K4operator = K4operatorfun,
-    ineq_constraint = ineq_constraintfun,
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    ineq_constraint = ineq_constraint,
     analytic_tvec_hat = NULL,
-    tilting_exponent = tiltingfun,
-    # neg_ll = negllfun,
-    func_T = func_Tfun,
-    rsim = simulate_fun,
-    K4operatorAABB = K4operatorAABBfun,
-    K3K3operatorAABBCC = K3K3operatorAABBCCfun,
-    K3K3operatorABCABC = K3K3operatorABCABCfun,
-    K4operatorAABB_factored = K4operatorAABB_factoredfun,
-    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factoredfun,
-    K3K3operatorABCABC_factored = K3K3operatorABCABC_factoredfun,
-    K2operator = K2operatorfun,
-    K2operatorAK2AT = K2operatorAK2ATfun,
-    op_name = c(cgf$call_history, "linearlyMappedCGF"),
-    ...
+    tilting_exponent = tilting_exponent,
+    func_T = func_T,
+    rsim = rsim,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    op_name = c(cgf$call_history, "linearlyMappedCGF")
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

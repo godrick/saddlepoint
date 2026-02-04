@@ -71,99 +71,99 @@
   }
 
   # ---- Core tilted cumulants ----
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     # type anchor via 0*param[1] pattern (RTMB friendliness)
     (K0(tvec + h, param) - K0(h, param)) + 0 * param[1]
   }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K10(tvec + h, param) + 0 * param[1]
   }
 
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K20(tvec + h, param) + 0 * param[1]
   }
 
-  K3opfun <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K3o0(tvec + h, param, v1, v2, v3) + 0 * param[1]
   }
 
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K4o0(tvec + h, param, v1, v2, v3, v4) + 0 * param[1]
   }
 
   # ---- Derived operators (shifted) ----
-  K2opfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K2op0(tvec + h, param, x, y) + 0 * param[1]
   }
 
-  K2opAK2ATfun <- function(tvec, param, Bmat) {
+  K2operatorAK2AT <- function(tvec, param, Bmat) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K2opAK2AT0(tvec + h, param, Bmat) + 0 * param[1]
   }
 
-  K2_solve_fun <- function(tvec, param, rhs) {
+  K2_solve <- function(tvec, param, rhs) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K2solve0(tvec + h, param, rhs) + 0 * param[1]
   }
 
-  logdetK2_fun <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     logdet0(tvec + h, param) + 0 * param[1]
   }
 
-  K4AABB_fun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K4AABB0(tvec + h, param, Q1, Q2) + 0 * param[1]
   }
 
-  K3K3AABBCC_fun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K3K3AABBCC0(tvec + h, param, Q1, Q2, Q3) + 0 * param[1]
   }
 
-  K3K3ABCABC_fun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K3K3ABCABC0(tvec + h, param, Q1, Q2, Q3) + 0 * param[1]
   }
 
   # Factored private operator wrappers (used by base func_T defaults)
-  K4AABB_fact_fun <- function(tvec, param, A1, d1, A2, d2) {
+  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K4AABB_fact0(tvec + h, param, A1, d1, A2, d2) + 0 * param[1]
   }
-  K3K3AABBCC_fact_fun <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K3K3AABBCC_fact0(tvec + h, param, A1, d1, A2, d2, A3, d3) + 0 * param[1]
   }
-  K3K3ABCABC_fact_fun <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
     K3K3ABCABC_fact0(tvec + h, param, A1, d1, A2, d2, A3, d3) + 0 * param[1]
   }
 
   # Inequality constraints: g_base(t+h) and g_base(h)
-  ineqfun <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
 
@@ -177,9 +177,9 @@
   }
 
   # Analytic t-hat shift: t_hat_tilt(x) = t_hat_base(x) - h
-  analytic_tvec_hat_fun <- NULL
+  analytic_tvec_hat <- NULL
   if (has_analytic) {
-    analytic_tvec_hat_fun <- function(x, param) {
+    analytic_tvec_hat <- function(x, param) {
       m <- length(x)
       h <- expand_h(tilt_fn(param), m)
       hat0(x, param) - h
@@ -188,9 +188,9 @@
 
   # This does NOT imply a general exact sampler from the tilted law.
   # rsim is only available if the base CGF can simulate under a tilt (tvec != NULL).
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(base_cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       h <- expand_h(tilt_fn(parameter_vector), vector_length)
       t_total <- if (is.null(tvec)) h else (h + tvec)
 
@@ -207,38 +207,32 @@
 
   # call_history label
   hist <- paste(base_cgf$call_history, collapse = " -> ")
-  op_name_vec <- c(hist, "ExponentialTiltCGF")
+  op_name <- c(hist, "ExponentialTiltCGF")
 
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K2operator = K2opfun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-
-    # speed helpers
-    K2_solve = K2_solve_fun,
-    logdetK2 = logdetK2_fun,
-
-    K2operatorAK2AT = K2opAK2ATfun,
-
-    K4operatorAABB      = K4AABB_fun,
-    K3K3operatorAABBCC  = K3K3AABBCC_fun,
-    K3K3operatorABCABC  = K3K3ABCABC_fun,
-
-    # factored paths for func_T defaults
-    K4operatorAABB_factored     = K4AABB_fact_fun,
-    K3K3operatorAABBCC_factored = K3K3AABBCC_fact_fun,
-    K3K3operatorABCABC_factored = K3K3ABCABC_fact_fun,
-
-    ineq_constraint = ineqfun,
-    analytic_tvec_hat = analytic_tvec_hat_fun,
-    rsim = simulate_fun,
-
-    op_name = op_name_vec,
-    ...
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K2operator = K2operator,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    rsim = rsim,
+    op_name = op_name
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 #' @title Exponential Tilting of a CGF

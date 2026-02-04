@@ -101,7 +101,7 @@
   #   total
   # }
 
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` has length %d, expected %d (= sum(component_dims)).",
                    length(tvec), total_dim))
@@ -131,7 +131,7 @@
   #   out
   # }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` has length %d, expected %d (= sum(component_dims)).",
                    length(tvec), total_dim))
@@ -161,7 +161,7 @@
   #   }
   #   accum
   # }
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` has length %d, expected %d (= sum(component_dims)).",
                    length(tvec), total_dim))
@@ -172,7 +172,7 @@
       d_i <- dims[i]
       k2_sub <- K2_list[[i]](tvec[idx], param)
 
-      #???? univariate return types (scalar -> 1x1)
+      # univariate return types (scalar -> 1x1)
       if (is.null(dim(k2_sub))) k2_sub <- matrix(k2_sub, nrow = d_i, ncol = d_i)
       accum[idx, idx] <- k2_sub
     }
@@ -200,7 +200,7 @@
   #   }
   #   total
   # }
-  K3opfun <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     if (length(tvec) != total_dim ||
         length(v1)   != total_dim ||
         length(v2)   != total_dim ||
@@ -240,7 +240,7 @@
   #   total
   # }
 
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     if (length(tvec) != total_dim ||
         length(v1)   != total_dim ||
         length(v2)   != total_dim ||
@@ -261,7 +261,7 @@
   # ---------------------------------------------------------------------------
   # Derived methods (block structure)
   # ---------------------------------------------------------------------------
-  tiltingfun <- function(tvec, param) {
+  tilting_exponent <- function(tvec, param) {
     if (length(tvec) != total_dim) stop("tilting_exponent: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -271,11 +271,8 @@
     total
   }
 
-
-
   # func_T: sum of child func_T (blockwise).
-
-  funcTfun <- function(tvec, param) {
+  func_T <- function(tvec, param) {
     if (length(tvec) != total_dim) stop("func_T: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -285,7 +282,7 @@
     total
   }
 
-  negllfun <- function(tvec, param) {
+  neg_ll <- function(tvec, param) {
     if (length(tvec) != total_dim) stop("neg_ll: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -296,7 +293,7 @@
   }
 
 
-  K2operatorfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     if (length(tvec) != total_dim || length(x) != total_dim || length(y) != total_dim) {
       stop("K2operator: dimension mismatch.")
     }
@@ -309,7 +306,7 @@
   }
 
 
-  K2operatorAK2ATfun <- function(tvec, param, Bmat) {
+  K2operatorAK2AT <- function(tvec, param, Bmat) {
     if (length(tvec) != total_dim) stop("K2operatorAK2AT: tvec length mismatch.")
     if (ncol(Bmat) != total_dim) {
       stop("K2operatorAK2AT: Bmat must have ncol == length(tvec). ",
@@ -325,7 +322,7 @@
   }
 
 
-  K2_solve_fun <- function(tvec, param, rhs) {
+  K2_solve <- function(tvec, param, rhs) {
     if (length(tvec) != total_dim) stop("K2_solve: tvec length mismatch.")
 
     # vector rhs
@@ -350,7 +347,7 @@
     out
   }
 
-  logdetK2_fun <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     if (length(tvec) != total_dim) stop("logdetK2: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -366,7 +363,7 @@
   # For concatenation (block independence), only diagonal sub-blocks of Q matter.
   # ---------------------------------------------------------------------------
 
-  K4AABBfun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     if (length(tvec) != total_dim) stop("K4operatorAABB: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -378,7 +375,7 @@
     total
   }
 
-  K3K3AABBCCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     if (length(tvec) != total_dim) stop("K3K3operatorAABBCC: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -391,7 +388,7 @@
     total
   }
 
-  K3K3ABCABCfun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
     if (length(tvec) != total_dim) stop("K3K3operatorABCABC: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
@@ -429,7 +426,7 @@
   #   out_
   # }
 
-  ineqfun <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` length mismatch in ineq_constraint: got %d, expected %d.",
                    length(tvec), total_dim))
@@ -460,9 +457,9 @@
   # ---------------------------------------------------------------------------
   # Analytic t-hat (if all children have one)
   # ---------------------------------------------------------------------------
-  analytic_tvec_hat_func <- NULL
+  analytic_tvec_hat <- NULL
   if (!is.null(analytic_hat_list)) {
-    analytic_tvec_hat_func <- function(x, param) {
+    analytic_tvec_hat <- function(x, param) {
       if (length(x) != total_dim) {
         stop(sprintf("analytic_tvec_hat: `x` length %d, expected %d.", length(x), total_dim))
       }
@@ -482,14 +479,14 @@
     character(1)
   )
   combined_history <- paste0("[", paste(hist_pieces, collapse = ", "), "]")
-  op_name_vec <- c(combined_history, "concatenationCGF")
+  op_name <- c(combined_history, "concatenationCGF")
 
 
   # simulation (only if all components can simulate)
-  simulate_fun <- NULL
+  rsim <- NULL
   if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_rsim), logical(1)))) {
     rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
 
       if (vector_length != total_dim) {
         stop(
@@ -519,35 +516,30 @@
     }
   }
 
-
-
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-
-    tilting_exponent = tiltingfun,
-    neg_ll = negllfun,
-    func_T = funcTfun,
-
-    ineq_constraint = ineqfun,
-    analytic_tvec_hat = analytic_tvec_hat_func,
-
-    K2operator      = K2operatorfun,
-    K2operatorAK2AT = K2operatorAK2ATfun,
-    K2_solve        = K2_solve_fun,
-    logdetK2        = logdetK2_fun,
-    rsim = simulate_fun,
-
-    K4operatorAABB      = K4AABBfun,
-    K3K3operatorAABBCC  = K3K3AABBCCfun,
-    K3K3operatorABCABC  = K3K3ABCABCfun,
-
-    op_name = op_name_vec,
-    ...
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    neg_ll = neg_ll,
+    func_T = func_T,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    rsim = rsim,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    op_name = op_name
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

@@ -118,20 +118,20 @@
   # -------------------- core vectorized derivatives -----------------
 
   # K_Y(t) = K_N( K_X(t) )
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     s <- summand_cgf$K(tvec, param)
     count_cgf$K(s, param)
   }
 
   # Del K_Y(t) = K_N'(K_X(t)) * ∇K_X(t)
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     s <- summand_cgf$K(tvec, param)
     a1 <- as.numeric(count_cgf$K1(s, param))[1]
     a1 * summand_cgf$K1(tvec, param)
   }
 
   # Del_2 K_Y(t) = K_N''(K_X(t)) ∇K_X ∇K_X^T + K_N'(K_X(t)) ∇²K_X
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -144,7 +144,7 @@
   }
 
   # Bilinear form x^T Del_2 K_Y(t) y
-  K2opfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -155,7 +155,7 @@
   }
 
   # 3rd-derivative contraction K^{(3)}(w1,w2,w3)
-  K3opfun <- function(tvec, param, w1, w2, w3) {
+  K3operator <- function(tvec, param, w1, w2, w3) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -177,7 +177,7 @@
   }
 
   # 4th-derivative contraction K^{(4)}(w1,w2,w3,w4)
-  K4opfun <- function(tvec, param, w1, w2, w3, w4) {
+  K4operator <- function(tvec, param, w1, w2, w3, w4) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -228,7 +228,7 @@
 
   # -------------------- inequality constraints ----------------------
 
-  ineqfun <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     summand_ineq <- summand_cgf$ineq_constraint(tvec, param)
     s <- summand_cgf$K(tvec, param)
     count_ineq <- count_cgf$ineq_constraint(s, param)
@@ -247,7 +247,7 @@
   # a rank-1 update of a scaled Sigma.
   # We exploit Sherman-Morrison + matrix determinant lemma.
 
-  K2_solve_fun <- function(tvec, param, rhs) {
+  K2_solve <- function(tvec, param, rhs) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -264,7 +264,6 @@
 
     q <- sum(mu * Sig_inv_mu)  # mu^T Sigma^{-1} mu
     denom <- 1 + (a2 / a1) * q
-    ###### if (denom == 0) stop("Sherman-Morrison denominator is zero; cannot solve K2.")
 
     if (is.matrix(x)) {
       cvec <- as.numeric(crossprod(mu, x)) # length = ncol(x)
@@ -275,12 +274,11 @@
     }
   }
 
-  logdetK2_fun <- function(tvec, param) {
+  logdetK2 <- function(tvec, param) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
     a2 <- dv$a2
-    # if (a1 <= 0) stop("K_N'(K_X(t)) must be positive to compute log(det(K2)).")
     mu <- as.numeric(summand_cgf$K1(tvec, param))
     Sig_inv_mu <- summand_cgf$K2_solve(tvec, param, mu)
     q <- sum(mu * Sig_inv_mu)  # mu^T Sigma^{-1} mu
@@ -295,7 +293,7 @@
   # K4operatorAABB(t,Q1,Q2) = \sum_{i,j,k,l} K4_{i j k l} Q1_{i j} Q2_{k l}.
   # The derived closed form avoids the base-class rank-factor triple loops.
 
-  K4AABB_fun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -335,7 +333,7 @@
   # Fast K3K3 operators are implemented for the case Q1=Q2=Q3,
   # which is exactly how func_T uses them.
 
-  K3K3AABBCC_fun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
     # Q1=Q2=Q3
 
     Q <- Q1
@@ -365,15 +363,8 @@
 
     UU <- as.numeric(crossprod(uU, Q %*% uU))
     UM <- qmm * as.numeric(crossprod(uU, v))
-    # MM <- qmm^3
     MM <- (qmm * qmm) * qmm
 
-    # (a1^2) * base_T3T3 +
-    #   2 * a1 * a2 * T3_Q_QuU +
-    #   2 * a1 * a3 * qmm * T3_Q_v +
-    #   (a2^2) * UU +
-    #   2 * a2 * a3 * UM +
-    #   (a3^2) * MM
     (a1 * a1) * base_T3T3 +
       2 * a1 * a2 * T3_Q_QuU +
       2 * a1 * a3 * qmm * T3_Q_v +
@@ -382,7 +373,7 @@
       (a3 * a3) * MM
   }
 
-  K3K3ABCABC_fun <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
 
     Q <- Q1
 
@@ -419,14 +410,6 @@
     quad_vSv <- as.numeric(crossprod(v, Sig %*% v))
     UM <- 3 * quad_vSv * qmm
 
-    # MM <- qmm^3
-    #
-    # (a1^2) * base_T3T3 +
-    #   6 * a1 * a2 * T3_M_v +
-    #   2 * a1 * a3 * T3_vvv +
-    #   (a2^2) * UU +
-    #   2 * a2 * a3 * UM +
-    #   (a3^2) * MM
     MM <- (qmm * qmm) * qmm
 
     (a1 * a1) * base_T3T3 +
@@ -438,24 +421,14 @@
   }
 
 
-  # Higher-order correction term T(t) used by discrepancy/2nd-order SPA.
-  # funcT_fun <- function(tvec, param) {
-  #   K2_val <- K2fun(tvec, param)
-  #   Q <- solve(K2_val)
-  #   K4_AABB <- K4AABB_fun(tvec, param, Q, Q)
-  #   K3K3_AABBCC <- K3K3AABBCC_fun(tvec, param, Q, Q, Q)
-  #   K3K3_ABCABC <- K3K3ABCABC_fun(tvec, param, Q, Q, Q)
-  #   (K4_AABB / 8) - (K3K3_AABBCC / 8) - (K3K3_ABCABC / 12)
-  # }
-
-  funcT_fun <- function(tvec, param) {
+  func_T <- function(tvec, param) {
     d <- length(tvec)
 
-    Q <- K2_solve_fun(tvec, param, diag(d))  # Q = K2^{-1}
+    Q <- K2_solve(tvec, param, diag(d))  # Q = K2^{-1}
 
-    K4_AABB <- K4AABB_fun(tvec, param, Q, Q)
-    K3K3_AABBCC <- K3K3AABBCC_fun(tvec, param, Q, Q, Q)
-    K3K3_ABCABC <- K3K3ABCABC_fun(tvec, param, Q, Q, Q)
+    K4_AABB <- K4operatorAABB(tvec, param, Q, Q)
+    K3K3_AABBCC <- K3K3operatorAABBCC(tvec, param, Q, Q, Q)
+    K3K3_ABCABC <- K3K3operatorABCABC(tvec, param, Q, Q, Q)
     (K4_AABB / 8) - (K3K3_AABBCC / 8) - (K3K3_ABCABC / 12)
   }
 
@@ -475,11 +448,11 @@
 
 
 
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(count_cgf$has_rsim) && isTRUE(summand_cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL,
-                             max_total_summands = NULL,
-                             ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL,
+                     max_total_summands = NULL,
+                     ...) {
 
       d <- as.integer(vector_length)
 
@@ -585,38 +558,26 @@
     }
   }
 
-
-
-
-
-
-
-
-
-
-  # -------------------- create CGF object ---------------------------
-
-
-
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K2operator = K2opfun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-    #####
-    K2_solve   = K2_solve_fun,
-    logdetK2   = logdetK2_fun,
-    rsim = simulate_fun,
-    K4operatorAABB       = K4AABB_fun,
-    K3K3operatorAABBCC   = K3K3AABBCC_fun,
-    K3K3operatorABCABC   = K3K3ABCABC_fun,
-    func_T               = funcT_fun,
-    ineq_constraint = ineqfun,
-    op_name = op_name_vec,
-    ...
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K2operator = K2operator,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    rsim = rsim,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    func_T = func_T,
+    ineq_constraint = ineq_constraint,
+    op_name = op_name_vec
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

@@ -34,66 +34,63 @@
 
 
 
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     total <- 0*param[1]
     for (f in K_list) total <- total + f(tvec, param)
     total
   }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     out <- numeric(length(tvec)) * param[1]
     for (f in K1_list) out <- out + f(tvec, param)
     out
   }
 
-  K2fun <- function(tvec, param) {
+  K2 <- function(tvec, param) {
     d <- length(tvec)
     accum <- matrix(0, nrow = d, ncol = d) * param[1]
-    # print(class(accum))
     for (f in K2_list) accum <- accum + f(tvec, param)
     accum
   }
 
-  K3opfun <- function(tvec, param, v1, v2, v3) {
+  K3operator <- function(tvec, param, v1, v2, v3) {
     total <- 0*param[1]
     for (f in K3op_list) total <- total + f(tvec, param, v1, v2, v3)
     total
   }
 
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) {
+  K4operator <- function(tvec, param, v1, v2, v3, v4) {
     total <- 0*param[1]
     for (f in K4op_list) total <- total + f(tvec, param, v1, v2, v3, v4)
     total
   }
 
-  tiltingfun <- function(tvec, param) {
+  tilting_exponent <- function(tvec, param) {
     total <- 0*param[1]
     for (f in tilting_list) total <- total + f(tvec, param)
     total
   }
 
-  K2opfun <- function(tvec, param, x, y) {
+  K2operator <- function(tvec, param, x, y) {
     total <- 0*param[1]
     for (f in K2op_list) total <- total + f(tvec, param, x, y)
     total
   }
 
-  K2opAK2ATfun <- function(tvec, param, B) {
+  K2operatorAK2AT <- function(tvec, param, B) {
     r <- nrow(B)
     accum <- matrix(0, nrow = r, ncol = r) * param[1]
     for (f in K2opAK2AT_list) accum <- accum + f(tvec, param, B)
     accum
   }
 
-  K4AABBfun <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q1, Q2) {
     total <- 0*param[1]
     for (f in K4AABB_list) total <- total + f(tvec, param, Q1, Q2)
     total
   }
 
-  #
-
-  ineqfun <- function(tvec, param) {
+  ineq_constraint <- function(tvec, param) {
     pieces <- lapply(ineq_list, function(f) f(tvec, param))
     total_size <- sum(lengths(pieces))
 
@@ -122,7 +119,7 @@
   # when Q1=Q2=Q3 (same A and d)
   # -------------------------------------------------------------------------
 
-  K4operatorAABB_factored_sym <- function(tvec, param, A1, d1, A2, d2) {
+  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
 
     same_case <- identical(A1, A2) && identical(d1, d2)
 
@@ -132,7 +129,7 @@
       res <- 0 * param[1]
       for (m1 in seq_len(r1)) {
         for (m2 in seq_len(r2)) {
-          res <- res + d1[m1] * d2[m2] * K4opfun(
+          res <- res + d1[m1] * d2[m2] * K4operator(
             tvec, param, A1[, m1], A1[, m1], A2[, m2], A2[, m2]
           )
         }
@@ -152,14 +149,14 @@
       for (j in i:r) {
         aj <- Acols[[j]]
         mult <- if (i == j) 1 else 2
-        res <- res + mult * (di * d1[j]) * K4opfun(tvec, param, ai, ai, aj, aj)
+        res <- res + mult * (di * d1[j]) * K4operator(tvec, param, ai, ai, aj, aj)
       }
     }
     res
   }
 
 
-  K3K3operatorAABBCC_factored_sym <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
 
     same_case <- identical(A1, A2) && identical(A1, A3) &&
       identical(d1, d2) && identical(d1, d3)
@@ -171,11 +168,11 @@
       for (m2 in seq_len(r2)) {
         factor1 <- 0 * param[1]
         for (m1 in seq_len(r1)) {
-          factor1 <- factor1 + d1[m1] * K3opfun(tvec, param, A1[, m1], A1[, m1], A2[, m2])
+          factor1 <- factor1 + d1[m1] * K3operator(tvec, param, A1[, m1], A1[, m1], A2[, m2])
         }
         factor2 <- 0*param[1]
         for (m3 in seq_len(r3)) {
-          factor2 <- factor2 + d3[m3] * K3opfun(tvec, param, A2[, m2], A3[, m3], A3[, m3])
+          factor2 <- factor2 + d3[m3] * K3operator(tvec, param, A2[, m2], A3[, m3], A3[, m3])
         }
         res <- res + d2[m2] * factor1 * factor2
       }
@@ -195,15 +192,14 @@
       g  <- 0 * param[1]
       for (i in seq_len(r)) {
         ai <- Acols[[i]]
-        g <- g + d1[i] * K3opfun(tvec, param, ai, ai, aj)
+        g <- g + d1[i] * K3operator(tvec, param, ai, ai, aj)
       }
       res <- res + d1[j] * (g*g)
     }
     res
   }
 
-  # ---- K3K3operatorABCABC_factored ----
-  K3K3operatorABCABC_factored_sym <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
 
     same_case <- identical(A1, A2) && identical(A1, A3) &&
       identical(d1, d2) && identical(d1, d3)
@@ -215,7 +211,7 @@
       for (m1 in seq_len(r1)) {
         for (m2 in seq_len(r2)) {
           for (m3 in seq_len(r3)) {
-            val <- K3opfun(tvec, param, A1[, m1], A2[, m2], A3[, m3])
+            val <- K3operator(tvec, param, A1[, m1], A2[, m2], A3[, m3])
             res <- res + d1[m1] * d2[m2] * d3[m3] * (val * val)
           }
         }
@@ -238,7 +234,7 @@
         dij <- di * d1[j]
         for (k in j:r) {
           ak <- Acols[[k]]
-          val <- K3opfun(tvec, param, ai, aj, ak)
+          val <- K3operator(tvec, param, ai, aj, ak)
 
           mult <- if (i == j && j == k) {
             1
@@ -267,10 +263,10 @@
   op_name_vec <- c(combined_history, "sumOfIndependentCGF")
 
   # simulation (only if all summands can simulate)
-  simulate_fun <- NULL
+  rsim <- NULL
   if (all(vapply(cgf_list, function(cg) isTRUE(cg$has_rsim), logical(1)))) {
     rsim_list <- lapply(cgf_list, function(cg) cg$rsim)
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       out <- rsim_list[[1]](
         n = n,
         vector_length = vector_length,
@@ -297,31 +293,26 @@
     }
   }
 
-
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-
-    tilting_exponent = tiltingfun,
-    ineq_constraint  = ineqfun,
-
-    K2operator       = K2opfun,
-    K2operatorAK2AT  = K2opAK2ATfun,
-    K4operatorAABB   = K4AABBfun,
-
-    rsim = simulate_fun,
-
-    # overrides for func_T path
-    K4operatorAABB_factored     = K4operatorAABB_factored_sym,
-    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored_sym,
-    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored_sym,
-
-    op_name = op_name_vec,
-    ...
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    ineq_constraint = ineq_constraint,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K4operatorAABB = K4operatorAABB,
+    rsim = rsim,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+    op_name = op_name_vec
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 

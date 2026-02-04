@@ -71,54 +71,52 @@
     .expand_to_length_strict(b, n, what = "shift")
   }
 
-  Kfun <- function(tvec, param) {
+  K <- function(tvec, param) {
     b <- b_at(param, length(tvec))
     K0(tvec, param) + sum(tvec * b)
   }
 
-  K1fun <- function(tvec, param) {
+  K1 <- function(tvec, param) {
     b <- b_at(param, length(tvec))
     K10(tvec, param) + b
   }
 
   # Unchanged derivatives/operators
-  K2fun   <- function(tvec, param) K20(tvec, param)
-  K3opfun <- function(tvec, param, v1, v2, v3) K30(tvec, param, v1, v2, v3)
-  K4opfun <- function(tvec, param, v1, v2, v3, v4) K40(tvec, param, v1, v2, v3, v4)
+  K2 <- function(tvec, param) K20(tvec, param)
+  K3operator <- function(tvec, param, v1, v2, v3) K30(tvec, param, v1, v2, v3)
+  K4operator <- function(tvec, param, v1, v2, v3, v4) K40(tvec, param, v1, v2, v3, v4)
 
   # Unchanged constraints in t
-  ineqfun <- function(tvec, param) ineq0(tvec, param)
+  ineq_constraint <- function(tvec, param) ineq0(tvec, param)
 
-  # Unchanged “fast” methods
-  K2opfun <- function(tvec, param, x, y) K2op0(tvec, param, x, y)
-  K2opAK2ATfun <- function(tvec, param, B) K2opAK2AT0(tvec, param, B)
+  # Unchanged "fast" methods
+  K2operator <- function(tvec, param, x, y) K2op0(tvec, param, x, y)
+  K2operatorAK2AT <- function(tvec, param, B) K2opAK2AT0(tvec, param, B)
 
-  K2solve_fun <- function(tvec, param, rhs) K2solve0(tvec, param, rhs)
-  logdet_fun  <- function(tvec, param)      logdet0(tvec, param)
+  K2_solve <- function(tvec, param, rhs) K2solve0(tvec, param, rhs)
+  logdetK2 <- function(tvec, param) logdet0(tvec, param)
 
-  K4AABB_fun   <- function(tvec, param, Q1, Q2)      K4AABB0(tvec, param, Q1, Q2)
-  K3K3A_fun    <- function(tvec, param, Q1, Q2, Q3)  K3K3A0(tvec, param, Q1, Q2, Q3)
-  K3K3B_fun    <- function(tvec, param, Q1, Q2, Q3)  K3K3B0(tvec, param, Q1, Q2, Q3)
+  K4operatorAABB <- function(tvec, param, Q1, Q2) K4AABB0(tvec, param, Q1, Q2)
+  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) K3K3A0(tvec, param, Q1, Q2, Q3)
+  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) K3K3B0(tvec, param, Q1, Q2, Q3)
 
+  tilting_exponent <- function(tvec, param) tilt0(tvec, param)
+  neg_ll <- function(tvec, param) negll0(tvec, param)
+  func_T <- function(tvec, param) funcT0(tvec, param)
 
-  tilting_fun <- function(tvec, param) tilt0(tvec, param)
-  negll_fun   <- function(tvec, param) negll0(tvec, param)
-  funcT_fun   <- function(tvec, param) funcT0(tvec, param)
-
-  #
-  analytic_tvec_hat_func <- NULL
+  analytic_tvec_hat <- NULL
   if (isTRUE(base_cgf$has_analytic_tvec_hat)) {
     hat0 <- base_cgf$analytic_tvec_hat
-    analytic_tvec_hat_func <- function(x, param) {
+    analytic_tvec_hat <- function(x, param) {
       b <- b_at(param, length(x))
       hat0(x - b, param)
     }
   }
 
   # Simulation: if X can simulate, Y = X + b(theta) can simulate by shifting draws.
-  simulate_fun <- NULL
+  rsim <- NULL
   if (isTRUE(base_cgf$has_rsim)) {
-    simulate_fun <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
+    rsim <- function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       X_sim <- base_cgf$rsim(
         n = n,
         vector_length = vector_length,
@@ -132,44 +130,36 @@
     }
   }
 
-  #
   base_hist <- paste(base_cgf$call_history, collapse = " -> ")
-  op_name_vec <- c(base_hist, "shiftedCGF")
+  op_name <- c(base_hist, "shiftedCGF")
 
-  createCGF(
-    K  = Kfun,
-    K1 = K1fun,
-    K2 = K2fun,
-    K3operator = K3opfun,
-    K4operator = K4opfun,
-
-    # invariant pieces
-    tilting_exponent = tilting_fun,
-    neg_ll = negll_fun,
-    func_T = funcT_fun,
-    rsim = simulate_fun,
-
-    ineq_constraint = ineqfun,
-    analytic_tvec_hat = analytic_tvec_hat_func,
-
-    # pass-through “fast” linear algebra / operators
-    K2operator      = K2opfun,
-    K2operatorAK2AT = K2opAK2ATfun,
-    K2_solve        = K2solve_fun,
-    logdetK2        = logdet_fun,
-
-    K4operatorAABB      = K4AABB_fun,
-    K3K3operatorAABBCC  = K3K3A_fun,
-    K3K3operatorABCABC  = K3K3B_fun,
-
-    # pass-through factored operators (important for speed in func_T pipelines)
-    K4operatorAABB_factored     = K4AABB_fact0,
+  # Build args list (names match createCGF parameters exactly)
+  cgf_args <- list(
+    K = K,
+    K1 = K1,
+    K2 = K2,
+    K3operator = K3operator,
+    K4operator = K4operator,
+    tilting_exponent = tilting_exponent,
+    neg_ll = neg_ll,
+    func_T = func_T,
+    rsim = rsim,
+    ineq_constraint = ineq_constraint,
+    analytic_tvec_hat = analytic_tvec_hat,
+    K2operator = K2operator,
+    K2operatorAK2AT = K2operatorAK2AT,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    K4operatorAABB = K4operatorAABB,
+    K3K3operatorAABBCC = K3K3operatorAABBCC,
+    K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4AABB_fact0,
     K3K3operatorAABBCC_factored = K3K3A_fact0,
     K3K3operatorABCABC_factored = K3K3B_fact0,
-
-    op_name = op_name_vec,
-    ...
+    op_name = op_name
   )
+
+  do.call(createCGF, c(cgf_args, list(...)))
 }
 
 #' Shifted CGF (deterministic translation)
