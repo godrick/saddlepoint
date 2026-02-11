@@ -62,11 +62,11 @@ along with any optional operators or methods.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">createCGF_fromVectorisedFunctions</span><span class="op">(</span></span>
-<span>  <span class="va">K_vectorized_func</span>,</span>
-<span>  <span class="va">K1_vectorized_func</span>,</span>
-<span>  <span class="va">K2_vectorized_func</span>,</span>
-<span>  <span class="va">K3_vectorized_func</span>,</span>
-<span>  <span class="va">K4_vectorized_func</span>,</span>
+<span>  <span class="va">K_vectorized</span>,</span>
+<span>  <span class="va">K1_vectorized</span>,</span>
+<span>  <span class="va">K2_vectorized</span>,</span>
+<span>  <span class="va">K3_vectorized</span>,</span>
+<span>  <span class="va">K4_vectorized</span>,</span>
 <span>  ineq_constraint <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  analytic_tvec_hat <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  op_name <span class="op">=</span> <span class="st">"UnnamedOperation"</span>,</span>
@@ -90,19 +90,19 @@ along with any optional operators or methods.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-k-vectorized-func">K_vectorized_func<a class="anchor" aria-label="anchor" href="#arg-k-vectorized-func"></a></dt>
+<dl><dt id="arg-k-vectorized">K_vectorized<a class="anchor" aria-label="anchor" href="#arg-k-vectorized"></a></dt>
 <dd><p>A function of the form <code>function(tvec, param) -&gt; numeric vector</code> that returns the CGF values.</p></dd>
 
 
-<dt id="arg-k-vectorized-func">K1_vectorized_func<a class="anchor" aria-label="anchor" href="#arg-k-vectorized-func"></a></dt>
+<dt id="arg-k-vectorized">K1_vectorized<a class="anchor" aria-label="anchor" href="#arg-k-vectorized"></a></dt>
 <dd><p>A function of the form <code>function(tvec, param) -&gt; numeric vector</code> that returns the first derivative values.</p></dd>
 
 
-<dt id="arg-k-vectorized-func">K2_vectorized_func<a class="anchor" aria-label="anchor" href="#arg-k-vectorized-func"></a></dt>
+<dt id="arg-k-vectorized">K2_vectorized<a class="anchor" aria-label="anchor" href="#arg-k-vectorized"></a></dt>
 <dd><p>A function of the form <code>function(tvec, param) -&gt; numeric vector</code> that returns the second derivative values.</p></dd>
 
 
-<dt id="arg-k-vectorized-func-k-vectorized-func">K3_vectorized_func, K4_vectorized_func<a class="anchor" aria-label="anchor" href="#arg-k-vectorized-func-k-vectorized-func"></a></dt>
+<dt id="arg-k-vectorized-k-vectorized">K3_vectorized, K4_vectorized<a class="anchor" aria-label="anchor" href="#arg-k-vectorized-k-vectorized"></a></dt>
 <dd><p>Similar vectorized functions for the third and fourth derivatives.</p></dd>
 
 

@@ -7,11 +7,11 @@ functions along with any optional operators or methods.
 
 ``` r
 createCGF_fromVectorisedFunctions(
-  K_vectorized_func,
-  K1_vectorized_func,
-  K2_vectorized_func,
-  K3_vectorized_func,
-  K4_vectorized_func,
+  K_vectorized,
+  K1_vectorized,
+  K2_vectorized,
+  K3_vectorized,
+  K4_vectorized,
   ineq_constraint = NULL,
   analytic_tvec_hat = NULL,
   op_name = "UnnamedOperation",
@@ -33,22 +33,22 @@ createCGF_fromVectorisedFunctions(
 
 ## Arguments
 
-- K_vectorized_func:
+- K_vectorized:
 
   A function of the form `function(tvec, param) -> numeric vector` that
   returns the CGF values.
 
-- K1_vectorized_func:
+- K1_vectorized:
 
   A function of the form `function(tvec, param) -> numeric vector` that
   returns the first derivative values.
 
-- K2_vectorized_func:
+- K2_vectorized:
 
   A function of the form `function(tvec, param) -> numeric vector` that
   returns the second derivative values.
 
-- K3_vectorized_func, K4_vectorized_func:
+- K3_vectorized, K4_vectorized:
 
   Similar vectorized functions for the third and fourth derivatives.
 

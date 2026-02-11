@@ -104,20 +104,20 @@ elementwise on <code>tvec</code>.</p>
 vectorized functions:</p>
 <ul>
 <li>
-<code>K_vectorized_func(tvec, param)</code> returning a numeric
-vector of length <code>length(tvec)</code>
+<code>K_vectorized(tvec, param)</code> returning a numeric vector of
+length <code>length(tvec)</code>
 </li>
 <li>
-<code>K1_vectorized_func(tvec, param)</code> returning a numeric
+<code>K1_vectorized(tvec, param)</code> returning a numeric
 vector</li>
 <li>
-<code>K2_vectorized_func(tvec, param)</code> returning a numeric
-vector (diagonal of the Hessian)</li>
+<code>K2_vectorized(tvec, param)</code> returning a numeric vector
+(diagonal of the Hessian)</li>
 <li>
-<code>K3_vectorized_func(tvec, param)</code> returning a numeric
+<code>K3_vectorized(tvec, param)</code> returning a numeric
 vector</li>
 <li>
-<code>K4_vectorized_func(tvec, param)</code> returning a numeric
+<code>K4_vectorized(tvec, param)</code> returning a numeric
 vector</li>
 </ul>
 <p>Often very useful:</p>
@@ -154,22 +154,22 @@ K_4(t)=0.
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="va">NormalLogSigma2CGF</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGF_fromVectorisedFunctions</a></span><span class="op">(</span></span>
-<span>  K_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  K_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span>    <span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">param</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span>    <span class="va">mu</span> <span class="op">*</span> <span class="va">tvec</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">s2</span> <span class="op">*</span> <span class="va">tvec</span> <span class="op">*</span> <span class="va">tvec</span></span>
 <span>  <span class="op">}</span>,</span>
-<span>  K1_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  K1_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span>    <span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">param</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span>    <span class="va">mu</span> <span class="op">+</span> <span class="va">s2</span> <span class="op">*</span> <span class="va">tvec</span></span>
 <span>  <span class="op">}</span>,</span>
-<span>  K2_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  K2_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">param</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">s2</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
-<span>  K3_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
-<span>  K4_vectorized_func <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>  K3_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>  K4_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tvec</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
 <span></span>
 <span>  <span class="co"># Optional: analytic saddlepoint t-hat for K1(t)=x</span></span>
 <span>  analytic_tvec_hat <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
