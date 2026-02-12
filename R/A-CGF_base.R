@@ -451,22 +451,16 @@ CGF <- R6::R6Class(
       }
 
       private_subset <- (nzchar(extra_names)) & (extra_names %in% names(CGF_private_defaults))
-      if (any(private_subset)) {
-        lapply(extra_names[private_subset], override_name, e = private)
-      }
+      lapply(extra_names[private_subset], override_name, e = private)
 
       public_subset <- (nzchar(extra_names)) & (extra_names %in% names(CGF_public_defaults))
-      if (any(public_subset)) {
-        lapply(extra_names[public_subset], override_name, e = self)
-      }
+      lapply(extra_names[public_subset], override_name, e = self)
 
       additional_subset <- (nzchar(extra_names)) &
         !(extra_names %in% names(CGF_private_defaults)) &
         !(extra_names %in% names(CGF_public_defaults))
-      if (any(additional_subset)) {
-        extras <- lapply(extra_args[additional_subset], as_method)
-        self$additional_methods <- modifyList(self$additional_methods, extras)
-      }
+      extras <- lapply(extra_args[additional_subset], as_method)
+      self$additional_methods <- modifyList(self$additional_methods, extras)
     },
 
     print = function(...) {

@@ -86,7 +86,7 @@
     }
   }
 
-  createCGF_fromVectorisedFunctions(
+  createCGFfromVectorizedFunctions(
     K_vectorized  = function(tvec, param) {
       pm <- prep_par(tvec, param)
       K_elem(tvec, pm)
