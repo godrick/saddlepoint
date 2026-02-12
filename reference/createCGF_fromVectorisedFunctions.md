@@ -6,7 +6,7 @@ functions along with any optional operators or methods.
 ## Usage
 
 ``` r
-createCGF_fromVectorisedFunctions(
+createCGFfromVectorizedFunctions(
   K_vectorized,
   K1_vectorized,
   K2_vectorized,
@@ -29,6 +29,8 @@ createCGF_fromVectorisedFunctions(
   K2operatorAK2AT = NULL,
   ...
 )
+
+createCGF_fromVectorisedFunctions(...)
 ```
 
 ## Arguments

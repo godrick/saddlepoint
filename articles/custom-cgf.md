@@ -10,7 +10,7 @@ down:
 The recommended constructor for most univariate or elementwise models
 is:
 
-- [`createCGF_fromVectorisedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md)
+- [`createCGFfromVectorizedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md)
 
 where you provide vectorized derivative functions that operate
 elementwise on `tvec`.
@@ -18,7 +18,7 @@ elementwise on `tvec`.
 ## What you must provide
 
 For
-[`createCGF_fromVectorisedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md),
+[`createCGFfromVectorizedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md),
 you provide 5 vectorized functions:
 
 - `K_vectorized(tvec, param)` returning a numeric vector of length
@@ -48,7 +48,7 @@ $\left( \mu,\log\sigma^{2} \right)$.
 
 ``` r
 
-NormalLogSigma2CGF <- createCGF_fromVectorisedFunctions(
+NormalLogSigma2CGF <- createCGFfromVectorizedFunctions(
   K_vectorized = function(tvec, param) {
     mu <- param[1]
     s2 <- exp(param[2])

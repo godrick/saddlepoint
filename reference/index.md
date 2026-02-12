@@ -89,7 +89,8 @@
 - [`createCGF()`](https://godrick.github.io/saddlepoint/reference/createCGF.md)
   : Create a CGF object from user-defined functions
 
-- [`createCGF_fromVectorisedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md)
+- [`createCGFfromVectorizedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md)
+  [`createCGF_fromVectorisedFunctions()`](https://godrick.github.io/saddlepoint/reference/createCGF_fromVectorisedFunctions.md)
   :
 
   Create a `CGF` object from vectorized functions

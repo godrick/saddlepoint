@@ -93,14 +93,14 @@ and its derivatives (at least up to order 4), and</li>
 <p>The recommended constructor for most univariate or elementwise models
 is:</p>
 <ul>
-<li><code><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGF_fromVectorisedFunctions()</a></code></li>
+<li><code><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGFfromVectorizedFunctions()</a></code></li>
 </ul>
 <p>where you provide vectorized derivative functions that operate
 elementwise on <code>tvec</code>.</p>
 <div class="section level2">
 <h2 id="what-you-must-provide">What you must provide<a class="anchor" aria-label="anchor" href="#what-you-must-provide"></a>
 </h2>
-<p>For <code><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGF_fromVectorisedFunctions()</a></code>, you provide 5
+<p>For <code><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGFfromVectorizedFunctions()</a></code>, you provide 5
 vectorized functions:</p>
 <ul>
 <li>
@@ -153,7 +153,7 @@ K_4(t)=0.
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mo>log</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu, \log\sigma^2)</annotation></semantics></math>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="va">NormalLogSigma2CGF</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGF_fromVectorisedFunctions</a></span><span class="op">(</span></span>
+<span><span class="va">NormalLogSigma2CGF</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createCGF_fromVectorisedFunctions.html">createCGFfromVectorizedFunctions</a></span><span class="op">(</span></span>
 <span>  K_vectorized <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tvec</span>, <span class="va">param</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">param</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span>    <span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">param</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
