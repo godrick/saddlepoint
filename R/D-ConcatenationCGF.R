@@ -363,28 +363,27 @@
   # For concatenation (block independence), only diagonal sub-blocks of Q matter.
   # ---------------------------------------------------------------------------
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K4operatorAABB: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
       total <- total + K4AABB_list[[i]](tvec[idx], param,
-                                        Q1[idx, idx, drop = FALSE],
-                                        Q2[idx, idx, drop = FALSE])
+                                        Q[idx, idx, drop = FALSE])
     }
     total
   }
 
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorAABBCC: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
       total <- total + K3K3AABBCC_list[[i]](tvec[idx], param,
-                                            Q1[idx, idx, drop = FALSE],
-                                            Q2[idx, idx, drop = FALSE],
-                                            Q3[idx, idx, drop = FALSE])
+                                            Q[idx, idx, drop = FALSE])
     }
+    ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks
+    ##### cf. code for vectorized CGFs
     total
   }
 
@@ -394,10 +393,10 @@
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
       total <- total + K3K3ABCABC_list[[i]](tvec[idx], param,
-                                            Q1[idx, idx, drop = FALSE],
-                                            Q2[idx, idx, drop = FALSE],
-                                            Q3[idx, idx, drop = FALSE])
+                                            Q[idx, idx, drop = FALSE])
     }
+    ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
+    ##### cf. code for vectorized CGFs
     total
   }
 

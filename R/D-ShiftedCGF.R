@@ -96,9 +96,9 @@
   K2_solve <- function(tvec, param, rhs) K2solve0(tvec, param, rhs)
   logdetK2 <- function(tvec, param) logdet0(tvec, param)
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) K4AABB0(tvec, param, Q1, Q2)
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) K3K3A0(tvec, param, Q1, Q2, Q3)
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) K3K3B0(tvec, param, Q1, Q2, Q3)
+  K4operatorAABB <- function(tvec, param, Q) K4AABB0(tvec, param, Q)
+  K3K3operatorAABBCC <- function(tvec, param, Q) K3K3A0(tvec, param, Q)
+  K3K3operatorABCABC <- function(tvec, param, Q) K3K3B0(tvec, param, Q)
 
   tilting_exponent <- function(tvec, param) tilt0(tvec, param)
   neg_ll <- function(tvec, param) negll0(tvec, param)

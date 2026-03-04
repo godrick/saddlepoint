@@ -111,77 +111,34 @@
 
 
 
-  # -------------------------------------------------------------------------
-  # Symmetric factored operators used by base func_T():
-  #     K4operatorAABB_factored(t,theta,A,d,A,d)
-  #     K3K3operatorAABBCC_factored(t,theta,A,d,A,d,A,d)
-  #     K3K3operatorABCABC_factored(t,theta,A,d,A,d,A,d)
-  # when Q1=Q2=Q3 (same A and d)
-  # -------------------------------------------------------------------------
+  K4operatorAABB_factored <- function(tvec, param, A, d) {
 
-  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
-
-    same_case <- identical(A1, A2) && identical(d1, d2)
-
-    if (!same_case) {
-      # generic fallback (matches base default)
-      r1 <- length(d1); r2 <- length(d2)
-      res <- 0 * param[1]
-      for (m1 in seq_len(r1)) {
-        for (m2 in seq_len(r2)) {
-          res <- res + d1[m1] * d2[m2] * K4operator(
-            tvec, param, A1[, m1], A1[, m1], A2[, m2], A2[, m2]
-          )
-        }
-      }
-      return(res)
-    }
-
-    r <- length(d1)
+    r <- length(d)
     if (r == 0L) return(0*param[1])
 
-    Acols <- lapply(seq_len(r), function(i) A1[, i])
+    Acols <- lapply(seq_len(r), function(i) A[, i])
 
     res <- 0*param[1]
     for (i in seq_len(r)) {
       ai <- Acols[[i]]
-      di <- d1[i]
+      di <- d[i]
       for (j in i:r) {
         aj <- Acols[[j]]
         mult <- if (i == j) 1 else 2
-        res <- res + mult * (di * d1[j]) * K4operator(tvec, param, ai, ai, aj, aj)
+        res <- res + mult * (di * d[j]) * K4operator(tvec, param, ai, ai, aj, aj)
       }
     }
     res
+    
+    ##### To check: should this method simply sum over terms, as with methods above?
+    ## Note that this won't work for the K3K3 methods, though
   }
 
 
-  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, d) {
 
-    same_case <- identical(A1, A2) && identical(A1, A3) &&
-      identical(d1, d2) && identical(d1, d3)
-
-    if (!same_case) {
-      # generic fallback (base default)
-      r1 <- length(d1); r2 <- length(d2); r3 <- length(d3)
-      res <- 0*param[1]
-      for (m2 in seq_len(r2)) {
-        factor1 <- 0 * param[1]
-        for (m1 in seq_len(r1)) {
-          factor1 <- factor1 + d1[m1] * K3operator(tvec, param, A1[, m1], A1[, m1], A2[, m2])
-        }
-        factor2 <- 0*param[1]
-        for (m3 in seq_len(r3)) {
-          factor2 <- factor2 + d3[m3] * K3operator(tvec, param, A2[, m2], A3[, m3], A3[, m3])
-        }
-        res <- res + d2[m2] * factor1 * factor2
-      }
-      return(res)
-    }
-
-    # same-case exact simplification:
     #   res = sum_j d[j] * ( sum_i d[i] K3(a_i,a_i,a_j) )^2
-    r <- length(d1)
+    r <- length(d)
     if (r == 0L) return(0*param[1])
 
     Acols <- lapply(seq_len(r), function(i) A1[, i])
@@ -192,46 +149,28 @@
       g  <- 0 * param[1]
       for (i in seq_len(r)) {
         ai <- Acols[[i]]
-        g <- g + d1[i] * K3operator(tvec, param, ai, ai, aj)
+        g <- g + d[i] * K3operator(tvec, param, ai, ai, aj)
       }
-      res <- res + d1[j] * (g*g)
+      res <- res + d[j] * (g*g)
     }
     res
   }
 
-  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
-
-    same_case <- identical(A1, A2) && identical(A1, A3) &&
-      identical(d1, d2) && identical(d1, d3)
-
-    if (!same_case) {
-      # generic fallback (base default)
-      r1 <- length(d1); r2 <- length(d2); r3 <- length(d3)
-      res <- 0 * param[1]
-      for (m1 in seq_len(r1)) {
-        for (m2 in seq_len(r2)) {
-          for (m3 in seq_len(r3)) {
-            val <- K3operator(tvec, param, A1[, m1], A2[, m2], A3[, m3])
-            res <- res + d1[m1] * d2[m2] * d3[m3] * (val * val)
-          }
-        }
-      }
-      return(res)
-    }
+  K3K3operatorABCABC_factored <- function(tvec, param, A, d) {
 
     # Symmetry exact path (i<=j<=k with multiplicities 1/3/6)
-    r <- length(d1)
+    r <- length(d)
     if (r == 0L) return(0 * param[1])
 
-    Acols <- lapply(seq_len(r), function(i) A1[, i])
+    Acols <- lapply(seq_len(r), function(i) A[, i])
 
     res <- 0 * param[1]
     for (i in seq_len(r)) {
       ai <- Acols[[i]]
-      di <- d1[i]
+      di <- d[i]
       for (j in i:r) {
         aj <- Acols[[j]]
-        dij <- di * d1[j]
+        dij <- di * d[j]
         for (k in j:r) {
           ak <- Acols[[k]]
           val <- K3operator(tvec, param, ai, aj, ak)
@@ -244,7 +183,7 @@
             6
           }
 
-          res <- res + mult * (dij * d1[k]) * (val * val)
+          res <- res + mult * (dij * d[k]) * (val * val)
         }
       }
     }

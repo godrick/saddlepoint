@@ -145,19 +145,19 @@
   # Higher-order Q-operators
   # ------------------------------------------------------------------
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     n_val <- .get_n(param)
-    n_val * cgf$K4operatorAABB(tvec, param, Q1, Q2)
+    n_val * cgf$K4operatorAABB(tvec, param, Q)
   }
 
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
     n_val <- .get_n(param)
-    (n_val * n_val) * cgf$K3K3operatorAABBCC(tvec, param, Q1, Q2, Q3)
+    (n_val * n_val) * cgf$K3K3operatorAABBCC(tvec, param, Q)
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q) {
     n_val <- .get_n(param)
-    (n_val * n_val) * cgf$K3K3operatorABCABC(tvec, param, Q1, Q2, Q3)
+    (n_val * n_val) * cgf$K3K3operatorABCABC(tvec, param, Q)
   }
 
 
@@ -172,19 +172,19 @@
   base_K3K3AABBCC_fact   <- cgf$.private_api$K3K3operatorAABBCC_factored
   base_K3K3ABCABC_fact   <- cgf$.private_api$K3K3operatorABCABC_factored
 
-  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
+  K4operatorAABB_factored <- function(tvec, param, A, d) {
     n_val <- .get_n(param)
-    n_val * base_K4AABB_factored(tvec, param, A1, d1, A2, d2)
+    n_val * base_K4AABB_factored(tvec, param, A, d)
   }
 
-  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, d) {
     n_val <- .get_n(param)
-    (n_val * n_val) * base_K3K3AABBCC_fact(tvec, param, A1, d1, A2, d2, A3, d3)
+    (n_val * n_val) * base_K3K3AABBCC_fact(tvec, param, A, d)
   }
 
-  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, param, A, d) {
     n_val <- .get_n(param)
-    (n_val * n_val) * base_K3K3ABCABC_fact(tvec, param, A1, d1, A2, d2, A3, d3)
+    (n_val * n_val) * base_K3K3ABCABC_fact(tvec, param, A, d)
   }
 
 

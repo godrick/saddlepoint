@@ -56,16 +56,16 @@
     cgf$K2operatorAK2AT(tvec, param_adaptor(param), A)
   }
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
-    cgf$K4operatorAABB(tvec, param_adaptor(param), Q1, Q2)
+  K4operatorAABB <- function(tvec, param, Q) {
+    cgf$K4operatorAABB(tvec, param_adaptor(param), Q)
   }
 
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
-    cgf$K3K3operatorAABBCC(tvec, param_adaptor(param), Q1, Q2, Q3)
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
+    cgf$K3K3operatorAABBCC(tvec, param_adaptor(param), Q)
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
-    cgf$K3K3operatorABCABC(tvec, param_adaptor(param), Q1, Q2, Q3)
+  K3K3operatorABCABC <- function(tvec, param, Q) {
+    cgf$K3K3operatorABCABC(tvec, param_adaptor(param), Q)
   }
 
   ineq_constraint <- function(tvec, param) {
@@ -89,9 +89,9 @@
   tilting_exponent <- function(tvec, param) base_tilting_exponent(tvec, param_adaptor(param))
   neg_ll <- function(tvec, param) base_neg_ll(tvec, param_adaptor(param))
   func_T <- function(tvec, param) base_func_T(tvec, param_adaptor(param))
-  K4operatorAABB_factored     <- function(tvec, param, A1, d1, A2, d2) base_K4operatorAABB_factored(tvec, param_adaptor(param), A1, d1, A2, d2)
-  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) base_K3K3operatorAABBCC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
-  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) base_K3K3operatorABCABC_factored(tvec, param_adaptor(param), A1, d1, A2, d2, A3, d3)
+  K4operatorAABB_factored     <- function(tvec, param, A, d) base_K4operatorAABB_factored(tvec, param_adaptor(param), A, d)
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, d) base_K3K3operatorAABBCC_factored(tvec, param_adaptor(param), A, d)
+  K3K3operatorABCABC_factored <- function(tvec, param, A, d) base_K3K3operatorABCABC_factored(tvec, param_adaptor(param), A, d)
 
 
 

@@ -426,11 +426,11 @@
 
     Q <- K2_solve(tvec, param, diag(d))  # Q = K2^{-1}
 
-    K4_AABB <- K4operatorAABB(tvec, param, Q, Q)
-    K3K3_AABBCC <- K3K3operatorAABBCC(tvec, param, Q, Q, Q)
-    K3K3_ABCABC <- K3K3operatorABCABC(tvec, param, Q, Q, Q)
+    K4_AABB <- K4operatorAABB(tvec, param, Q)
+    K3K3_AABBCC <- K3K3operatorAABBCC(tvec, param, Q)
+    K3K3_ABCABC <- K3K3operatorABCABC(tvec, param, Q)
     (K4_AABB / 8) - (K3K3_AABBCC / 8) - (K3K3_ABCABC / 12)
-  }
+  } ### Needed? May overlap with default
 
   combined_history <- paste0(
     "count: ", count_cgf$call_history, "\n",

@@ -84,17 +84,17 @@ VectorizedFunctionsCGF <- R6::R6Class(
           k4val <- private$K4_vectorized(tvec, p)
           sum(k4val/(8 * k2sq_val) - 5*(k3val*k3val)/(24 * k2sq_val * k2val))
         },
-        K4operatorAABB = function(tvec, p, Q1, Q2) {
-          sum(private$K4_vectorized(tvec, p) * diag(Q1) * diag(Q2))
+        K4operatorAABB = function(tvec, p, Q) {
+          sum(private$K4_vectorized(tvec, p) * diag(Q) * diag(Q))
         },
-        K3K3operatorAABBCC = function(tvec, p, Q1, Q2, Q3) {
+        K3K3operatorAABBCC = function(tvec, p, Q) {
           k3_vals <- private$K3_vectorized(tvec, p)
-          sum((diag(Q1) * k3_vals) %*% Q2 %*% (diag(Q3) * k3_vals))
+          sum((diag(Q) * k3_vals) %*% Q %*% (diag(Q) * k3_vals))
         },
-        K3K3operatorABCABC = function(tvec, p, Q1, Q2, Q3) {
+        K3K3operatorABCABC = function(tvec, p, Q) {
           k3_vals <- private$K3_vectorized(tvec, p)
           mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
-          sum(mat_k3_vals %*% (Q1 * Q2 * Q3) %*% mat_k3_vals)
+          sum(mat_k3_vals %*% (Q * Q * Q) %*% mat_k3_vals)
         }
       )
 

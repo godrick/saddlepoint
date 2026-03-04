@@ -144,28 +144,28 @@ CGF_public_defaults <- list(
     out
   }
   ,
-  K4operatorAABB = function(tvec, parameter_vector, Q1, Q2) {
-    chol_Q1 <- chol(Q1)
-    diag_Q1 <- diag(chol_Q1)
-    d1 <- diag_Q1 * diag_Q1
-    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-    private$K4operatorAABB_factored(tvec, parameter_vector, A1, d1, A1, d1)
+  K4operatorAABB = function(tvec, parameter_vector, Q) {
+    chol_Q <- chol(Q)
+    diag_Q <- diag(chol_Q)
+    d <- diag_Q * diag_Q
+    A <- t(chol_Q) %*% diag(1/diag_Q)
+    private$K4operatorAABB_factored(tvec, parameter_vector, A, d)
   }
   ,
-  K3K3operatorAABBCC = function(tvec, parameter_vector, Q1, Q2, Q3) {
-    chol_Q1 <- chol(Q1)
-    diag_Q1 <- diag(chol_Q1)
-    d1 <- diag_Q1 * diag_Q1
-    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-    private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
+  K3K3operatorAABBCC = function(tvec, parameter_vector, Q) {
+    chol_Q <- chol(Q)
+    diag_Q <- diag(chol_Q)
+    d <- diag_Q * diag_Q
+    A <- t(chol_Q) %*% diag(1/diag_Q)
+    private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d)
   }
   ,
-  K3K3operatorABCABC = function(tvec, parameter_vector, Q1, Q2, Q3) {
-    chol_Q1 <- chol(Q1)
-    diag_Q1 <- diag(chol_Q1)
-    d1 <- diag_Q1 * diag_Q1
-    A1 <- t(chol_Q1) %*% diag(1/diag_Q1)
-    private$K3K3operatorABCABC_factored(tvec, parameter_vector, A1, d1, A1, d1, A1, d1)
+  K3K3operatorABCABC = function(tvec, parameter_vector, Q) {
+    chol_Q <- chol(Q)
+    diag_Q <- diag(chol_Q)
+    d <- diag_Q * diag_Q
+    A <- t(chol_Q) %*% diag(1/diag_Q)
+    private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d)
   }
   ,
   ineq_constraint = function(tvec, parameter_vector) {
@@ -209,56 +209,47 @@ CGF_private_defaults <- list(
     d <- diag_K2_inv * diag_K2_inv
     A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
 
-    K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d, A, d)
-    K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d, A, d, A, d)
-    K3K3_ABC  <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d, A, d, A, d)
+    K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d)
+    K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d)
+    K3K3_ABC  <- private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d)
     K4_AABB/8 - K3K3_ABBC/8 - K3K3_ABC/12
   }
   ,
-  K4operatorAABB_factored = function(tvec, parameter_vector, A1, d1, A2, d2) {
-    r1 <- length(d1)
-    r2 <- length(d2)
+  K4operatorAABB_factored = function(tvec, parameter_vector, A, d) {
+    r <- length(d)
     res <- 0
-    for (m1 in seq_len(r1)) {
-      for (m2 in seq_len(r2)) {
-        res <- res + d1[m1]*d2[m2]*self$K4operator(
-          tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2], A2[,m2]
+    for (m1 in seq_len(r)) {
+      for (m2 in seq_len(r)) {
+        res <- res + d[m1]*d[m2]*self$K4operator(
+          tvec, parameter_vector, A[,m1], A[,m1], A[,m2], A[,m2]
         )
       }
     }
     res
   }
   ,
-  K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-    r1 <- length(d1)
-    r2 <- length(d2)
-    r3 <- length(d3)
+  K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A, d) {
+    r <- length(d)
     res <- 0
-    for (m2 in seq_len(r2)) {
-      factor1 <- 0
-      for (m1 in seq_len(r1)) {
-        factor1 <- factor1 + d1[m1]*self$K3operator(tvec, parameter_vector, A1[,m1], A1[,m1], A2[,m2])
+    for (m2 in seq_len(r)) {
+      factor <- 0
+      for (m1 in seq_len(r)) {
+        factor <- factor + d[m1]*self$K3operator(tvec, parameter_vector, A[,m1], A[,m1], A[,m2])
       }
-      factor2 <- 0
-      for (m3 in seq_len(r3)) {
-        factor2 <- factor2 + d3[m3]*self$K3operator(tvec, parameter_vector, A2[,m2], A3[,m3], A3[,m3])
-      }
-      res <- res + d2[m2]*factor1*factor2
+      res <- res + d[m2]*factor*factor
     }
     res
   }
   ,
-  K3K3operatorABCABC_factored = function(tvec, parameter_vector, A1, d1, A2, d2, A3, d3) {
-    r1 <- length(d1)
-    r2 <- length(d2)
-    r3 <- length(d3)
+  K3K3operatorABCABC_factored = function(tvec, parameter_vector, A, d) {
+    r <- length(d)
     message("The discrepancy option/compute.funcT has initiated a computation that may take a few moments...")
     res <- 0
-    for (m1 in seq_len(r1)) {
-      for (m2 in seq_len(r2)) {
-        for (m3 in seq_len(r3)) {
-          val <- self$K3operator(tvec, parameter_vector, A1[,m1], A2[,m2], A3[,m3])
-          res <- res + d1[m1]*d2[m2]*d3[m3]*(val*val)
+    for (m1 in seq_len(r)) {
+      for (m2 in seq_len(r)) {
+        for (m3 in seq_len(r)) {
+          val <- self$K3operator(tvec, parameter_vector, A[,m1], A[,m2], A[,m3])
+          res <- res + d[m1]*d[m2]*d[m3]*(val*val)
         }
       }
     }

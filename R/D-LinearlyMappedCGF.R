@@ -138,33 +138,33 @@
 
 
   # All the operator forms involving matrices Q are equivalent to applying the same method for BaseCGF with Q_inner = A^T Q A
-  K4operatorAABB <- function(tvec, parameter_vector, Q1, Q2) {
+  K4operatorAABB <- function(tvec, parameter_vector, Q) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    Q1_inner <- tA %*% Q1 %*% A_current
-    cgf$K4operatorAABB(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner)
+    Q_inner <- tA %*% Q %*% A_current
+    cgf$K4operatorAABB(as.vector(tA %*% tvec), parameter_vector, Q_inner)
   }
 
-  K3K3operatorAABBCC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, parameter_vector, Q) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    Q1_inner <- tA %*% Q1 %*% A_current
-    cgf$K3K3operatorAABBCC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
+    Q_inner <- tA %*% Q %*% A_current
+    cgf$K3K3operatorAABBCC(as.vector(tA %*% tvec), parameter_vector, Q_inner)
   }
 
-  K3K3operatorABCABC <- function(tvec, parameter_vector, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, parameter_vector, Q) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    Q1_inner <- tA %*% Q1 %*% A_current
-    cgf$K3K3operatorABCABC(as.vector(tA %*% tvec), parameter_vector, Q1_inner, Q1_inner, Q1_inner)
+    Q_inner <- tA %*% Q %*% A_current
+    cgf$K3K3operatorABCABC(as.vector(tA %*% tvec), parameter_vector, Q_inner)
   }
 
   # We avoid the factored forms for now (avoiding the potentially expensive loops)
   func_T <- function(tvec, parameter_vector) {
     Q <- solve(K2(tvec, parameter_vector))
-    K3K3operatorABCABC_val <- K3K3operatorABCABC(tvec, parameter_vector, Q, Q, Q)
-    K3K3operatorAABBCC_val <- K3K3operatorAABBCC(tvec, parameter_vector, Q, Q, Q)
-    K4operatorAABB_val <- K4operatorAABB(tvec, parameter_vector, Q, Q)
+    K3K3operatorABCABC_val <- K3K3operatorABCABC(tvec, parameter_vector, Q)
+    K3K3operatorAABBCC_val <- K3K3operatorAABBCC(tvec, parameter_vector, Q)
+    K4operatorAABB_val <- K4operatorAABB(tvec, parameter_vector, Q)
     K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12
   }
 
@@ -172,32 +172,27 @@
   # For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
   # Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r
   base_K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
-  K4operatorAABB_factored <- function(tvec, parameter_vector, B1, d1, B2, d2) {
+  K4operatorAABB_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B1_inner <- tA %*% B1
-    B2_inner <- tA %*% B2
-    base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2)
+    B_inner <- tA %*% B
+    base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
 
   base_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
-  K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B1_inner <- tA %*% B1
-    B2_inner <- tA %*% B2
-    B3_inner <- tA %*% B3
-    base_K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
+    B_inner <- tA %*% B
+    base_K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
 
   base_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
-  K3K3operatorABCABC_factored <- function(tvec, parameter_vector, B1, d1, B2, d2, B3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B1_inner <- tA %*% B1
-    B2_inner <- tA %*% B2
-    B3_inner <- tA %*% B3
-    base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B1_inner, d1, B2_inner, d2, B3_inner, d3)
+    B_inner <- tA %*% B
+    base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
 
   # inequality constraints for the transformed variable Y = A * X are the same as those

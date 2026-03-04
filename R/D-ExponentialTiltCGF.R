@@ -127,39 +127,39 @@
     logdet0(tvec + h, param) + 0 * param[1]
   }
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K4AABB0(tvec + h, param, Q1, Q2) + 0 * param[1]
+    K4AABB0(tvec + h, param, Q) + 0 * param[1]
   }
 
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K3K3AABBCC0(tvec + h, param, Q1, Q2, Q3) + 0 * param[1]
+    K3K3AABBCC0(tvec + h, param, Q) + 0 * param[1]
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K3K3ABCABC0(tvec + h, param, Q1, Q2, Q3) + 0 * param[1]
+    K3K3ABCABC0(tvec + h, param, Q) + 0 * param[1]
   }
 
   # Factored private operator wrappers (used by base func_T defaults)
-  K4operatorAABB_factored <- function(tvec, param, A1, d1, A2, d2) {
+  K4operatorAABB_factored <- function(tvec, param, A, d) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K4AABB_fact0(tvec + h, param, A1, d1, A2, d2) + 0 * param[1]
+    K4AABB_fact0(tvec + h, param, A, d) + 0 * param[1]
   }
-  K3K3operatorAABBCC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, d) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K3K3AABBCC_fact0(tvec + h, param, A1, d1, A2, d2, A3, d3) + 0 * param[1]
+    K3K3AABBCC_fact0(tvec + h, param, A, d) + 0 * param[1]
   }
-  K3K3operatorABCABC_factored <- function(tvec, param, A1, d1, A2, d2, A3, d3) {
+  K3K3operatorABCABC_factored <- function(tvec, param, A, d) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
-    K3K3ABCABC_fact0(tvec + h, param, A1, d1, A2, d2, A3, d3) + 0 * param[1]
+    K3K3ABCABC_fact0(tvec + h, param, A, d) + 0 * param[1]
   }
 
   # Inequality constraints: g_base(t+h) and g_base(h)

@@ -191,22 +191,20 @@ MultinomialFamilyCGF <- R6::R6Class(
                  6 * vu1s * vu2s * vu3s * vu4s)
     },
 
-    # K4operatorAABB(t, Q1, Q2) for the multinomial:
-    # This implementation assumes Q1 == Q2 (and ignores Q2).
-    K4operatorAABB_default = function(tvec, parameter_vector, Q1, Q2) {
+    # K4operatorAABB(t, Q) for the multinomial:
+    K4operatorAABB_default = function(tvec, parameter_vector, Q) {
       d <- private$.check_block(tvec, parameter_vector, where = "K4operatorAABB")
-      private$.check_Q(Q1, d, where = "K4operatorAABB")
-      # Q2 is ignored by design (the calling code uses Q1 == Q2)
+      private$.check_Q(Q, d, where = "K4operatorAABB")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
       v <- private$v_from_t(tvec, odds_val)
 
-      Qv <- Q1 %*% v
+      Qv <- Q %*% v
       vQv <- sum(v * Qv)
 
-      res_double_indices <- sum(outer(v, v) * Q1 * Q1)
+      res_double_indices <- sum(outer(v, v) * Q * Q)
 
-      diag_Q <- diag(Q1)
+      diag_Q <- diag(Q)
       tmp <- sum(v * diag_Q)
 
       N_val * (-2 * res_double_indices +
@@ -217,24 +215,23 @@ MultinomialFamilyCGF <- R6::R6Class(
                  6 * vQv * vQv)
     },
 
-    # K3K3operatorAABBCC(t, Q1, Q2, Q3) for the multinomial.
-    # This implementation assumes Q1 == Q2 == Q3 (and ignores Q2, Q3).
-    K3K3operatorAABBCC_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    # K3K3operatorAABBCC(t, Q) for the multinomial.
+    K3K3operatorAABBCC_default = function(tvec, parameter_vector, Q) {
       d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorAABBCC")
-      private$.check_Q(Q1, d, where = "K3K3operatorAABBCC")
+      private$.check_Q(Q, d, where = "K3K3operatorAABBCC")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
       v <- private$v_from_t(tvec, odds_val)
 
-      Qv  <- Q1 %*% v
+      Qv  <- Q %*% v
       vQv <- sum(v * Qv)
 
-      diag_Q <- diag(Q1)
+      diag_Q <- diag(Q)
       a <- v * diag_Q
       dvec <- v * Qv
 
-      Q_a <- Q1 %*% a
-      Q_d <- Q1 %*% dvec
+      Q_a <- Q %*% a
+      Q_d <- Q %*% dvec
 
       S1 <- sum(a    * Q_a)
       S2 <- 2 * sum(dvec * Q_a)
@@ -260,27 +257,26 @@ MultinomialFamilyCGF <- R6::R6Class(
                                        2 * vQv^2))
     },
 
-    # K3K3operatorABCABC(t, Q1, Q2, Q3) for the multinomial.
-    # This implementation assumes Q1 == Q2 == Q3 (and ignores Q2, Q3).
-    K3K3operatorABCABC_default = function(tvec, parameter_vector, Q1, Q2, Q3) {
+    # K3K3operatorABCABC(t, Q) for the multinomial.
+    K3K3operatorABCABC_default = function(tvec, parameter_vector, Q) {
       d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorABCABC")
-      private$.check_Q(Q1, d, where = "K3K3operatorABCABC")
+      private$.check_Q(Q, d, where = "K3K3operatorABCABC")
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
       v <- private$v_from_t(tvec, odds_val)
 
-      Qv  <- Q1 %*% v
+      Qv  <- Q %*% v
       vQv <- sum(v * Qv)
 
       len_v <- length(v)
       Qv_col <- matrix(Qv, nrow = len_v, ncol = len_v, byrow = FALSE)
       Qv_row <- matrix(Qv, nrow = len_v, ncol = len_v, byrow = TRUE)
 
-      expression_matrix <- Q1^3 -
-        3 * Q1^2 * Qv_col -
-        3 * Q1^2 * Qv_row +
-        3 * Q1^2 * vQv +
-        6 * Q1 * Qv_col * Qv_row
+      expression_matrix <- Q^3 -
+        3 * Q^2 * Qv_col -
+        3 * Q^2 * Qv_row +
+        3 * Q^2 * vQv +
+        6 * Q * Qv_col * Qv_row
 
       res_double_indices <- sum(outer(v, v) * expression_matrix)
 

@@ -266,7 +266,7 @@
 
 
   # K4operatorAABB => sum
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -278,18 +278,17 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      # slice out sub-block of Q1, Q2
-      ### (Verify?) Q1 is block-diagonal of size (n·iidReps) × (n·iidReps). The relevant sub-block is n×n
-      Q1sub <- Q1[idx, idx, drop = FALSE]
-      # Q2sub <- Q2[idx, idx, drop=FALSE]
-      total <- total + cgf$K4operatorAABB(tvec[idx], param, Q1sub, Q1sub)
+      # slice out sub-block of Q
+      ### (Verify?) Q is block-diagonal of size (n·iidReps) × (n·iidReps). The relevant sub-block is n×n
+      Qsub <- Q[idx, idx, drop = FALSE]
+      total <- total + cgf$K4operatorAABB(tvec[idx], param, Qsub)
     }
     total
   }
 
 
   # K3K3operatorAABBCC => sum
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -301,16 +300,18 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      Q1sub <- Q1[idx, idx, drop = FALSE]
+      Qsub <- Q[idx, idx, drop = FALSE]
       # Q2sub <- Q2[idx, idx, drop=FALSE]
       # Q3sub <- Q3[idx, idx, drop=FALSE]
-      total <- total + cgf$K3K3operatorAABBCC(tvec[idx], param, Q1sub, Q1sub, Q1sub)
+      total <- total + cgf$K3K3operatorAABBCC(tvec[idx], param, Qsub, Qsub, Qsub)
+      ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
+      ##### cf. code for vectorized CGFs
     }
     total
   }
 
   # K3K3operatorABCABC => sum
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
@@ -322,10 +323,10 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      Q1sub <- Q1[idx, idx, drop = FALSE]
-      # Q2sub <- Q2[idx, idx, drop=FALSE]
-      # Q3sub <- Q3[idx, idx, drop=FALSE]
-      total <- total + cgf$K3K3operatorABCABC(tvec[idx], param, Q1sub, Q1sub, Q1sub)
+      Qsub <- 1[idx, idx, drop = FALSE]
+      total <- total + cgf$K3K3operatorABCABC(tvec[idx], param, Qsub, Qsub, Qsub)
+      ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
+      ##### cf. code for vectorized CGFs
     }
     total
   }

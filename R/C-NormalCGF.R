@@ -314,9 +314,9 @@ GaussianModelCGF <- NormalModelCGF
   K4operator <- function(tvec, param, v1, v2, v3, v4) 0
   func_T <- function(tvec, param) 0
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) 0
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) 0
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) 0
+  K4operatorAABB <- function(tvec, param, Q) 0
+  K3K3operatorAABBCC <- function(tvec, param, Q) 0
+  K3K3operatorABCABC <- function(tvec, param, Q) 0
 
 
   cgf_args <- list(
