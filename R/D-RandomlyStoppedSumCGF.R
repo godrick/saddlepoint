@@ -37,9 +37,9 @@
 #  This file also provides efficient implementations of:
 #    - logdetK2(t,theta)
 #    - K2_solve(t,theta,rhs)
-#    - K4operatorAABB(t,theta,Q1,Q2)
-#    - K3K3operatorAABBCC(t,theta,Q,Q,Q)   (fast path for Q1=Q2=Q3)
-#    - K3K3operatorABCABC(t,theta,Q,Q,Q)   (fast path for Q1=Q2=Q3)
+#    - K4operatorAABB(t,theta,Q)
+#    - K3K3operatorAABBCC(t,theta,Q)
+#    - K3K3operatorABCABC(t,theta,Q)
 #    - func_T(t,theta) (uses the fast operator paths)
 # ------------------------------------------------------------------
 
@@ -290,10 +290,10 @@
 
   # -------------------- efficient operators for func_T --------------
 
-  # K4operatorAABB(t,Q1,Q2) = \sum_{i,j,k,l} K4_{i j k l} Q1_{i j} Q2_{k l}.
+  # K4operatorAABB(t,Q) = \sum_{i,j,k,l} K4_{i j k l} Q_{i j} Q_{k l}.
   # The derived closed form avoids the base-class rank-factor triple loops.
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -304,40 +304,29 @@
     mu <- as.numeric(summand_cgf$K1(tvec, param))
     Sig <- summand_cgf$K2(tvec, param)
 
-    v1 <- Q1 %*% mu
-    v2 <- Q2 %*% mu
-    q1 <- as.numeric(crossprod(mu, v1))
-    q2 <- as.numeric(crossprod(mu, v2))
+    v <- Q %*% mu
+    q <- as.numeric(crossprod(mu, v))
 
-    tr1 <- .trace_mat(Sig %*% Q1)
-    tr2 <- .trace_mat(Sig %*% Q2)
-    tr12 <- .trace_mat(Sig %*% Q1 %*% Sig %*% Q2)
+    tr <- .trace_mat(Sig %*% Q)
+    tr12 <- .trace_mat(Sig %*% Q %*% Sig %*% Q)
 
     # T3 contractions: \sum_{i,j,k} K3_{i j k} Q_{i j} v_k
-    T3_Q1_v2 <- .T3_AAB(summand_cgf, tvec, param, Q1, v2)
-    T3_Q2_v1 <- .T3_AAB(summand_cgf, tvec, param, Q2, v1)
-
+    T3_Q_v <- .T3_AAB(summand_cgf, tvec, param, Q, v)
+    
     # Summand's own K4 AABB contraction
-    K4_X <- summand_cgf$K4operatorAABB(tvec, param, Q1, Q2)
+    K4_X <- summand_cgf$K4operatorAABB(tvec, param, Q)
 
     # Cross quadratic term
-    quad12 <- as.numeric(crossprod(v1, Sig %*% v2))
+    quad12 <- as.numeric(crossprod(v, Sig %*% v))
 
     a1 * K4_X +
-      a2 * (2 * T3_Q1_v2 + 2 * T3_Q2_v1 + tr1 * tr2 + 2 * tr12) +
-      a3 * (tr1 * q2 + tr2 * q1 + 4 * quad12) +
-      a4 * (q1 * q2)
+      a2 * (4 * T3_Q_v + tr * tr + 2 * tr12) +
+      a3 * (2 * tr * q + 4 * quad12) +
+      a4 * (q * q)
   }
 
 
-  # Fast K3K3 operators are implemented for the case Q1=Q2=Q3,
-  # which is exactly how func_T uses them.
-
-  K3K3operatorAABBCC <- function(tvec, param, Q1, Q2, Q3) {
-    # Q1=Q2=Q3
-
-    Q <- Q1
-
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -359,7 +348,7 @@
     T3_Q_v   <- .T3_AAB(summand_cgf, tvec, param, Q, v)
     T3_Q_QuU <- .T3_AAB(summand_cgf, tvec, param, Q, QuU)
 
-    base_T3T3 <- summand_cgf$K3K3operatorAABBCC(tvec, param, Q, Q, Q)
+    base_T3T3 <- summand_cgf$K3K3operatorAABBCC(tvec, param, Q)
 
     UU <- as.numeric(crossprod(uU, Q %*% uU))
     UM <- qmm * as.numeric(crossprod(uU, v))
@@ -373,10 +362,7 @@
       (a3 * a3) * MM
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
-
-    Q <- Q1
-
+  K3K3operatorABCABC <- function(tvec, param, Q) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -390,7 +376,7 @@
     qmm <- as.numeric(crossprod(mu, v))
 
     # Summand tensor contractions
-    base_T3T3 <- summand_cgf$K3K3operatorABCABC(tvec, param, Q, Q, Q)
+    base_T3T3 <- summand_cgf$K3K3operatorABCABC(tvec, param, Q)
     T3_vvv    <- summand_cgf$K3operator(tvec, param, v, v, v)
 
     # Cross term between T3_X and (Sigma,mu) part:

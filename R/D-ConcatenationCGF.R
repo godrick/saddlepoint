@@ -387,7 +387,7 @@
     total
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q1, Q2, Q3) {
+  K3K3operatorABCABC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorABCABC: tvec length mismatch.")
     total <- 0
     for (i in seq_len(L)) {

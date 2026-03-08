@@ -10,7 +10,7 @@
 #        K4operatorAABB_factored
 #        K3K3operatorAABBCC_factored
 #        K3K3operatorABCABC_factored
-#      with symmetry-exploiting implementations for the common Q1=Q2=Q3 case.
+#      with symmetry-exploiting implementations. # (Note: these improvements may get added to defaults.)
 #      These are used by the base CGF default correction term func_T().
 # ------------------------------------------------------------
 
@@ -84,9 +84,9 @@
     accum
   }
 
-  K4operatorAABB <- function(tvec, param, Q1, Q2) {
+  K4operatorAABB <- function(tvec, param, Q) {
     total <- 0*param[1]
-    for (f in K4AABB_list) total <- total + f(tvec, param, Q1, Q2)
+    for (f in K4AABB_list) total <- total + f(tvec, param, Q)
     total
   }
 

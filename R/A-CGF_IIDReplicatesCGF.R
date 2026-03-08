@@ -301,8 +301,6 @@
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
       Qsub <- Q[idx, idx, drop = FALSE]
-      # Q2sub <- Q2[idx, idx, drop=FALSE]
-      # Q3sub <- Q3[idx, idx, drop=FALSE]
       total <- total + cgf$K3K3operatorAABBCC(tvec[idx], param, Qsub, Qsub, Qsub)
       ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
       ##### cf. code for vectorized CGFs
