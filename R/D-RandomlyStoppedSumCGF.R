@@ -70,8 +70,6 @@
     # This is only used for PD inputs.
     U <- chol(Q)                 # upper triangular, Q = t(U) %*% U
     diagU <- diag(U)
-                  # # Avoid dividing by 0 if something went very wrong numerically
-                  # if (any(diagU == 0)) stop("chol(Q) has a zero diagonal; Q may not be PD.")
     # d <- diagU^2
     d <- diagU * diagU
     A <- t(U) %*% diag(1 / diagU)
@@ -305,26 +303,24 @@
     Sig <- summand_cgf$K2(tvec, param)
 
     v <- Q %*% mu
-    q <- as.numeric(crossprod(mu, v))
+    qmm <- as.numeric(crossprod(mu, v))
 
-    tr <- .trace_mat(Sig %*% Q)
-    tr12 <- .trace_mat(Sig %*% Q %*% Sig %*% Q)
+    trSQ <- .trace_mat(Sig %*% Q)
+    tr_SQSQ <- .trace_mat(Sig %*% Q %*% Sig %*% Q)
 
     # T3 contractions: \sum_{i,j,k} K3_{i j k} Q_{i j} v_k
     T3_Q_v <- .T3_AAB(summand_cgf, tvec, param, Q, v)
-    
     # Summand's own K4 AABB contraction
     K4_X <- summand_cgf$K4operatorAABB(tvec, param, Q)
 
     # Cross quadratic term
-    quad12 <- as.numeric(crossprod(v, Sig %*% v))
+    quad_vSv <- as.numeric(crossprod(v, Sig %*% v))
 
     a1 * K4_X +
-      a2 * (4 * T3_Q_v + tr * tr + 2 * tr12) +
-      a3 * (2 * tr * q + 4 * quad12) +
-      a4 * (q * q)
+      a2 * (4 * T3_Q_v + trSQ * trSQ + 2 * tr_SQSQ) +
+      a3 * (2 * trSQ * qmm + 4 * quad_vSv) +
+      a4 * (qmm * qmm)
   }
-
 
   K3K3operatorAABBCC <- function(tvec, param, Q) {
     s  <- summand_cgf$K(tvec, param)
@@ -672,11 +668,6 @@ randomlyStoppedSumCGF <- function(count_cgf,
   }
 
   if (!is.null(iidReps) && iidReps == 1 && is.null(block_size)) return(out_cgf)
-
-  # if (!is.null(iidReps) && iidReps == 1 && is.null(block_size)) {
-  #   # Allow explicit iidReps=1 as a way to declare "single replicate".
-  #   return(out_cgf)
-  # }
 
   if (is.null(iidReps)) iidReps <- "any"
 

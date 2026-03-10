@@ -84,14 +84,14 @@ test_that("RSS fast AABB / K3K3 operators and func_T agree with base factored im
   K3K3_ABC_fact  <- rss$.private_api$K3K3operatorABCABC_factored
 
   # Reference  values
-  K4_ref    <- K4_factored(tvec, theta, A, dvec, A, dvec)
-  AABB_ref  <- K3K3_AABB_fact(tvec, theta, A, dvec, A, dvec, A, dvec)
-  ABC_ref   <- K3K3_ABC_fact(tvec, theta, A, dvec, A, dvec, A, dvec)
+  K4_ref    <- K4_factored(tvec, theta, A, dvec)
+  AABB_ref  <- K3K3_AABB_fact(tvec, theta, A, dvec)
+  ABC_ref   <- K3K3_ABC_fact(tvec, theta, A, dvec)
 
   # new methods
-  K4_fast   <- rss$K4operatorAABB(tvec, theta, Q, Q)
-  AABB_fast <- rss$K3K3operatorAABBCC(tvec, theta, Q, Q, Q)
-  ABC_fast  <- rss$K3K3operatorABCABC(tvec, theta, Q, Q, Q)
+  K4_fast   <- rss$K4operatorAABB(tvec, theta, Q)
+  AABB_fast <- rss$K3K3operatorAABBCC(tvec, theta, Q)
+  ABC_fast  <- rss$K3K3operatorABCABC(tvec, theta, Q)
 
   expect_equal(as.numeric(K4_fast),  as.numeric(K4_ref),   tolerance = 1e-8)
   expect_equal(as.numeric(AABB_fast), as.numeric(AABB_ref), tolerance = 1e-8)

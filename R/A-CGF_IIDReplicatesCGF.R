@@ -27,6 +27,10 @@
   base_tilting_exponent <- cgf$.private_api$tilting_exponent
   base_neg_ll <- cgf$.private_api$neg_ll
   base_func_T <- cgf$.private_api$func_T
+  child_K3operator <- cgf$K3operator
+  child_K3K3operatorAABBCC <- cgf$K3K3operatorAABBCC
+  child_K3K3operatorABCABC <- cgf$K3K3operatorABCABC
+  child_K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
 
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
@@ -38,8 +42,6 @@
     N <- length(tvec)
 
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -70,8 +72,6 @@
     N <- length(tvec)
 
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -105,8 +105,6 @@
   K2 <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -131,8 +129,6 @@
   tilting_exponent <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -150,8 +146,6 @@
   neg_ll <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -169,8 +163,6 @@
   func_T <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -187,8 +179,6 @@
   K2operator <- function(tvec, param, x, y) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -232,8 +222,6 @@
   K3operator <- function(tvec, param, v1, v2, v3) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -250,8 +238,6 @@
   K4operator <- function(tvec, param, v1, v2, v3, v4) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -269,8 +255,6 @@
   K4operatorAABB <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -278,8 +262,6 @@
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      # slice out sub-block of Q
-      ### (Verify?) Q is block-diagonal of size (n·iidReps) × (n·iidReps). The relevant sub-block is n×n
       Qsub <- Q[idx, idx, drop = FALSE]
       total <- total + cgf$K4operatorAABB(tvec[idx], param, Qsub)
     }
@@ -287,46 +269,140 @@
   }
 
 
-  # K3K3operatorAABBCC => sum
+  # K3K3operatorAABBCC => exact dense-Q implementation
   K3K3operatorAABBCC <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
+    if (B == 1L) {
+      return(child_K3K3operatorAABBCC(tvec, param, Q))
+    }
 
-    total <- 0
+    basis <- diag(1, d)
+    u <- .ad_zero_vector(N, param)
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      Qsub <- Q[idx, idx, drop = FALSE]
-      total <- total + cgf$K3K3operatorAABBCC(tvec[idx], param, Qsub)
-      ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
-      ##### cf. code for vectorized CGFs
+      k3_slices <- .extract_K3_slices(
+        K3fun = child_K3operator,
+        tvec = tvec[idx],
+        param = param,
+        block_dim = d,
+        basis = basis
+      )
+      u[idx] <- .k3_slices_to_aabbcc_vector(k3_slices, Q[idx, idx, drop = FALSE], param)
     }
-    total
+
+    sum(u * as.vector(Q %*% u))
   }
 
-  # K3K3operatorABCABC => sum
+  # K3K3operatorABCABC => exact dense-Q implementation
   K3K3operatorABCABC <- function(tvec, param, Q) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
+    if (B == 1L) {
+      return(child_K3K3operatorABCABC(tvec, param, Q))
+    }
 
-    total <- 0
+    basis <- diag(1, d)
+    idx_list <- vector("list", B)
+    k3_by_block <- vector("list", B)
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      Qsub <- Q[idx, idx, drop = FALSE]
-      total <- total + cgf$K3K3operatorABCABC(tvec[idx], param, Qsub)
-      ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
-      ##### cf. code for vectorized CGFs
+      idx_list[[i]] <- idx
+      k3_by_block[[i]] <- .extract_K3_slices(
+        K3fun = child_K3operator,
+        tvec = tvec[idx],
+        param = param,
+        block_dim = d,
+        basis = basis
+      )
     }
+
+    .k3_slices_abcabc_from_dense_Q(
+      k3_by_block = k3_by_block,
+      block_indices = idx_list,
+      Q = Q,
+      param = param
+    )
+  }
+
+  K4operatorAABB_factored <- function(tvec, param, A, dvec) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    total <- .ad_zero_scalar(param)
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      total <- total + child_K4operatorAABB_factored(
+        tvec[idx], param, A[idx, , drop = FALSE], dvec
+      )
+    }
+
     total
+  }
+
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, dvec) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    basis <- diag(1, d)
+    u <- .ad_zero_vector(N, param)
+
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      A_block <- A[idx, , drop = FALSE]
+      Qii <- .factor_block_matrix(A_block, dvec, A_block)
+      k3_slices <- .extract_K3_slices(
+        K3fun = child_K3operator,
+        tvec = tvec[idx],
+        param = param,
+        block_dim = d,
+        basis = basis
+      )
+      u[idx] <- .k3_slices_to_aabbcc_vector(k3_slices, Qii, param)
+    }
+
+    z <- as.vector(crossprod(A, u))
+    sum(dvec * z * z)
+  }
+
+  K3K3operatorABCABC_factored <- function(tvec, param, A, dvec) {
+    N <- length(tvec)
+    d_cur <- .block_size_value(block_size, param)
+    lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+    d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    basis <- diag(1, d)
+    row_blocks <- vector("list", B)
+    k3_by_block <- vector("list", B)
+
+    for (i in seq_len(B)) {
+      idx <- chunkIndices(i, d)
+      row_blocks[[i]] <- A[idx, , drop = FALSE]
+      k3_by_block[[i]] <- .extract_K3_slices(
+        K3fun = child_K3operator,
+        tvec = tvec[idx],
+        param = param,
+        block_dim = d,
+        basis = basis
+      )
+    }
+
+    .k3_slices_abcabc_from_factored_Q(
+      k3_by_block = k3_by_block,
+      row_blocks = row_blocks,
+      dvec = dvec,
+      param = param
+    )
   }
 
 
@@ -334,8 +410,6 @@
   ineq_constraint <- function(tvec, param) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
-    # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-    # d_cur <- .block_size_value(block_size, getval_param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -369,8 +443,6 @@
     analytic_tvec_hat <- function(x, param) {
       N <- length(x)
       d_cur <- .block_size_value(block_size, param)
-      # getval_param <- ifelse(is(param, "advector"), RTMB:::getValues(param), param)
-      # d_cur <- .block_size_value(block_size, getval_param)
       lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
       d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
@@ -517,6 +589,9 @@
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
     rsim = rsim,
@@ -641,4 +716,3 @@ iidReplicatesCGF <- function(cgf, iidReps = "any", block_size = NULL) {
   )
 
 }
-

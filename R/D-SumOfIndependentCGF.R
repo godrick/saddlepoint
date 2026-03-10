@@ -10,7 +10,7 @@
 #        K4operatorAABB_factored
 #        K3K3operatorAABBCC_factored
 #        K3K3operatorABCABC_factored
-#      with symmetry-exploiting implementations. # (Note: these improvements may get added to defaults.)
+#      with symmetry-exploiting implementations for the common repeated-Q case.
 #      These are used by the base CGF default correction term func_T().
 # ------------------------------------------------------------
 
@@ -141,7 +141,7 @@
     r <- length(d)
     if (r == 0L) return(0*param[1])
 
-    Acols <- lapply(seq_len(r), function(i) A1[, i])
+    Acols <- lapply(seq_len(r), function(i) A[, i])
 
     res <- 0*param[1]
     for (j in seq_len(r)) {

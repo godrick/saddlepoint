@@ -60,8 +60,7 @@
   logdet_list     <- lapply(cgf_list, function(cg) cg$logdetK2)
 
   K4AABB_list     <- lapply(cgf_list, function(cg) cg$K4operatorAABB)
-  K3K3AABBCC_list <- lapply(cgf_list, function(cg) cg$K3K3operatorAABBCC)
-  K3K3ABCABC_list <- lapply(cgf_list, function(cg) cg$K3K3operatorABCABC)
+  K4AABB_factored_list <- lapply(cgf_list, function(cg) cg$.private_api$K4operatorAABB_factored)
 
   ineq_list       <- lapply(cgf_list, function(cg) cg$ineq_constraint)
 
@@ -73,6 +72,7 @@
   # Analytic t-hat: only if ALL children have it
   has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat), logical(1))
   analytic_hat_list <- if (all(has_analytic_vec)) lapply(cgf_list, function(cg) cg$analytic_tvec_hat) else NULL
+  basis_list <- lapply(dims, function(d) diag(1, d))
 
 
 
@@ -115,22 +115,6 @@
   }
 
 
-  # # K1 => piecewise concatenation
-  # K1fun <- function(tvec, param) {
-  #   if (length(tvec)!= total_dim) stop(sprintf("`tvec` has length %d, expected %d.", length(tvec), total_dim))
-  #
-  #   out <- numeric(total_dim) * param[1]  #### Modified to depend on `param` // temporary fix for RTMB error
-  #   current_start <- 1
-  #   for (i in seq_along(cgf_list)) {
-  #     len_i <- component_dims[i]
-  #     t_sub <- tvec[current_start:(current_start+len_i-1)]
-  #     out_sub <- cgf_list[[i]]$K1(t_sub, param)
-  #     out[current_start:(current_start+len_i-1)] <- out_sub
-  #     current_start <- current_start + len_i
-  #   }
-  #   out
-  # }
-
   K1 <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` has length %d, expected %d (= sum(component_dims)).",
@@ -144,23 +128,6 @@
     out
   }
 
-  # # K2 => block diagonal
-  # K2fun <- function(tvec, param) {
-  #   if (length(tvec)!= total_dim) stop(sprintf("`tvec` length mismatch: got %d, expected %d", length(tvec), total_dim))
-  #
-  #   accum <- matrix(0, nrow=total_dim, ncol=total_dim) * param[1]  #### Modified to depend on `param` // temporary fix for RTMB error
-  #   ##### possibly a sparse matrix??; But Matrix::determinant() fails with adsparse matrices.
-  #   current_start <- 1
-  #   for (i in seq_along(cgf_list)) {
-  #     len_i <- component_dims[i]
-  #     t_sub <- tvec[current_start:(current_start+len_i-1)]
-  #     k2_sub <- cgf_list[[i]]$K2(t_sub, param)
-  #     # place it in accum's block
-  #     accum[current_start:(current_start+len_i-1), current_start:(current_start+len_i-1)] <- k2_sub
-  #     current_start <- current_start + len_i
-  #   }
-  #   accum
-  # }
   K2 <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` has length %d, expected %d (= sum(component_dims)).",
@@ -359,8 +326,9 @@
 
 
   # ---------------------------------------------------------------------------
-  # Higher-order operators used by default correction term func_T()
-  # For concatenation (block independence), only diagonal sub-blocks of Q matter.
+  # Higher-order operators for independent-block concatenation.
+  # K4operatorAABB only sees diagonal sub-blocks, but the K3K3 operators also
+  # require off-diagonal block couplings from Q.
   # ---------------------------------------------------------------------------
 
   K4operatorAABB <- function(tvec, param, Q) {
@@ -376,55 +344,101 @@
 
   K3K3operatorAABBCC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorAABBCC: tvec length mismatch.")
-    total <- 0
+    u <- .ad_zero_vector(total_dim, param)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
-      total <- total + K3K3AABBCC_list[[i]](tvec[idx], param,
-                                            Q[idx, idx, drop = FALSE])
+      k3_slices <- .extract_K3_slices(
+        K3fun = K3op_list[[i]],
+        tvec = tvec[idx],
+        param = param,
+        block_dim = dims[i],
+        basis = basis_list[[i]]
+      )
+      u[idx] <- .k3_slices_to_aabbcc_vector(k3_slices, Q[idx, idx, drop = FALSE], param)
     }
-    ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks
-    ##### cf. code for vectorized CGFs
-    total
+
+    sum(u * as.vector(Q %*% u))
   }
 
   K3K3operatorABCABC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorABCABC: tvec length mismatch.")
-    total <- 0
+    k3_by_block <- vector("list", L)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
-      total <- total + K3K3ABCABC_list[[i]](tvec[idx], param,
-                                            Q[idx, idx, drop = FALSE])
+      k3_by_block[[i]] <- .extract_K3_slices(
+        K3fun = K3op_list[[i]],
+        tvec = tvec[idx],
+        param = param,
+        block_dim = dims[i],
+        basis = basis_list[[i]]
+      )
     }
-    ############ Note: check, this seems to be incorrect, as Q may have non-zero off-diagonal blocks (cf. comment "Verify?" in K4operatorAABB)
-    ##### cf. code for vectorized CGFs
+
+    .k3_slices_abcabc_from_dense_Q(
+      k3_by_block = k3_by_block,
+      block_indices = idx_list,
+      Q = Q,
+      param = param
+    )
+  }
+
+  K4operatorAABB_factored <- function(tvec, param, A, dvec) {
+    if (length(tvec) != total_dim) stop("K4operatorAABB_factored: tvec length mismatch.")
+    total <- .ad_zero_scalar(param)
+    for (i in seq_len(L)) {
+      idx <- idx_list[[i]]
+      total <- total + K4AABB_factored_list[[i]](
+        tvec[idx], param, A[idx, , drop = FALSE], dvec
+      )
+    }
+
     total
   }
 
+  K3K3operatorAABBCC_factored <- function(tvec, param, A, dvec) {
+    if (length(tvec) != total_dim) stop("K3K3operatorAABBCC_factored: tvec length mismatch.")
+    u <- .ad_zero_vector(total_dim, param)
+    for (i in seq_len(L)) {
+      idx <- idx_list[[i]]
+      A_block <- A[idx, , drop = FALSE]
+      Qii <- .factor_block_matrix(A_block, dvec, A_block)
+      k3_slices <- .extract_K3_slices(
+        K3fun = K3op_list[[i]],
+        tvec = tvec[idx],
+        param = param,
+        block_dim = dims[i],
+        basis = basis_list[[i]]
+      )
+      u[idx] <- .k3_slices_to_aabbcc_vector(k3_slices, Qii, param)
+    }
 
+    z <- as.vector(crossprod(A, u))
+    sum(dvec * z * z)
+  }
 
-  # # ineq_constraint => concatenation
-  # ineqfun <- function(tvec, param) {
-  #   if (length(tvec) != total_dim) stop(sprintf("`tvec` length mismatch in ineq_constraint: got %d, expected %d", length(tvec), total_dim))
-  #
-  #   # We'll build final constraints in a single pass,
-  #   # appending for each child (no repeated calls).
-  #   ##### This is risky, as the length of the output is unknown; please test/check
-  #   out_ <- numeric(0)*param[1]  #### Modified to depend on `param` // temporary fix for RTMB error
-  #
-  #   current_start <- 1
-  #   for (i in seq_along(cgf_list)) {
-  #     len_i <- component_dims[i]
-  #     idx   <- current_start:(current_start + len_i - 1)
-  #     piece <- cgf_list[[i]]$ineq_constraint(tvec[idx], param)
-  #
-  #     # Append child's constraints to out_
-  #     if (length(piece) > 0) out_ <- c(out_, piece)
-  #     current_start <- current_start + len_i
-  #   }
-  #
-  #   out_
-  # }
+  K3K3operatorABCABC_factored <- function(tvec, param, A, dvec) {
+    if (length(tvec) != total_dim) stop("K3K3operatorABCABC_factored: tvec length mismatch.")
+    row_blocks <- vector("list", L)
+    k3_by_block <- vector("list", L)
+    for (i in seq_len(L)) {
+      idx <- idx_list[[i]]
+      row_blocks[[i]] <- A[idx, , drop = FALSE]
+      k3_by_block[[i]] <- .extract_K3_slices(
+        K3fun = K3op_list[[i]],
+        tvec = tvec[idx],
+        param = param,
+        block_dim = dims[i],
+        basis = basis_list[[i]]
+      )
+    }
 
+    .k3_slices_abcabc_from_factored_Q(
+      k3_by_block = k3_by_block,
+      row_blocks = row_blocks,
+      dvec = dvec,
+      param = param
+    )
+  }
   ineq_constraint <- function(tvec, param) {
     if (length(tvec) != total_dim) {
       stop(sprintf("`tvec` length mismatch in ineq_constraint: got %d, expected %d.",
@@ -535,6 +549,9 @@
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     op_name = op_name
   )
 

@@ -22,8 +22,8 @@ test_that("K4operatorAABB_factored matches explicit K4operatorAABB for Q=A diag(
 
   K4_fact <- cgf$.private_api$K4operatorAABB_factored
 
-  got_fact <- K4_fact(tvec, param, fd$A, fd$d, fd$A, fd$d)
-  got_Q    <- cgf$K4operatorAABB(tvec, param, fd$Q, fd$Q)
+  got_fact <- K4_fact(tvec, param, fd$A, fd$d)
+  got_Q    <- cgf$K4operatorAABB(tvec, param, fd$Q)
 
   expect_equal(as.numeric(got_fact), as.numeric(got_Q), tolerance = 1e-10)
 })
@@ -41,8 +41,8 @@ test_that("K3K3operatorAABBCC_factored matches explicit K3K3operatorAABBCC for Q
 
   K3K3_fact <- cgf$.private_api$K3K3operatorAABBCC_factored
 
-  got_fact <- K3K3_fact(tvec, param, fd$A, fd$d, fd$A, fd$d, fd$A, fd$d)
-  got_Q    <- cgf$K3K3operatorAABBCC(tvec, param, fd$Q, fd$Q, fd$Q)
+  got_fact <- K3K3_fact(tvec, param, fd$A, fd$d)
+  got_Q    <- cgf$K3K3operatorAABBCC(tvec, param, fd$Q)
 
   expect_equal(as.numeric(got_fact), as.numeric(got_Q), tolerance = 1e-10)
 })
@@ -60,8 +60,8 @@ test_that("K3K3operatorABCABC_factored matches explicit K3K3operatorABCABC for Q
 
   K3K3_fact <- cgf$.private_api$K3K3operatorABCABC_factored
 
-  got_fact <- K3K3_fact(tvec, param, fd$A, fd$d, fd$A, fd$d, fd$A, fd$d)
-  got_Q    <- cgf$K3K3operatorABCABC(tvec, param, fd$Q, fd$Q, fd$Q)
+  got_fact <- K3K3_fact(tvec, param, fd$A, fd$d)
+  got_Q    <- cgf$K3K3operatorABCABC(tvec, param, fd$Q)
 
   expect_equal(as.numeric(got_fact), as.numeric(got_Q), tolerance = 1e-10)
 })

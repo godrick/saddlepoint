@@ -20,4 +20,5 @@
 ^index\.md$
 ^doc$
 ^Meta$
+^dev/reference-tests($|/)
 ^tests/testthat/more-examples$

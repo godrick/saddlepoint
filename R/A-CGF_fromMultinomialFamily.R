@@ -392,9 +392,9 @@ MultinomialFamilyCGF <- R6::R6Class(
       if (is.null(func_T)) {
         final_func_T <- function(tvec, parameter_vector) {
           Q <- solve(final_K2(tvec, parameter_vector))
-          K3K3operatorABCABC_val <- final_K3K3operatorABCABC(tvec, parameter_vector, Q, Q, Q)
-          K3K3operatorAABBCC_val <- final_K3K3operatorAABBCC(tvec, parameter_vector, Q, Q, Q)
-          K4operatorAABB_val <- final_K4operatorAABB(tvec, parameter_vector, Q, Q)
+          K3K3operatorABCABC_val <- final_K3K3operatorABCABC(tvec, parameter_vector, Q)
+          K3K3operatorAABBCC_val <- final_K3K3operatorAABBCC(tvec, parameter_vector, Q)
+          K4operatorAABB_val <- final_K4operatorAABB(tvec, parameter_vector, Q)
           K4operatorAABB_val / 8 - K3K3operatorAABBCC_val / 8 - K3K3operatorABCABC_val / 12
         }
       } else {
