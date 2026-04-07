@@ -72,7 +72,7 @@
     diagU <- diag(U)
     # d <- diagU^2
     d <- diagU * diagU
-    A <- t(U) %*% diag(1 / diagU)
+    A <- t(U) %*% diag(1 / diagU, nrow = length(diagU), ncol = length(diagU))
     list(A = A, d = d)
   }
 

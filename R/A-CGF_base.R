@@ -148,7 +148,7 @@ CGF_public_defaults <- list(
     chol_Q <- chol(Q)
     diag_Q <- diag(chol_Q)
     d <- diag_Q * diag_Q
-    A <- t(chol_Q) %*% diag(1/diag_Q)
+    A <- t(chol_Q) %*% diag(1 / diag_Q, nrow = length(diag_Q), ncol = length(diag_Q))
     private$K4operatorAABB_factored(tvec, parameter_vector, A, d)
   }
   ,
@@ -156,7 +156,7 @@ CGF_public_defaults <- list(
     chol_Q <- chol(Q)
     diag_Q <- diag(chol_Q)
     d <- diag_Q * diag_Q
-    A <- t(chol_Q) %*% diag(1/diag_Q)
+    A <- t(chol_Q) %*% diag(1 / diag_Q, nrow = length(diag_Q), ncol = length(diag_Q))
     private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d)
   }
   ,
@@ -164,7 +164,7 @@ CGF_public_defaults <- list(
     chol_Q <- chol(Q)
     diag_Q <- diag(chol_Q)
     d <- diag_Q * diag_Q
-    A <- t(chol_Q) %*% diag(1/diag_Q)
+    A <- t(chol_Q) %*% diag(1 / diag_Q, nrow = length(diag_Q), ncol = length(diag_Q))
     private$K3K3operatorABCABC_factored(tvec, parameter_vector, A, d)
   }
   ,
@@ -207,7 +207,7 @@ CGF_private_defaults <- list(
     chol_K2_inv <- chol(K2_inv)
     diag_K2_inv <- diag(chol_K2_inv)
     d <- diag_K2_inv * diag_K2_inv
-    A <- t(chol_K2_inv) %*% diag(1/diag_K2_inv)
+    A <- t(chol_K2_inv) %*% diag(1 / diag_K2_inv, nrow = length(diag_K2_inv), ncol = length(diag_K2_inv))
 
     K4_AABB   <- private$K4operatorAABB_factored(tvec, parameter_vector, A, d)
     K3K3_ABBC <- private$K3K3operatorAABBCC_factored(tvec, parameter_vector, A, d)

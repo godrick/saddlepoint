@@ -31,6 +31,11 @@
   child_K3K3operatorAABBCC <- cgf$K3K3operatorAABBCC
   child_K3K3operatorABCABC <- cgf$K3K3operatorABCABC
   child_K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
+  ###### .......  Deferred optimization:
+  # child_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
+  # child_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
+  # Re-enable the factored B == 1 delegate below once factored methods are
+  # implemented broadly enough across CGFs to make this consistent.
 
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
@@ -354,6 +359,11 @@
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
+    ###### ....... Deferred optimization:
+    # if (B == 1L) {
+    #   return(child_K3K3operatorAABBCC_factored(tvec, param, A, dvec))
+    # }
+
     basis <- diag(1, d)
     u <- .ad_zero_vector(N, param)
 
@@ -380,6 +390,11 @@
     d_cur <- .block_size_value(block_size, param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+
+    ###### ....... Deferred optimization:
+    # if (B == 1L) {
+    #   return(child_K3K3operatorABCABC_factored(tvec, param, A, dvec))
+    # }
 
     basis <- diag(1, d)
     row_blocks <- vector("list", B)

@@ -72,6 +72,27 @@ MultinomialFamilyCGF <- R6::R6Class(
       invisible(TRUE)
     },
 
+    .check_factored_Q = function(A, dvec, d, where = "") {
+      if (is.null(dim(A)) || length(dim(A)) != 2L) {
+        stop("MultinomialFamilyCGF", if (nzchar(where)) paste0("::", where) else "",
+             ": expected a matrix-like A with dim().")
+      }
+      if (nrow(A) != d || ncol(A) != length(dvec)) {
+        stop("MultinomialFamilyCGF", if (nzchar(where)) paste0("::", where) else "",
+             ": dimension mismatch: expected A to be ", d, "x", length(dvec),
+             ", got ", nrow(A), "x", ncol(A), ".")
+      }
+      invisible(TRUE)
+    },
+
+    .apply_factored_Q = function(A, dvec, x) {
+      as.vector(A %*% (dvec * as.vector(crossprod(A, x))))
+    },
+
+    .diag_factored_Q = function(A, dvec) {
+      as.vector((A * A) %*% dvec)
+    },
+
     # ------------------------------------------------------------------
     # Default methods (single block)
     # ------------------------------------------------------------------
@@ -286,6 +307,100 @@ MultinomialFamilyCGF <- R6::R6Class(
                    4  * vQv^3)
     },
 
+    K4operatorAABB_factored_default = function(tvec, parameter_vector, A, dvec) {
+      d <- private$.check_block(tvec, parameter_vector, where = "K4operatorAABB_factored")
+      private$.check_factored_Q(A, dvec, d, where = "K4operatorAABB_factored")
+      N_val    <- parameter_vector[1]
+      odds_val <- parameter_vector[-1]
+      if (length(dvec) == 0L) return(0 * N_val)
+
+      v <- private$v_from_t(tvec, odds_val)
+      Qv <- private$.apply_factored_Q(A, dvec, v)
+      vQv <- sum(v * Qv)
+
+      diag_Q <- private$.diag_factored_Q(A, dvec)
+      G <- crossprod(A, v * A)
+      res_double_indices <- sum(tcrossprod(dvec) * (G * G))
+      tmp <- sum(v * diag_Q)
+
+      N_val * (-2 * res_double_indices +
+                 sum(v * diag_Q * (diag_Q - 2 * Qv - tmp + 2 * vQv)) -
+                 sum(2 * v * Qv * diag_Q) +
+                 sum(8 * v * Qv * Qv) +
+                 2 * vQv * tmp -
+                 6 * vQv * vQv)
+    },
+
+    K3K3operatorAABBCC_factored_default = function(tvec, parameter_vector, A, dvec) {
+      d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorAABBCC_factored")
+      private$.check_factored_Q(A, dvec, d, where = "K3K3operatorAABBCC_factored")
+      N_val    <- parameter_vector[1]
+      odds_val <- parameter_vector[-1]
+      if (length(dvec) == 0L) return(0 * N_val)
+
+      v <- private$v_from_t(tvec, odds_val)
+      Qv  <- private$.apply_factored_Q(A, dvec, v)
+      vQv <- sum(v * Qv)
+
+      diag_Q <- private$.diag_factored_Q(A, dvec)
+      a <- v * diag_Q
+      b <- v * Qv
+
+      Q_a <- private$.apply_factored_Q(A, dvec, a)
+      Q_b <- private$.apply_factored_Q(A, dvec, b)
+
+      res_double_indices <- sum(a * Q_a) -
+        2 * sum(b * Q_a) -
+        2 * sum(a * Q_b) +
+        4 * sum(b * Q_b)
+
+      sum_v_diagQ_Qv <- sum(v * diag_Q * Qv)
+      sum_v_diagQ    <- sum(v * diag_Q)
+      sum_v_Qv_Qv    <- sum(v * Qv * Qv)
+
+      N_val^2 * (res_double_indices +
+                   sum_v_diagQ_Qv * (-sum_v_diagQ + 2 * vQv) +
+                   sum_v_Qv_Qv    * ( 2 * sum_v_diagQ - 4 * vQv) +
+                   sum_v_diagQ    * (-sum_v_diagQ_Qv +
+                                       vQv * sum_v_diagQ +
+                                       2 * sum_v_Qv_Qv -
+                                       2 * vQv^2) +
+                   2 * vQv        * (sum_v_diagQ_Qv -
+                                       vQv * sum_v_diagQ -
+                                       2 * sum_v_Qv_Qv +
+                                       2 * vQv^2))
+    },
+
+    K3K3operatorABCABC_factored_default = function(tvec, parameter_vector, A, dvec) {
+      d <- private$.check_block(tvec, parameter_vector, where = "K3K3operatorABCABC_factored")
+      private$.check_factored_Q(A, dvec, d, where = "K3K3operatorABCABC_factored")
+      N_val    <- parameter_vector[1]
+      odds_val <- parameter_vector[-1]
+      r <- length(dvec)
+      if (r == 0L) return(0 * N_val)
+
+      v <- private$v_from_t(tvec, odds_val)
+      z <- as.vector(crossprod(A, v))
+      G <- crossprod(A, v * A)
+      zzT <- tcrossprod(z)
+      d_outer <- tcrossprod(dvec)
+
+      total <- 0 * N_val
+      for (p in seq_len(r)) {
+        H_slice <- crossprod(A, A * as.vector(v * A[, p]))
+        C_slice <- N_val * (
+          H_slice -
+            outer(z, G[, p]) -
+            outer(G[, p], z) -
+            z[p] * G +
+            2 * z[p] * zzT
+        )
+        total <- total + dvec[p] * sum(d_outer * (C_slice * C_slice))
+      }
+
+      total
+    },
+
     simulate_default = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
       if (length(parameter_vector) < 2) {
         stop("MultinomialFamilyCGF$rsim: 'parameter_vector' must be c(N, odds[1:d]) with length >= 2.", call. = FALSE)
@@ -386,6 +501,9 @@ MultinomialFamilyCGF <- R6::R6Class(
       final_K4operatorAABB <- if (is.null(K4operatorAABB)) private$K4operatorAABB_default else K4operatorAABB
       final_K3K3operatorAABBCC <- if (is.null(K3K3operatorAABBCC)) private$K3K3operatorAABBCC_default else K3K3operatorAABBCC
       final_K3K3operatorABCABC <- if (is.null(K3K3operatorABCABC)) private$K3K3operatorABCABC_default else K3K3operatorABCABC
+      final_K4operatorAABB_factored <- if (is.null(K4operatorAABB_factored)) private$K4operatorAABB_factored_default else K4operatorAABB_factored
+      final_K3K3operatorAABBCC_factored <- if (is.null(K3K3operatorAABBCC_factored)) private$K3K3operatorAABBCC_factored_default else K3K3operatorAABBCC_factored
+      final_K3K3operatorABCABC_factored <- if (is.null(K3K3operatorABCABC_factored)) private$K3K3operatorABCABC_factored_default else K3K3operatorABCABC_factored
 
       # Build func_T: if not provided, create a closure that uses the final_* functions
       # (not the *_default versions, which would ignore user overrides)
@@ -428,9 +546,9 @@ MultinomialFamilyCGF <- R6::R6Class(
         K3K3operatorAABBCC  = final_K3K3operatorAABBCC,
         K3K3operatorABCABC  = final_K3K3operatorABCABC,
 
-        K4operatorAABB_factored     = K4operatorAABB_factored,
-        K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
-        K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
+        K4operatorAABB_factored     = final_K4operatorAABB_factored,
+        K3K3operatorAABBCC_factored = final_K3K3operatorAABBCC_factored,
+        K3K3operatorABCABC_factored = final_K3K3operatorABCABC_factored,
 
         ...
       )
