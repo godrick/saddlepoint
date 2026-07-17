@@ -10,17 +10,19 @@ unknown) exact MLE.
 
 Let
 
-- ${\widehat{\theta}}_{\text{spa}}$ be the saddlepoint MLE (from
-  maximizing the saddlepoint likelihood),
-- ${\widehat{\theta}}_{\text{true}}$ be the exact MLE (from maximizing
-  the exact likelihood).
+- $`\hat\theta_{\text{spa}}`$ be the saddlepoint MLE (from maximizing
+  the saddlepoint likelihood),
+- $`\hat\theta_{\text{true}}`$ be the exact MLE (from maximizing the
+  exact likelihood).
 
 The **true discrepancy** is
-$$\delta = {\widehat{\theta}}_{\text{true}} - {\widehat{\theta}}_{\text{spa}}.$$
+``` math
+\delta = \hat\theta_{\text{true}} - \hat\theta_{\text{spa}}.
+```
 
-In practice ${\widehat{\theta}}_{\text{true}}$ is unknown, so the
-package returns an **approximated discrepancy** $\widehat{\delta}$. A
-alternative way to view it is:
+In practice $`\hat\theta_{\text{true}}`$ is unknown, so the package
+returns an **approximated discrepancy** $`\hat\delta`$. A alternative
+way to view it is:
 
 - `theta_adj = theta_spa + discrepancy` is a second-order adjusted
   estimate.
@@ -30,6 +32,7 @@ alternative way to view it is:
 ## How to request it
 
 ``` r
+
 
 fit <- find.saddlepoint.MLE(
   observed.data = y,
@@ -50,6 +53,7 @@ theta_adj <- fit$MLEs.theta + fit$discrepancy
 ## Example: Gamma(shape = alpha, rate = 1) with unknown shape (1 parameter)
 
 ``` r
+
 
 fixed_rate <- 1
 cgf_alpha <- GammaModelCGF(shape = adaptor(indices = 1), rate = adaptor(fixed_param = fixed_rate))
@@ -94,12 +98,13 @@ delta_hat
 
 ### True vs approximated discrepancy
 
-In practice you do not know the true discrepancy $\delta$ (because you
-do not know ${\widehat{\theta}}_{\text{true}}$). Here we compute it only
-to highlight the accuracy of the approximation in this controlled toy
+In practice you do not know the true discrepancy $`\delta`$ (because you
+do not know $`\hat\theta_{\text{true}}`$). Here we compute it only to
+highlight the accuracy of the approximation in this controlled toy
 setting.
 
 ``` r
+
 
 set.seed(2)
 
@@ -153,13 +158,14 @@ lines).](discrepancy_files/figure-html/unnamed-chunk-3-1.png)
 
 ``` r
 
+
 par(op)
 ```
 
 ### Notes
 
 - If the model is an exponential family in the relevant sense, the true
-  discrepancy is known to be $0$. In such cases the discrepancy
-  approximation will also return $0$.
+  discrepancy is known to be $`0`$. In such cases the discrepancy
+  approximation will also return $`0`$.
 - `discrepancy` can be useful as a diagnostic and as a small correction
   (e.g. if it is tiny relative to standard errors).

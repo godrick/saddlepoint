@@ -7,9 +7,8 @@ saddlepoint likelihood evaluation and parameter estimation for composite
 and high-dimensional constructions.
 
 Saddlepoint methods use the CGF
-$K(t) = \log{\mathbb{E}}\left\lbrack \exp(tX) \right\rbrack$ to build
-accurate approximations to likelihoods, densities, and tail
-probabilities.
+$`K(t) = \log \mathbb{E}\left[\exp(t X)\right]`$ to build accurate
+approximations to likelihoods, densities, and tail probabilities.
 
 ## Key functionalities we provide
 
@@ -24,6 +23,7 @@ probabilities.
 ## Quick start: saddlepoint MLE for a simple model
 
 ``` r
+
 
 library(saddlepoint)
 set.seed(1)

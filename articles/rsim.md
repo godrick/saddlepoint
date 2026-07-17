@@ -2,6 +2,7 @@
 
 ``` r
 
+
 library(saddlepoint)
 ```
 
@@ -20,6 +21,7 @@ All `CGF$rsim()` methods follow the same return convention:
 
 ``` r
 
+
 set.seed(1)
 
 lambda <- 2
@@ -35,6 +37,7 @@ If you prefer a plain vector:
 
 ``` r
 
+
 PoissonCGF$rsim(n = 5, vector_length = 1, parameter_vector = lambda, flatten = TRUE)
 #> [1] 4 4 2 2 0
 ```
@@ -47,6 +50,7 @@ vector `parameter_vector` (one `lambda` per component) and setting
 `vector_length` to match.
 
 ``` r
+
 
 set.seed(1)
 
@@ -77,6 +81,7 @@ observation `Y` lives in `R^3`. We then create `B = 9` i.i.d. copies of
 `Y`, so `vector_length = 3 * 9 = 27`.
 
 ``` r
+
 
 set.seed(1)
 
@@ -111,6 +116,7 @@ should be `E[Y] = A E[X] = A lambda`.
 
 ``` r
 
+
 mu_Y <- as.vector(A %*% lambda5)
 
 # Row means for the 27-vector, reshaped into 3 x B block layout:
@@ -133,6 +139,7 @@ The same idea under tilting: If you tilt `Y` by a block tilt `h` (length
 - `E[Y] = A E[X]`.
 
 ``` r
+
 
 h_block <- c(0.2, -0.1, 0.15)
 h_full  <- rep(h_block, times = B)
@@ -169,6 +176,7 @@ A quick “large vector” example:
 
 ``` r
 
+
 set.seed(1)
 
 d <- 2000
@@ -192,7 +200,9 @@ exponentially tilted law with density (or pmf) proportional to
 
 Equivalently, if `K(t)` is the original CGF, the tilted CGF is
 
-$$K_{h}(t) = K(t + h) - K(h).$$
+``` math
+K_h(t) = K(t + h) - K(h).
+```
 
 For common exponential-family models, the tilted law stays in the same
 family, often with a simple parameter update.
@@ -203,9 +213,10 @@ Not every `tvec` is valid: when the CGF only exists on a domain
 
 ### Poisson
 
-$\lambda_{h} = \lambda e^{h}$
+$`\lambda_h = \lambda e^{h}`$
 
 ``` r
+
 
 set.seed(1)
 
@@ -231,6 +242,7 @@ lambda * exp(h)
 Here the tilt is vector-valued: `tvec` has length `d`.
 
 ``` r
+
 
 set.seed(1)
 
@@ -283,6 +295,7 @@ constructs a CGF for a sum of independent random vectors. Simulation
 composes in the obvious way: simulate each component and add.
 
 ``` r
+
 
 set.seed(1)
 

@@ -5,11 +5,19 @@ builds a CGF for a concatenated random vector with independent
 components.
 
 If you have independent random vectors
-$$X^{(1)} \in {\mathbb{R}}^{d_{1}},\;\ldots,\; X^{(L)} \in {\mathbb{R}}^{d_{L}},$$
+``` math
+X^{(1)} \in \mathbb{R}^{d_1},\;\dots,\; X^{(L)} \in \mathbb{R}^{d_L},
+```
 and define the concatenation
-$$Y = (X^{(1)},\ldots,X^{(L)}) \in {\mathbb{R}}^{d_{1} + \cdots + d_{L}},$$
-then the CGF factorizes additively over disjoint sub-blocks of $t$:
-$$K_{Y}(t;\theta) = \sum\limits_{i = 1}^{L}K_{i}\!\left( t^{(i)};\theta \right),\qquad t = (t^{(1)},\ldots,t^{(L)}).$$
+``` math
+Y = \bigl(X^{(1)}, \dots, X^{(L)}\bigr) \in \mathbb{R}^{d_1+\cdots+d_L},
+```
+then the CGF factorizes additively over disjoint sub-blocks of $`t`$:
+``` math
+K_Y(t;\theta) = \sum_{i=1}^L K_i\!\left(t^{(i)};\theta\right),
+\qquad
+t = \bigl(t^{(1)},\dots,t^{(L)}\bigr).
+```
 
 This differs from
 [`sumOfIndependentCGF()`](https://godrick.github.io/saddlepoint/reference/sumOfIndependentCGF.md),
@@ -26,14 +34,21 @@ For concatenation, the natural “one observation” dimension is fixed:
 
 ## Example 1: a bivariate Poisson model (exact likelihood available)
 
-We observe $B$ i.i.d. bivariate vectors:
-$$Y_{b} = \left( Y_{1b},Y_{2b} \right),\qquad Y_{1b} \sim \text{Poisson}\left( \lambda_{1} \right),\; Y_{2b} \sim \text{Poisson}\left( \lambda_{2} \right),$$
-independent across coordinates and across $b$.
+We observe $`B`$ i.i.d. bivariate vectors:
+``` math
+Y_b = (Y_{1b}, Y_{2b}), \qquad
+Y_{1b} \sim \text{Poisson}(\lambda_1),\;
+Y_{2b} \sim \text{Poisson}(\lambda_2),
+```
+independent across coordinates and across $`b`$.
 
 The exact MLE is simply:
-$${\widehat{\lambda}}_{1} = {\overline{Y}}_{1},\qquad{\widehat{\lambda}}_{2} = {\overline{Y}}_{2}.$$
+``` math
+\hat\lambda_1 = \overline{Y}_1,\qquad \hat\lambda_2 = \overline{Y}_2.
+```
 
 ``` r
+
 
 set.seed(123)
 B <- 30

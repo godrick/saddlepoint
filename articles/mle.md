@@ -11,9 +11,9 @@ negative log-likelihood (and, optionally, its derivatives).
 
 At a minimum, the output contains:
 
-- `MLEs.theta`: the fitted parameters $\widehat{\theta}$,
-- `MLEs.tvec`: the fitted saddlepoint solution $\widehat{t}$ (same
-  length as the data),
+- `MLEs.theta`: the fitted parameters $`\hat\theta`$,
+- `MLEs.tvec`: the fitted saddlepoint solution $`\hat t`$ (same length
+  as the data),
 - `std.error` when `std.error = TRUE`,
 - `discrepancy` when `discrepancy = TRUE`, etc.
 
@@ -24,23 +24,23 @@ supports two fitting options:
 
 - `method = "constrained"` (default): Joint optimisation over (tvec,
   theta) using `nloptr`, while enforcing the saddlepoint equation
-  $K\prime(t;\theta) = y$ as equality constraints. This is robust and is
+  $`K'(t;\theta) = y`$ as equality constraints. This is robust and is
   the recommended default, especially when the CGF has a non-trivial
   domain constraint on `tvec` via `cgf$ineq_constraint(tvec, theta)`.
-- `method = "two_step"`: optimizes over $\theta$ only; for each $\theta$
-  it computes the saddlepoint solution $\widehat{t}(\theta)$ internally
-  (analytic if available, otherwise numerical solvers (Newton, or via
-  constrained solvers)). This keeps the outer optimization
-  low-dimensional and can be easier to tune. However,
+- `method = "two_step"`: optimizes over $`\theta`$ only; for each
+  $`\theta`$ it computes the saddlepoint solution $`\hat{t}(\theta)`$
+  internally (analytic if available, otherwise numerical solvers
+  (Newton, or via constrained solvers)). This keeps the outer
+  optimization low-dimensional and can be easier to tune. However,
   `method = "two_step"` is optimized for cases where the saddlepoint
-  equation can be solved efficiently for each candidate $\theta$ (e.g.,
-  via an analytic $\widehat{t}(\theta)$ or an unconstrained `tvec`
+  equation can be solved efficiently for each candidate $`\theta`$
+  (e.g., via an analytic $`\hat t(\theta)`$ or an unconstrained `tvec`
   path).
 
 In the current implementation, if the CGF imposes a non-trivial
 domain/inequality constraint on `tvec` via
-`cgf$ineq_constraint(tvec, theta)` and no analytic $\widehat{t}(\theta)$
-is available, can be **much slower**. In such cases we recommend the
+`cgf$ineq_constraint(tvec, theta)` and no analytic $`\hat t(\theta)`$ is
+available, can be **much slower**. In such cases we recommend the
 default `method = "constrained"`. Future versions may improve
 performance for constrained CGFs under `method = "two_step"`.
 
@@ -50,14 +50,13 @@ performance for constrained CGFs under `method = "two_step"`.
   - the CGF has a non-trivial domain constraint on `tvec`, or
   - you want the most robust default behaviour.
 - Use `method = "two_step"` when:
-  - `tvec` is unconstrained (or an analytic $\widehat{t}(\theta)$
-    exists)
+  - `tvec` is unconstrained (or an analytic $`\hat t(\theta)`$ exists)
 
 ## Other arguments
 
 - Model parameters:
   - `starting.theta`, `lb.theta`, `ub.theta` control the outer
-    optimisation in $\theta$.
+    optimisation in $`\theta`$.
 - Saddlepoint variable (usually you can leave these alone):
   - `starting.tvec`, `lb.tvec`, `ub.tvec` can help if you need to guide
     the saddlepoint solver or enforce bounds.
@@ -75,6 +74,7 @@ Here we fit Gamma parameters (shape/rate) using the saddlepoint
 likelihood.
 
 ``` r
+
 
 set.seed(1)
 n <- 40
@@ -126,13 +126,14 @@ res_two$discrepancy
 This example illustrates a compositional model where the exact
 likelihood can be awkward.
 
-- Sessions per day: $N \sim \text{Poisson}(\lambda)$  
-- Successes per session: $X_{i} \sim \text{Binomial}(m,p)$  
-- Observed daily total: $Y = \sum_{i = 1}^{N}X_{i}$
+- Sessions per day: $`N \sim \text{Poisson}(\lambda)`$  
+- Successes per session: $`X_i \sim \text{Binomial}(m, p)`$  
+- Observed daily total: $`Y = \sum_{i=1}^N X_i`$
 
-We build the CGF of $Y$ compositionally, then fit $p$.
+We build the CGF of $`Y`$ compositionally, then fit $`p`$.
 
 ``` r
+
 
 set.seed(1)
 
@@ -196,9 +197,9 @@ Imagine you track daily event counts for three ordered risk groups (low
 / medium / high) over `B` days.
 
 Let the per-day rates be
-$\theta = \left( \lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}} \right),$
+$`\theta = \left( \lambda_{\text{low}},\lambda_{\text{med}},\lambda_{\text{high}} \right),`$
 and suppose domain knowledge suggests a monotone trend:
-$\lambda_{\text{low}} \leq \lambda_{\text{med}} \leq \lambda_{\text{high}}.$
+$`\lambda_{\text{low}} \le \lambda_{\text{med}} \le \lambda_{\text{high}}.`$
 
 These may be enforced via custom reparameterization, but
 `user.ineq.constraint.function()` lets you state them directly while
@@ -208,6 +209,7 @@ This is strictly a toy example to illustrate how to use
 `user.ineq.constraint.function()`.
 
 ``` r
+
 
 set.seed(1)
 B <- 30  
@@ -280,6 +282,7 @@ for debugging or plugging into custom optimisers.
 
 ``` r
 
+
 set.seed(1)
 theta0 <- c(mu = 0, sigma = 1)
 y <- as.numeric(NormalCGF$rsim(n = 10, vector_length = 1, parameter_vector = theta0))
@@ -324,6 +327,7 @@ A minimal pattern is:
 
 ``` r
 
+
 taped_nll <- saddlepoint:::create_spa_taped_fun(
   param_vec     = theta0,
   observed.data = y,
@@ -342,6 +346,7 @@ taped_nll(c(mu = 0.5, sigma = 1.2))$vals
 ### SPA vs true MLE in the random-sum Binomial example
 
 ``` r
+
 
 set.seed(5)
 B <- 40; lambda <- 10; m <- 20
@@ -455,6 +460,7 @@ parameter; minima indicate the two
 MLEs.](mle_files/figure-html/unnamed-chunk-6-1.png)
 
 ``` r
+
 c(p_true = p_true, p_exact = p_ex, p_spa = p_spa)
 #>     p_true    p_exact      p_spa 
 #> 0.08000000 0.08247427 0.08256963

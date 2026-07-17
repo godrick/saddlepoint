@@ -10,29 +10,34 @@ mistakes.
 
 A **randomly-stopped sum** has the form
 
-$$Y = \sum\limits_{i = 1}^{N}X_{i},$$
+``` math
+Y = \sum_{i=1}^{N} X_i,
+```
 
 where
 
-- $N$ is a scalar non-negative integer count random variable,
-- $X_{1},X_{2},\ldots$ are i.i.d. copies of a (possibly vector-valued)
-  random vector $X$,
-- $N$ is independent of all $X_{i}$.
+- $`N`$ is a scalar non-negative integer count random variable,
+- $`X_1,X_2,\dots`$ are i.i.d. copies of a (possibly vector-valued)
+  random vector $`X`$,
+- $`N`$ is independent of all $`X_i`$.
 
 In CGF terms, the key identity is the composition
 
-$$K_{Y}(t;\theta) = K_{N}(K_{X}(t;\theta);\theta),$$
+``` math
+K_Y(t;\theta) = K_N\bigl( K_X(t;\theta);\theta \bigr),
+```
 
-where $K_{X}(t;\theta)$ is a scalar even when $t$ is a vector.
+where $`K_X(t;\theta)`$ is a scalar even when $`t`$ is a vector.
 
 You provide:
 
-- `count_cgf`: a CGF for $N$ (scalar),
-- `summand_cgf`: a CGF for $X$ (scalar or vector),
+- `count_cgf`: a CGF for $`N`$ (scalar),
+- `summand_cgf`: a CGF for $`X`$ (scalar or vector),
 - a shared parameter vector `theta` (both CGFs read from the same
   `theta`).
 
 ``` r
+
 
 library(saddlepoint)
 ```
@@ -47,9 +52,9 @@ i.i.d. observations”).
 [`randomlyStoppedSumCGF()`](https://godrick.github.io/saddlepoint/reference/randomlyStoppedSumCGF.md)
 forces you to disambiguate:
 
-- `block_size` = dimension of one observation $Y_{b}$ (equals dim of the
-  summand $X$).
-- `iidReps` = number of i.i.d. observations $B$ in your dataset.
+- `block_size` = dimension of one observation $`Y_b`$ (equals dim of the
+  summand $`X`$).
+- `iidReps` = number of i.i.d. observations $`B`$ in your dataset.
 
 ### Recommended patterns
 
@@ -59,6 +64,7 @@ Scalar RSS data (a numeric vector `y` of length `B`):
   internally).
 
 ``` r
+
 
 cg_rss <- randomlyStoppedSumCGF(count_cgf   = PoissonCGF,
                                 summand_cgf = BinomialModelCGF(n = adaptor(fixed_param = 1),
@@ -78,9 +84,10 @@ matrix):
 If you forget `block_size` / `iidReps`, a “long” `tvec` might be treated
 as:
 
-- a higher-dimensional summand $X$, which changes the model for $Y$, or
-- multiple i.i.d. blocks in some child CGF (again changing $K_{X}(t)$,
-  hence changing $K_{Y}(t)$).
+- a higher-dimensional summand $`X`$, which changes the model for $`Y`$,
+  or
+- multiple i.i.d. blocks in some child CGF (again changing $`K_X(t)`$,
+  hence changing $`K_Y(t)`$).
 
 That is why RSS requires at least one of `block_size` or `iidReps`.
 
@@ -88,14 +95,15 @@ That is why RSS requires at least one of `block_size` or `iidReps`.
 
 Let
 
-- $N \sim \text{Poisson}(\lambda)$,
-- $X \sim \text{Bernoulli}(p)$, i.i.d.,
-- $Y = \sum_{i = 1}^{N}X_{i}$.
+- $`N \sim \text{Poisson}(\lambda)`$,
+- $`X \sim \text{Bernoulli}(p)`$, i.i.d.,
+- $`Y = \sum_{i=1}^N X_i`$.
 
-Then $Y \sim \text{Poisson}(\lambda p)$ (Poisson thinning), so the RSS
-CGF should match a Poisson CGF with mean $\lambda p$.
+Then $`Y \sim \text{Poisson}(\lambda p)`$ (Poisson thinning), so the RSS
+CGF should match a Poisson CGF with mean $`\lambda p`$.
 
 ``` r
+
 
 lambda <- 4
 p      <- 0.3
@@ -126,15 +134,16 @@ stopifnot(all.equal(K_rss, K_closed, tol = 1e-12))
 
 Let
 
-- $N \sim \text{Poisson}(\lambda)$,
-- $X$ is a ‘one-hot’ vector in $\{ e_{1},\ldots,e_{d}\}$ with
-  probabilities $\pi$,
-- $Y = \sum_{i = 1}^{N}X_{i}$ is a vector of category counts.
+- $`N \sim \text{Poisson}(\lambda)`$,
+- $`X`$ is a ‘one-hot’ vector in $`\{e_1,\dots,e_d\}`$ with
+  probabilities $`\pi`$,
+- $`Y = \sum_{i=1}^N X_i`$ is a vector of category counts.
 
-Then the components of $Y$ are independent Poisson with means
-$\lambda\pi_{j}$.
+Then the components of $`Y`$ are independent Poisson with means
+$`\lambda \pi_j`$.
 
 ``` r
+
 
 set.seed(1)
 d <- 3
@@ -164,14 +173,16 @@ lambda * pi_
 
 A classic ‘not-nicely-closed-form’ RSS is the compound Poisson–Gamma:
 
-- $N \sim \text{Poisson}(\lambda)$,
-- $X \sim \text{Gamma}(\alpha,\beta)$ i.i.d. severities (shape $\alpha$,
-  rate $\beta$),
-- $Y = \sum_{i = 1}^{N}X_{i}$.
+- $`N \sim \text{Poisson}(\lambda)`$,
+- $`X \sim \text{Gamma}(\alpha,\beta)`$ i.i.d. severities (shape
+  $`\alpha`$, rate $`\beta`$),
+- $`Y = \sum_{i=1}^N X_i`$.
 
-The distribution of $Y$ has a point mass at 0 and a continuous density
-for $y > 0$. The exact density is an infinite series
-$$f_{Y}(y) = e^{- \lambda}\sum\limits_{k = 1}^{\infty}\frac{\lambda^{k}}{k!}f_{\Gamma}(y;\, k\alpha,\beta),$$
+The distribution of $`Y`$ has a point mass at 0 and a continuous density
+for $`y>0`$. The exact density is an infinite series
+``` math
+f_Y(y) = e^{-\lambda}\sum_{k=1}^{\infty}\frac{\lambda^k}{k!} f_{\Gamma}(y;\,k\alpha,\beta),
+```
 so in practice “exact” likelihood evaluation typically needs truncation
 or special-purpose methods.
 
@@ -180,6 +191,7 @@ This is a good use case for saddlepoint likelihoods.
 ### Build the RSS CGF
 
 ``` r
+
 
 set.seed(123)
 
@@ -197,6 +209,7 @@ cg_rss <- randomlyStoppedSumCGF(cg_N, cg_X, block_size = 1)
 
 ``` r
 
+
 B <- 100
 Y <- as.numeric(cg_rss$rsim(n = B, vector_length = 1, parameter_vector = theta_true))
 summary(Y)
@@ -207,6 +220,7 @@ summary(Y)
 ### Fit via saddlepoint likelihood
 
 ``` r
+
 
 fit_spa <- find.saddlepoint.MLE(
   observed.data  = Y,
@@ -229,6 +243,7 @@ fit_spa$std.error
 The following uses the infinite-series density truncated at `kmax`.
 
 ``` r
+
 
 d_comp_pois_gamma <- function(y, lambda, alpha, rate, kmax = 200) {
   if (y == 0) return(exp(-lambda))

@@ -275,6 +275,10 @@ fit_two <- find.saddlepoint.MLE(
 #> Warning: NaNs produced
 #> Warning: NaNs produced
 #> Warning: NaNs produced
+#> Warning: NaNs produced
+#> Warning: NaNs produced
+#> Warning: NaNs produced
+#> Warning: NaNs produced
 
 ## Optional quick checks: saddlepoint residual and feasibility
 max(abs(cg_sum_B$K1(fit_const$MLEs.tvec, fit_const$MLEs.theta) - y))

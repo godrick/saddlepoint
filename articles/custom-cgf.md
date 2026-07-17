@@ -3,9 +3,9 @@
 This vignette shows how to build a new `CGF` object when you can write
 down:
 
-- the CGF $K(t;\theta)$ and its derivatives (at least up to order 4),
+- the CGF $`K(t;\theta)`$ and its derivatives (at least up to order 4),
   and
-- (optionally) the domain constraint(s) for $t$.
+- (optionally) the domain constraint(s) for $`t`$.
 
 The recommended constructor for most univariate or elementwise models
 is:
@@ -32,21 +32,29 @@ you provide 5 vectorized functions:
 Often very useful:
 
 - `ineq_constraint(tvec, param)` returning a numeric vector of
-  constraints $g(t,\theta)$ with feasibility defined by $g \leq 0$,
-- `analytic_tvec_hat(x,param)` if you can solve
-  $K_{1}\left( \widehat{t};\theta \right) = x$ in closed form
+  constraints $`g(t,\theta)`$ with feasibility defined by $`g \le 0`$,
+- `analytic_tvec_hat(x,param)` if you can solve $`K_1(\hat t;\theta)=x`$
+  in closed form
 
 ## Example:
 
-Let $X \sim N\left( \mu,\sigma^{2} \right)$. The CGF is
-$$K\left( t;\mu,\sigma^{2} \right) = \mu t + \frac{1}{2}\sigma^{2}t^{2},$$
+Let $`X \sim \mathrm{N}(\mu,\sigma^2)`$. The CGF is
+``` math
+K(t;\mu,\sigma^2) = \mu t + \frac{1}{2}\sigma^2 t^2,
+```
 and the derivatives are
-$$K_{1}(t) = \mu + \sigma^{2}t,\quad K_{2}(t) = \sigma^{2},\quad K_{3}(t) = 0,\quad K_{4}(t) = 0.$$
+``` math
+K_1(t) = \mu + \sigma^2 t,\quad
+K_2(t) = \sigma^2,\quad
+K_3(t)=0,\quad
+K_4(t)=0.
+```
 
 Below we implement a Normal CGF parameterized by
-$\left( \mu,\log\sigma^{2} \right)$.
+$`(\mu, \log\sigma^2)`$.
 
 ``` r
+
 
 NormalLogSigma2CGF <- createCGFfromVectorizedFunctions(
   K_vectorized = function(tvec, param) {
@@ -141,15 +149,16 @@ cbind(
 
 ## Adding a domain constraint (when needed)
 
-Some distributions have a restricted CGF domain in $t$. If $K(t;\theta)$
-is only defined when $g(t,\theta) \leq 0$, implement:
+Some distributions have a restricted CGF domain in $`t`$. If
+$`K(t;\theta)`$ is only defined when $`g(t,\theta)\le 0`$, implement:
 
 ``` r
+
 
 ineq_constraint = function(tvec, param) {
   # return a numeric vector; feasible if all entries <= 0
 }
 ```
 
-Example: if a univariate CGF is defined for $t < b(\theta)$, you can
+Example: if a univariate CGF is defined for $`t < b(\theta)`$, you can
 return `tvec - b(theta)`.
