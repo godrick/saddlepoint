@@ -1,7 +1,7 @@
 Package: saddlepoint
 Title: A framework for the saddlepoint approximation with CGF operations
 Version: 0.9.0
-Date: 2025-08-27
+Date: 2026-07-16
 Authors@R: c(
     person("Godrick", "Oketch", role = c("aut", "cre"), email = "godrick@berkeley.edu"),
     person("Jesse", "Goodman", role = c("aut")),
