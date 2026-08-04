@@ -383,7 +383,7 @@ CGF_private_defaults$K4operatorAABB_factored <- .factored_delegate_mark(
 
 
 #' @noRd
-CGF <- R6::R6Class(
+CGF <- R6Class(
   classname = "CGF",
 
   private = c(CGF_private_defaults, list(

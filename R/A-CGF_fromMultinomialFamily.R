@@ -20,7 +20,7 @@
 # NOTE: This class is single-block; replication across iid blocks is handled by iidReplicatesCGF()
 # using block_size(parameter_vector) = length(parameter_vector) - 1.
 
-MultinomialFamilyCGF <- R6::R6Class(
+MultinomialFamilyCGF <- R6Class(
   classname = "MultinomialFamilyCGF",
   inherit   = CGF,
 

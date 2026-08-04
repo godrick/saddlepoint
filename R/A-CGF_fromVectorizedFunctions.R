@@ -12,7 +12,7 @@
 #' by starting from vectorized defaults and then merging user-supplied overrides.
 #'
 #' @noRd
-VectorizedFunctionsCGF <- R6::R6Class(
+VectorizedFunctionsCGF <- R6Class(
   "VectorizedFunctionsCGF",
   inherit = CGF,
 
