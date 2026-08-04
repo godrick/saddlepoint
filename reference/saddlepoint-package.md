@@ -33,7 +33,7 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Godrick Oketch <godrick@berkeley.edu>
+**Maintainer**: Godrick Oketch <godrickmaradona@gmail.com>
 
 Authors:
 
