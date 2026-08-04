@@ -77,6 +77,10 @@ VectorizedFunctionsCGF <- R6::R6Class(
           tilting_vals <- K_vals - tvec * K1_vals
           sum(0.5 * log(2 * pi * K2_vals) - tilting_vals)
         },
+        K2operatorAK2AT = function(tvec, p, A) {
+          K2_vals <- private$K2_vectorized(tvec, p)
+          A %*% (K2_vals * t(A))
+        },
         func_T = function(tvec, p) {
           k2val <- private$K2_vectorized(tvec, p)
           k2sq_val <- k2val * k2val
@@ -95,6 +99,51 @@ VectorizedFunctionsCGF <- R6::R6Class(
           k3_vals <- private$K3_vectorized(tvec, p)
           mat_k3_vals <- diag(k3_vals, nrow = length(tvec))
           sum(mat_k3_vals %*% (Q * Q * Q) %*% mat_k3_vals)
+        },
+        K4operatorAABB_factored = function(tvec, p, A, d) {
+          diag_Q <- as.vector(rowSums(A * t(d * t(A))))
+          sum(private$K4_vectorized(tvec, p) * diag_Q * diag_Q)
+        },
+        K3K3operatorAABBCC_factored = function(tvec, p, A, d) {
+          k3_vals <- private$K3_vectorized(tvec, p)
+          balanced <- .balance_factored_Q(
+            A, d, "vectorized K3K3operatorAABBCC_factored"
+          )
+          A <- balanced$A
+          d <- balanced$d
+          diag_Q <- as.vector(rowSums(A * t(d * t(A))))
+          z <- as.vector(crossprod(A, k3_vals * diag_Q))
+          sum((d * z) * z)
+        },
+        K3K3operatorABCABC_factored = function(tvec, p, A, d) {
+          k3_vals <- private$K3_vectorized(tvec, p)
+          r <- length(d)
+          if (r == 0L) return(0 * sum(k3_vals))
+
+          # Factor-space contraction is O(n r^3) and avoids an n-by-n Q when
+          # the rank is genuinely small.  A dense elementwise contraction is
+          # cheaper when r is large, so select by the leading operation counts.
+          if (as.double(r) * r <= nrow(A)) {
+            balanced <- .balance_factored_Q(
+              A, d, "vectorized K3K3operatorABCABC_factored"
+            )
+            A <- balanced$A
+            d <- balanced$d
+            d_outer <- tcrossprod(d)
+            total <- 0 * sum(k3_vals)
+            for (p_index in seq_len(r)) {
+              C_slice <- crossprod(
+                A,
+                A * as.vector(k3_vals * A[, p_index])
+              )
+              total <- total +
+                d[p_index] * sum(d_outer * (C_slice * C_slice))
+            }
+            return(total)
+          }
+
+          Q <- A %*% (d * t(A))
+          sum(tcrossprod(k3_vals) * (Q * Q * Q))
         }
       )
 
@@ -132,8 +181,29 @@ VectorizedFunctionsCGF <- R6::R6Class(
       }
 
       ## merge in precedence order; default_methods (lowest) --> explicit args like neg_ll=... --> ... (highest)
-      resolved_methods <- modifyList(default_methods, optional_overrides)
-      resolved_methods <- modifyList(resolved_methods, extra_methods)
+      user_methods <- modifyList(optional_overrides, extra_methods)
+      user_names <- names(user_methods)
+      correction_methods <- c(
+        "K4operatorAABB",
+        "K3K3operatorAABBCC",
+        "K3K3operatorABCABC",
+        "K4operatorAABB_factored",
+        "K3K3operatorAABBCC_factored",
+        "K3K3operatorABCABC_factored"
+      )
+      if (!("func_T" %in% user_names) &&
+          any(correction_methods %in% user_names)) {
+        default_methods$func_T <- NULL
+      }
+      if (!("neg_ll" %in% user_names) &&
+          any(c("logdetK2", "tilting_exponent") %in% user_names)) {
+        default_methods$neg_ll <- NULL
+      }
+      # Only explicit dense overrides need a compatibility bridge.  Bridging
+      # the built-in dense defaults would reconstruct a large dense Q and erase
+      # the thin factor supplied by a dimension-reducing composition.
+      user_methods <- .add_factored_contraction_bridges(user_methods)
+      resolved_methods <- modifyList(default_methods, user_methods)
       ## resolved_methods is passed into super$initialize
 
       ### effect: explicit args stay user-facing, but (...) still gives extensibility and can //??intentionally// override anything
