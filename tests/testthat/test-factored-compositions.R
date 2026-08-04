@@ -105,3 +105,110 @@ test_that("concatenation preserves thin contractions and zero weights", {
 
   expect_factored_composition_vgh(cgf, tvec, theta, factor_A, factor_d)
 })
+
+test_that("singleton wrappers preserve authoritative correction methods", {
+  child <- createCGF(
+    K = function(tvec, p) 0.5 * exp(p[1]) * sum(tvec * tvec),
+    K1 = function(tvec, p) exp(p[1]) * tvec,
+    K2 = function(tvec, p) diag(exp(p[1]), length(tvec)),
+    K3operator = function(tvec, p, a, b, c) 0 * p[1],
+    K4operator = function(tvec, p, a, b, c, d) 0 * p[1],
+    K4operatorAABB_factored = function(tvec, p, A, d) 8 + p[1]^2,
+    K3K3operatorAABBCC_factored = function(tvec, p, A, d) 8 - p[1],
+    K3K3operatorABCABC_factored = function(tvec, p, A, d) 12 + p[1],
+    func_T = function(tvec, p) 5 + p[1]^3
+  )
+  singleton <- sumOfIndependentCGF(list(child), iidReps = 1L)
+  tvec <- 0.2
+  theta <- 0.4
+  A <- matrix(1, 1L, 1L)
+
+  for (method_name in c(
+    "K4operatorAABB_factored",
+    "K3K3operatorAABBCC_factored",
+    "K3K3operatorABCABC_factored"
+  )) {
+    expect_equal(
+      singleton$.private_api[[method_name]](tvec, theta, A, 1),
+      child$.private_api[[method_name]](tvec, theta, A, 1),
+      tolerance = 0
+    )
+  }
+
+  child_tape <- RTMB::MakeTape(
+    function(p) child$.private_api$func_T(tvec, p), theta
+  )
+  singleton_tape <- RTMB::MakeTape(
+    function(p) singleton$.private_api$func_T(tvec, p), theta
+  )
+  expect_equal(
+    c(
+      singleton_tape(theta),
+      singleton_tape$jacobian(theta),
+      singleton_tape$jacfun()$jacobian(theta)
+    ),
+    c(
+      child_tape(theta),
+      child_tape$jacobian(theta),
+      child_tape$jacfun()$jacobian(theta)
+    ),
+    tolerance = 1e-12
+  )
+
+  stages <- list(
+    adaptCGF(child, function(p) p),
+    .exponentialTiltCGF_internal(child, function(p) 0 * p[1]),
+    shiftedCGF(child, 0),
+    sumOfiidCGF(child, n = 1)
+  )
+  for (stage in stages) {
+    expect_true(all(vapply(
+      c(
+        "K4operatorAABB_factored",
+        "K3K3operatorAABBCC_factored",
+        "K3K3operatorABCABC_factored"
+      ),
+      function(name) saddlepoint:::.factored_delegate_is_safe(
+        stage$.private_api[[name]]
+      ),
+      logical(1)
+    )))
+  }
+
+  combined <- sumOfIndependentCGF(list(child, child), iidReps = 1L)
+  expect_equal(combined$.private_api$func_T(tvec, theta), 0)
+  overridden <- sumOfIndependentCGF(
+    list(child),
+    iidReps = 1L,
+    func_T = function(tvec, p) 77 + 0 * p[1]
+  )
+  expect_equal(overridden$.private_api$func_T(tvec, theta), 77)
+})
+
+test_that("independent sums reject cancellation and recover on one tape", {
+  make_mapped_poisson <- function(coefficient) {
+    linearlyMappedCGF(
+      PoissonModelCGF(lambda = function(p) 1 + 0 * p[1], iidReps = 1L),
+      matrix(coefficient, 1L, 1L),
+      iidReps = 1L
+    )
+  }
+  lossy <- sumOfIndependentCGF(
+    lapply(c(2^18, 1, -2^18), make_mapped_poisson),
+    iidReps = 1L
+  )
+  tape <- RTMB::MakeTape(function(p) {
+    lossy$K3operator(0, p, p[1], p[1], p[1])
+  }, 0)
+
+  expect_true(all(is.nan(c(
+    tape(1),
+    tape$jacobian(1),
+    tape$jacfun()$jacobian(1)
+  ))))
+  expect_equal(c(
+    tape(0),
+    tape$jacobian(0),
+    tape$jacfun()$jacobian(0)
+  ), c(0, 0, 0))
+})
