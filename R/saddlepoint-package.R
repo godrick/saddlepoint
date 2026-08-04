@@ -7,6 +7,7 @@
 ## usethis namespace: start
 #' @import RTMB
 #' @import Matrix
+#' @importFrom Rcpp evalCpp
 #' @useDynLib saddlepoint, .registration = TRUE
 ## usethis namespace: end
 NULL

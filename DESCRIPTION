@@ -24,6 +24,8 @@ Imports:
     methods,
     Matrix,
     nloptr,
+    R6,
+    Rcpp,
     RTMB
 LinkingTo: 
     RTMB,
