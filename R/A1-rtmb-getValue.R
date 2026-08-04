@@ -11,6 +11,11 @@
 
 #' Extract numeric values from RTMB AD objects (without RTMB:::)
 #' @keywords internal
+# TODO: Remove this compatibility layer in a dedicated cleanup.
+# Supported RTMB::ADjoint forward callbacks and numeric optimizer paths
+# currently receive ordinary numeric values, so sp_getValues() is not reached.
+# Do not extend its use: it depends on RTMB/TMB native representation and is
+# not a supported general-purpose AD value extractor.
 .rtmb_value_real <- function(x) {
   if (inherits(x, "advector")) {
     return(sp_getValues(x))
@@ -221,7 +226,6 @@
 #   }
 #   tvec
 # }
-
 
 
 
