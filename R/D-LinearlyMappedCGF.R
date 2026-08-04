@@ -57,6 +57,30 @@
     if (is_already_sparse) matrix_A else A_fun(param)
   }
 
+  child_K2_factor <- .K2_factor_method(cgf)
+  extra_args <- list(...)
+  extra_args <- extra_args[!vapply(extra_args, is.null, logical(1))]
+  extra_names <- names(extra_args)
+  unsupported_required <- intersect(
+    extra_names,
+    c("K", "K1", "K3operator", "K4operator")
+  )
+  if (length(unsupported_required) > 0L) {
+    stop(
+      "linearlyMappedCGF cannot override ",
+      paste(unsupported_required, collapse = ", "),
+      " through '...'; override the child CGF instead.",
+      call. = FALSE
+    )
+  }
+  contraction_pairs <- list(
+    c("K4operatorAABB", "K4operatorAABB_factored"),
+    c("K3K3operatorAABBCC", "K3K3operatorAABBCC_factored"),
+    c("K3K3operatorABCABC", "K3K3operatorABCABC_factored")
+  )
+  factored_names <- vapply(contraction_pairs, `[[`, character(1), 2L)
+  force_factored_contractions <- any(factored_names %in% extra_names)
+
 
 
 
@@ -71,7 +95,7 @@
   K <- function(tvec, parameter_vector) {
     A_current <- get_sparse_A(parameter_vector)
     if (nrow(A_current) != length(tvec)) stop("Dimension mismatch: nrow(matrix_A) != length(tvec).")
-    cgf$K(t(A_current) %*% tvec, parameter_vector)
+    cgf$K(as.vector(t(A_current) %*% tvec), parameter_vector)
   }
 
   # Key identity: K_Y' = A K_X'
@@ -103,7 +127,7 @@
     cgf$K2operator(as.vector(t(A_current) %*% tvec),
                    parameter_vector,
                    as.vector(t(A_current) %*% x),
-                   as.vector(t(A_current) %*% y),
+                   as.vector(t(A_current) %*% y)
     )
   }
 
@@ -112,7 +136,26 @@
   K2operatorAK2AT <- function(tvec, parameter_vector, B) {
     A_current <- get_sparse_A(parameter_vector)
     B_A <- B %*% A_current
+    if (inherits(B_A, "denseMatrix") && !inherits(B_A, "adsparse")) {
+      B_A <- as.matrix(B_A)
+    }
     cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A)
+  }
+
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, parameter_vector, B) {
+      A_current <- get_sparse_A(parameter_vector)
+      B_A <- B %*% A_current
+      if (inherits(B_A, "denseMatrix") && !inherits(B_A, "adsparse")) {
+        B_A <- as.matrix(B_A)
+      }
+      child_K2_factor(
+        as.vector(t(A_current) %*% tvec),
+        parameter_vector,
+        B_A
+      )
+    }
   }
 
   K3operator <- function(tvec, parameter_vector, v1, v2, v3) {
@@ -137,37 +180,120 @@
   }
 
 
-  # All the operator forms involving matrices Q are equivalent to applying the same method for BaseCGF with Q_inner = A^T Q A
-  K4operatorAABB <- function(tvec, parameter_vector, Q) {
+  # Factor Q before pulling it back.  The output-space Q used by the public
+  # contractions is positive definite, whereas A^T Q A is only positive
+  # semidefinite when A reduces dimension.  Passing A^T times a factor of Q to
+  # the factored methods preserves the contraction without asking a child to
+  # Cholesky-factor that singular pullback.
+  factor_output_Q <- function(Q, normalize = TRUE) {
+    if (inherits(Q, "Matrix") && !inherits(Q, "adsparse")) Q <- as.matrix(Q)
+    chol_Q <- chol(Q)
+    if (!normalize) {
+      return(list(B = t(chol_Q), d = rep(1, nrow(chol_Q))))
+    }
+    diag_Q <- diag(chol_Q)
+    list(
+      B = t(chol_Q) %*% diag(
+        1 / diag_Q,
+        nrow = length(diag_Q),
+        ncol = length(diag_Q)
+      ),
+      d = diag_Q * diag_Q
+    )
+  }
+
+  mapped_Q_contraction <- function(self_object, tvec, parameter_vector, Q,
+                                   dense_method, factored_name) {
     A_current <- get_sparse_A(parameter_vector)
+    if (!force_factored_contractions && nrow(A_current) >= ncol(A_current)) {
+      tA <- t(A_current)
+      Q_inner <- tA %*% Q %*% A_current
+      return(dense_method(
+        as.vector(tA %*% tvec), parameter_vector, Q_inner
+      ))
+    }
+
+    # Unit weights avoid an unnecessary dense column-normalization step here.
+    # The factored contract only requires Q = B diag(d) B', which the raw
+    # Cholesky factor satisfies exactly.
+    Q_factor <- factor_output_Q(Q, normalize = FALSE)
+    if (force_factored_contractions) {
+      return(self_object$.private_api[[factored_name]](
+        tvec, parameter_vector, Q_factor$B, Q_factor$d
+      ))
+    }
+
     tA <- t(A_current)
-    Q_inner <- tA %*% Q %*% A_current
-    cgf$K4operatorAABB(as.vector(tA %*% tvec), parameter_vector, Q_inner)
+    cgf$.private_api[[factored_name]](
+      as.vector(tA %*% tvec), parameter_vector,
+      tA %*% Q_factor$B, Q_factor$d
+    )
+  }
+
+  K4operatorAABB <- function(tvec, parameter_vector, Q) {
+    mapped_Q_contraction(
+      get("self", inherits = TRUE), tvec, parameter_vector, Q,
+      cgf$K4operatorAABB, "K4operatorAABB_factored"
+    )
   }
 
   K3K3operatorAABBCC <- function(tvec, parameter_vector, Q) {
-    A_current <- get_sparse_A(parameter_vector)
-    tA <- t(A_current)
-    Q_inner <- tA %*% Q %*% A_current
-    cgf$K3K3operatorAABBCC(as.vector(tA %*% tvec), parameter_vector, Q_inner)
+    mapped_Q_contraction(
+      get("self", inherits = TRUE), tvec, parameter_vector, Q,
+      cgf$K3K3operatorAABBCC, "K3K3operatorAABBCC_factored"
+    )
   }
 
   K3K3operatorABCABC <- function(tvec, parameter_vector, Q) {
-    A_current <- get_sparse_A(parameter_vector)
-    tA <- t(A_current)
-    Q_inner <- tA %*% Q %*% A_current
-    cgf$K3K3operatorABCABC(as.vector(tA %*% tvec), parameter_vector, Q_inner)
+    mapped_Q_contraction(
+      get("self", inherits = TRUE), tvec, parameter_vector, Q,
+      cgf$K3K3operatorABCABC, "K3K3operatorABCABC_factored"
+    )
   }
 
-  # We avoid the factored forms for now (avoiding the potentially expensive loops)
+  # Ordinary full-rank maps keep the established dense-Q contractions.  A
+  # dimension-reducing map makes A' Q A singular; factor-capable compositions
+  # also retain their stable thin representation.
   func_T <- function(tvec, parameter_vector) {
-    Q <- solve(K2(tvec, parameter_vector))
-    K3K3operatorABCABC_val <- K3K3operatorABCABC(tvec, parameter_vector, Q)
-    K3K3operatorAABBCC_val <- K3K3operatorAABBCC(tvec, parameter_vector, Q)
-    K4operatorAABB_val <- K4operatorAABB(tvec, parameter_vector, Q)
-    K4operatorAABB_val/8 - K3K3operatorAABBCC_val/8 - K3K3operatorABCABC_val/12
-  }
+    self_object <- get("self", inherits = TRUE)
+    private_api <- self_object$.private_api
+    A_current <- get_sparse_A(parameter_vector)
+    use_factored <- force_factored_contractions ||
+      !is.null(.K2_factor_method(self_object)) ||
+      nrow(A_current) < ncol(A_current)
+    Q <- self_object$K2_solve(tvec, parameter_vector, diag(length(tvec)))
+    if (inherits(Q, "Matrix") && !inherits(Q, "adsparse")) Q <- as.matrix(Q)
 
+    if (!use_factored) {
+      K3K3operatorABCABC_val <- self_object$K3K3operatorABCABC(
+        tvec, parameter_vector, Q
+      )
+      K3K3operatorAABBCC_val <- self_object$K3K3operatorAABBCC(
+        tvec, parameter_vector, Q
+      )
+      K4operatorAABB_val <- self_object$K4operatorAABB(
+        tvec, parameter_vector, Q
+      )
+      return(
+        K4operatorAABB_val / 8 -
+          K3K3operatorAABBCC_val / 8 -
+          K3K3operatorABCABC_val / 12
+      )
+    }
+
+    Q_factor <- factor_output_Q(Q)
+    B <- Q_factor$B
+    d <- Q_factor$d
+
+    K4_AABB <- private_api$K4operatorAABB_factored(tvec, parameter_vector, B, d)
+    K3K3_AABBCC <- private_api$K3K3operatorAABBCC_factored(
+      tvec, parameter_vector, B, d
+    )
+    K3K3_ABC <- private_api$K3K3operatorABCABC_factored(
+      tvec, parameter_vector, B, d
+    )
+    K4_AABB / 8 - K3K3_AABBCC / 8 - K3K3_ABC / 12
+  }
 
   # For the factored forms where Q = B D B^T and D has diagonal vector d, note that Q_inner = A^T Q A = (A^T B) D (A^T B)^T
   # Note about sizes: if A is n-by-m then B is n-by-r for some r, and A^T B is m-by-r
@@ -178,6 +304,10 @@
     B_inner <- tA %*% B
     base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored,
+    .factored_delegate_is_safe(base_K4operatorAABB_factored)
+  )
 
   base_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
   K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, B, d) {
@@ -194,6 +324,14 @@
     B_inner <- tA %*% B
     base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
+  K3K3operatorAABBCC_factored <- .factored_delegate_mark(
+    K3K3operatorAABBCC_factored,
+    .factored_delegate_is_safe(base_K3K3operatorAABBCC_factored)
+  )
+  K3K3operatorABCABC_factored <- .factored_delegate_mark(
+    K3K3operatorABCABC_factored,
+    .factored_delegate_is_safe(base_K3K3operatorABCABC_factored)
+  )
 
   # inequality constraints for the transformed variable Y = A * X are the same as those
   # for the original variable X, evaluated at the transformed input A.transpose() * tvec.
@@ -293,7 +431,6 @@
     ineq_constraint = ineq_constraint,
     analytic_tvec_hat = NULL,
     tilting_exponent = tilting_exponent,
-    func_T = func_T,
     rsim = rsim,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
@@ -303,10 +440,34 @@
     K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     K2operator = K2operator,
     K2operatorAK2AT = K2operatorAK2AT,
+    K2_factor = K2_factor,
+    K2_factor_terminal = if (!is.null(K2_factor)) function() TRUE else NULL,
     op_name = c(cgf$call_history, "linearlyMappedCGF")
   )
 
-  do.call(createCGF, c(cgf_args, list(...)))
+  cgf_args$func_T <- func_T
+
+  if (any(c("K2", "K2operatorAK2AT") %in% extra_names) &&
+      !("K2_factor" %in% extra_names)) {
+    cgf_args$K2_factor <- NULL
+    cgf_args$K2_factor_terminal <- NULL
+  }
+
+  if ("K2" %in% extra_names) {
+    for (dependent_name in c("K2operator", "K2operatorAK2AT")) {
+      if (!(dependent_name %in% extra_names)) {
+        cgf_args[[dependent_name]] <- NULL
+      }
+    }
+  }
+
+  for (pair in contraction_pairs) {
+    if (pair[[1L]] %in% extra_names && !(pair[[2L]] %in% extra_names)) {
+      cgf_args[[pair[[2L]]]] <- NULL
+    }
+  }
+
+  do.call(createCGF, modifyList(cgf_args, extra_args))
 }
 
 
@@ -401,6 +562,7 @@
 #' ## Example 2: A(theta) dense-vs-sparse (adsparse)
 #' \dontrun{
 #' library(Matrix)
+#' library(RTMB)
 #'
 #' lambda_fun <- function(theta) c(theta[1], theta[2])   # base 2-d Poisson
 #' pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")

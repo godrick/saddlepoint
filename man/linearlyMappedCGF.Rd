@@ -87,6 +87,7 @@ res <- compute.spa.negll(
 ## Example 2: A(theta) dense-vs-sparse (adsparse)
 \dontrun{
 library(Matrix)
+library(RTMB)
 
 lambda_fun <- function(theta) c(theta[1], theta[2])   # base 2-d Poisson
 pois2 <- PoissonModelCGF(lambda = lambda_fun, iidReps = "any")

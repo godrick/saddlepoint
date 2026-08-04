@@ -20,6 +20,50 @@ test_that("K2_solve and logdetK2 agree with solve and determinant", {
   ld_ref <- as.numeric(determinant(K2, logarithm = TRUE)$modulus)
   ld_got <- as.numeric(mapped$logdetK2(tvec, theta))
   expect_equal(ld_got, ld_ref, tolerance = 1e-8)
+
+  summand <- SubunitaryMultinomialModelCGF(
+    n = adaptor(fixed_param = 10),
+    prob_vec = adaptor(fixed_param = c(0.2, 0.3, 0.1)),
+    iidReps = 1L
+  )
+  dynamic_map <- function(x) {
+    out <- matrix(0, nrow = 2, ncol = 3) * x[1]
+    out[1, 1] <- 1
+    out[2, 2] <- 1
+    out[1, 3] <- x[1]
+    out[2, 3] <- 0.2 * x[1]
+    out
+  }
+  dynamic <- linearlyMappedCGF(summand, dynamic_map, iidReps = 1L)
+  rhs <- cbind(c(1, -1), c(0.5, 0.25))
+  theta <- 0.4
+  K2 <- as.matrix(dynamic$K2(tvec, theta))
+  expect_equal(
+    dynamic$logdetK2(tvec, theta),
+    as.numeric(determinant(K2, logarithm = TRUE)$modulus),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    dynamic$K2_solve(tvec, theta, rhs),
+    solve(K2, rhs),
+    tolerance = 1e-12
+  )
+
+  objective <- function(x) {
+    dynamic$logdetK2(tvec, x) +
+      sum(dynamic$K2_solve(tvec, x, rhs))
+  }
+  tape <- RTMB::MakeTape(objective, theta)
+  expect_equal(
+    as.numeric(tape$jacobian(theta)),
+    as.numeric(numDeriv::grad(objective, theta)),
+    tolerance = 1e-7
+  )
+  expect_equal(
+    as.numeric(tape$jacfun()$jacobian(theta)),
+    as.numeric(numDeriv::hessian(objective, theta)),
+    tolerance = 1e-6
+  )
 })
 
 test_that("factor terminals preserve zero-weight derivatives and recover", {
@@ -87,7 +131,7 @@ test_that("factor terminals preserve zero-weight derivatives and recover", {
   )
 })
 
-test_that("factor terminals validate only the completed covariance", {
+test_that("factor terminals validate completion, scale, and numerical loss", {
   S <- diag(c(-2e-15, rep(0, 29)))
   K2 <- S + diag(30)
   rhs <- seq_len(30) / 30
@@ -123,9 +167,7 @@ test_that("factor terminals validate only the completed covariance", {
     ),
     "singular|ill-conditioned"
   )
-})
 
-test_that("factor terminals equilibrate scales and reject numerical loss", {
   scales <- c(1e-100, 1, 1e100)
   G <- matrix(c(
     1, 0.2, 0.1,
@@ -181,6 +223,144 @@ test_that("factor terminals equilibrate scales and reject numerical loss", {
       numeric()
     ),
     "log-determinant derivatives.*numerical accuracy"
+  )
+
+  count <- PoissonModelCGF(lambda = function(x) x[1], iidReps = 1L)
+  summand <- MultinomialModelCGF(
+    n = adaptor(fixed_param = 1),
+    prob_vec = function(x) x[2:4],
+    iidReps = 1L
+  )
+  rss <- randomlyStoppedSumCGF(
+    count, summand, block_size = 3L, iidReps = 1L
+  )
+  theta <- c(2, 0.5, 0.3, 0.2)
+  tvec <- rep(0, 3)
+  rhs <- c(1, -2, 3)
+  expect_equal(
+    as.matrix(rss$K2(tvec, theta)),
+    diag(c(1, 0.6, 0.4)),
+    tolerance = 1e-12
+  )
+  expect_equal(rss$logdetK2(tvec, theta), log(0.24), tolerance = 1e-12)
+  expect_equal(
+    rss$K2_solve(tvec, theta, rhs),
+    c(1, -10 / 3, 7.5),
+    tolerance = 1e-11
+  )
+
+  rss_objective <- function(x) {
+    rss$logdetK2(tvec, x) + sum(rss$K2_solve(tvec, x, rhs))
+  }
+  rss_tape <- RTMB::MakeTape(rss_objective, theta)
+  expect_equal(
+    as.vector(rss_tape$jacobian(theta)),
+    numDeriv::grad(rss_objective, theta),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    rss_tape$jacfun()$jacobian(theta),
+    numDeriv::hessian(rss_objective, theta),
+    tolerance = 1e-5
+  )
+})
+
+test_that("composition order and mixed covariance terms retain one result", {
+  X1 <- MultinomialModelCGF(
+    n = adaptor(fixed_param = 3),
+    prob_vec = adaptor(fixed_param = c(0.2, 0.3, 0.5)),
+    iidReps = 1L
+  )
+  X2 <- MultinomialModelCGF(
+    n = adaptor(fixed_param = 4),
+    prob_vec = adaptor(fixed_param = c(0.4, 0.1, 0.5)),
+    iidReps = 1L
+  )
+  A <- matrix(c(1, 0, 0, 0, 1, 0), nrow = 2, byrow = TRUE)
+  map_after_sum <- linearlyMappedCGF(
+    sumOfIndependentCGF(list(X1, X2), iidReps = 1L),
+    A,
+    iidReps = 1L
+  )
+  sum_after_map <- sumOfIndependentCGF(list(
+    linearlyMappedCGF(X1, A, iidReps = 1L),
+    linearlyMappedCGF(X2, A, iidReps = 1L)
+  ), iidReps = 1L)
+  tvec <- c(0.1, -0.2)
+  rhs <- c(2, -1)
+
+  expect_equal(map_after_sum$K2(tvec, 1), sum_after_map$K2(tvec, 1))
+  expect_equal(
+    map_after_sum$logdetK2(tvec, 1),
+    sum_after_map$logdetK2(tvec, 1),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    map_after_sum$K2_solve(tvec, 1, rhs),
+    sum_after_map$K2_solve(tvec, 1, rhs),
+    tolerance = 1e-11
+  )
+  expect_equal(
+    map_after_sum$.private_api$func_T(tvec, 1),
+    sum_after_map$.private_api$func_T(tvec, 1),
+    tolerance = 1e-11
+  )
+
+  dense <- createCGF(
+    K = function(tvec, p) 0.5 * p[1] * sum(tvec * tvec),
+    K1 = function(tvec, p) p[1] * tvec,
+    K2 = function(tvec, p) diag(p[1], length(tvec)),
+    K3operator = function(tvec, p, a, b, c) 0 * p[1],
+    K4operator = function(tvec, p, a, b, c, d) 0 * p[1]
+  )
+  mixed <- sumOfIndependentCGF(list(
+    linearlyMappedCGF(X1, A, iidReps = 1L),
+    dense
+  ), iidReps = 1L)
+  theta <- 0.7
+
+  candidate_numerics <- RTMB::MakeTape(function(x) {
+    mixed$logdetK2(tvec, x) + sum(mixed$K2_solve(tvec, x, rhs))
+  }, theta)
+  reference_numerics <- RTMB::MakeTape(function(x) {
+    K2 <- mixed$K2(tvec, x)
+    determinant(K2, logarithm = TRUE)$modulus + sum(solve(K2, rhs))
+  }, theta)
+  expect_equal(
+    c(
+      candidate_numerics(theta),
+      candidate_numerics$jacobian(theta),
+      candidate_numerics$jacfun()$jacobian(theta)
+    ),
+    c(
+      reference_numerics(theta),
+      reference_numerics$jacobian(theta),
+      reference_numerics$jacfun()$jacobian(theta)
+    ),
+    tolerance = 1e-9
+  )
+
+  candidate_T <- RTMB::MakeTape(
+    function(x) mixed$.private_api$func_T(tvec, x), theta
+  )
+  reference_T <- RTMB::MakeTape(function(x) {
+    Q <- solve(mixed$K2(tvec, x))
+    mixed$K4operatorAABB(tvec, x, Q) / 8 -
+      mixed$K3K3operatorAABBCC(tvec, x, Q) / 8 -
+      mixed$K3K3operatorABCABC(tvec, x, Q) / 12
+  }, theta)
+  expect_equal(
+    c(
+      candidate_T(theta),
+      candidate_T$jacobian(theta),
+      candidate_T$jacfun()$jacobian(theta)
+    ),
+    c(
+      reference_T(theta),
+      reference_T$jacobian(theta),
+      reference_T$jacfun()$jacobian(theta)
+    ),
+    tolerance = 1e-9
   )
 })
 

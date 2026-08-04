@@ -78,6 +78,33 @@ test_that("multi-block IID preserves thin contractions and zero weights", {
   factor_d <- function(p) c(exp(0.1 * p[1]), p[2]^2)
 
   expect_factored_composition_vgh(cgf, tvec, theta, factor_A, factor_d)
+
+  set.seed(951)
+  map <- matrix(rnorm(2L * total_dim), nrow = 2L) / sqrt(total_dim)
+  mapped_iid <- linearlyMappedCGF(cgf, map, iidReps = 1L)
+  mapped_flat <- linearlyMappedCGF(
+    make_factored_composition_child(), map, iidReps = 1L
+  )
+  mapped_tvec <- c(0.02, -0.03)
+  iid_tape <- RTMB::MakeTape(
+    function(p) mapped_iid$.private_api$func_T(mapped_tvec, p), theta
+  )
+  flat_tape <- RTMB::MakeTape(
+    function(p) mapped_flat$.private_api$func_T(mapped_tvec, p), theta
+  )
+  expect_equal(
+    c(
+      iid_tape(theta),
+      iid_tape$jacobian(theta),
+      iid_tape$jacfun()$jacobian(theta)
+    ),
+    c(
+      flat_tape(theta),
+      flat_tape$jacobian(theta),
+      flat_tape$jacfun()$jacobian(theta)
+    ),
+    tolerance = 1e-9
+  )
 })
 
 test_that("concatenation preserves thin contractions and zero weights", {
@@ -159,7 +186,8 @@ test_that("singleton wrappers preserve authoritative correction methods", {
     adaptCGF(child, function(p) p),
     .exponentialTiltCGF_internal(child, function(p) 0 * p[1]),
     shiftedCGF(child, 0),
-    sumOfiidCGF(child, n = 1)
+    sumOfiidCGF(child, n = 1),
+    linearlyMappedCGF(child, matrix(1, 1L, 1L), iidReps = 1L)
   )
   for (stage in stages) {
     expect_true(all(vapply(

@@ -121,6 +121,9 @@ test_that("RSS correction dispatch preserves override precedence", {
     out
   }
   counts <- function(x) c(x$k4, x$k3a, x$k3b)
+  reset_calls <- function(x) {
+    x$k4 <- x$k3a <- x$k3b <- 0L
+  }
   values <- list(
     k4 = function(p) 8 + 2 * p[1] + p[1]^2,
     k3a = function(p) 8 - p[1] + p[1]^2 / 2,
@@ -171,9 +174,21 @@ test_that("RSS correction dispatch preserves override precedence", {
     )
   }
 
+  native <- make_rss()
+  expect_equal(
+    correction_vgh(linearlyMappedCGF(native, diag(2), iidReps = 1L)),
+    correction_vgh(native),
+    tolerance = 1e-11
+  )
+
   for (factory in list(dense_methods, factored_methods)) {
     calls <- make_calls()
-    expect_equal(correction_vgh(make_rss(factory(calls))), expected, tolerance = 1e-11)
+    rss <- make_rss(factory(calls))
+    expect_equal(correction_vgh(rss), expected, tolerance = 1e-11)
+    expect_true(all(counts(calls) > 0L))
+    reset_calls(calls)
+    mapped <- linearlyMappedCGF(rss, diag(2), iidReps = 1L)
+    expect_equal(correction_vgh(mapped), expected, tolerance = 1e-11)
     expect_true(all(counts(calls) > 0L))
   }
 
@@ -183,6 +198,15 @@ test_that("RSS correction dispatch preserves override precedence", {
   expect_equal(correction_vgh(both), expected, tolerance = 1e-11)
   expect_identical(counts(dense_calls), c(0L, 0L, 0L))
   expect_true(all(counts(factored_calls) > 0L))
+  reset_calls(dense_calls)
+  reset_calls(factored_calls)
+  expect_equal(
+    correction_vgh(linearlyMappedCGF(both, diag(2), iidReps = 1L)),
+    expected,
+    tolerance = 1e-11
+  )
+  expect_true(all(counts(dense_calls) > 0L))
+  expect_identical(counts(factored_calls), c(0L, 0L, 0L))
 
   explicit_calls <- 0L
   explicit <- make_rss(list(func_T = function(tvec, p) {
@@ -191,6 +215,26 @@ test_that("RSS correction dispatch preserves override precedence", {
   }))
   expect_equal(unname(correction_vgh(explicit)), c(77, 0, 2), tolerance = 1e-12)
   expect_gt(explicit_calls, 0L)
+
+  coherent_dense <- make_calls()
+  coherent_factored <- make_calls()
+  coherent <- make_rss(c(
+    dense_methods(coherent_dense),
+    factored_methods(coherent_factored),
+    list(func_T = function(tvec, p) {
+      values$k4(p) / 8 - values$k3a(p) / 8 - values$k3b(p) / 12
+    })
+  ))
+  expect_equal(correction_vgh(coherent), expected, tolerance = 1e-11)
+  expect_identical(counts(coherent_dense), c(0L, 0L, 0L))
+  expect_identical(counts(coherent_factored), c(0L, 0L, 0L))
+  expect_equal(
+    correction_vgh(linearlyMappedCGF(coherent, diag(2), iidReps = 1L)),
+    expected,
+    tolerance = 1e-11
+  )
+  expect_true(all(counts(coherent_dense) > 0L))
+  expect_identical(counts(coherent_factored), c(0L, 0L, 0L))
 })
 
 test_that("RSS and base K4 bound high-rank factorizations", {
@@ -256,5 +300,74 @@ test_that("RSS and base K4 bound high-rank factorizations", {
     c(wide(theta), wide$jacobian(theta), wide$jacfun()$jacobian(theta)),
     c(thin(theta), thin$jacobian(theta), thin$jacfun()$jacobian(theta)),
     tolerance = 1e-12
+  )
+})
+
+test_that("RSS closes nested dimension-reducing maps", {
+  rates <- function(p) {
+    c(
+      0.7 * exp(0.1 * p[1]),
+      1.1 * exp(-0.05 * p[1]),
+      0.9
+    )
+  }
+  child <- createCGF(
+    K = function(tvec, p) sum(rates(p) * (exp(as.vector(tvec)) - 1)),
+    K1 = function(tvec, p) rates(p) * exp(as.vector(tvec)),
+    K2 = function(tvec, p) {
+      values <- rates(p) * exp(as.vector(tvec))
+      diag(values, length(values))
+    },
+    K3operator = function(tvec, p, a, b, c) {
+      sum(rates(p) * exp(as.vector(tvec)) * a * b * c)
+    },
+    K4operator = function(tvec, p, a, b, c, d) {
+      sum(rates(p) * exp(as.vector(tvec)) * a * b * c * d)
+    }
+  )
+  count <- PoissonModelCGF(
+    lambda = function(p) 1.3 * exp(0.05 * p[1]),
+    iidReps = 1L
+  )
+  inner_map <- rbind(c(1, 0, 0), c(0, 1, 0))
+  outer_map <- matrix(c(1, 0), nrow = 1L)
+  inner <- linearlyMappedCGF(child, inner_map, iidReps = 1L)
+  rss <- randomlyStoppedSumCGF(
+    count, inner, block_size = 2L, iidReps = 1L
+  )
+  outer_after_rss <- linearlyMappedCGF(rss, outer_map, iidReps = 1L)
+  maps_before_rss <- randomlyStoppedSumCGF(
+    count,
+    linearlyMappedCGF(child, outer_map %*% inner_map, iidReps = 1L),
+    block_size = 1L,
+    iidReps = 1L
+  )
+  tvec <- 0.03
+  theta <- 0.2
+
+  expect_equal(
+    outer_after_rss$K2(tvec, theta),
+    maps_before_rss$K2(tvec, theta),
+    tolerance = 1e-13
+  )
+  candidate <- RTMB::MakeTape(
+    function(p) outer_after_rss$.private_api$func_T(tvec, p), theta
+  )
+  reference <- RTMB::MakeTape(
+    function(p) maps_before_rss$.private_api$func_T(tvec, p), theta
+  )
+  expect_equal(candidate(theta), -0.1553015524849538, tolerance = 1e-13)
+  expect_equal(
+    c(
+      candidate(theta),
+      candidate$jacobian(theta),
+      candidate$jacfun()$jacobian(theta)
+    ),
+    c(
+      reference(theta),
+      reference$jacobian(theta),
+      reference$jacfun()$jacobian(theta)
+    ),
+    tolerance = 1e-9
   )
 })
