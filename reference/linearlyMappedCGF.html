@@ -64,7 +64,7 @@ methods to retrieve the current matrix (allowing parameter-dependent transformat
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>CGF Object of a linearly mapped random variable \(Y = A \, X\)</h1>
-      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/master/R/D-LinearlyMappedCGF.R" class="external-link"><code>R/D-LinearlyMappedCGF.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/development/R/D-LinearlyMappedCGF.R" class="external-link"><code>R/D-LinearlyMappedCGF.R</code></a></small>
       <div class="d-none name"><code>linearlyMappedCGF.Rd</code></div>
     </div>
 
@@ -161,6 +161,7 @@ at construction to a sparse <code>Matrix</code>.</p></li>
 <span class="r-in"><span><span class="co">## Example 2: A(theta) dense-vs-sparse (adsparse)</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://Matrix.R-forge.R-project.org" class="external-link">Matrix</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/kaskr/RTMB" class="external-link">RTMB</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">lambda_fun</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">theta</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">theta</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="va">theta</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span>   <span class="co"># base 2-d Poisson</span></span></span>
 <span class="r-in"><span><span class="va">pois2</span> <span class="op">&lt;-</span> <span class="fu"><a href="PoissonModelCGF.html">PoissonModelCGF</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="va">lambda_fun</span>, iidReps <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span></span>

@@ -29,11 +29,3 @@ get.zeroth.saddlepoint.nll.function(tvec, theta, cgf)
 A function that takes a vector 'a' as an argument. When
 `a = c(tvec, theta)` is passed to the returned function, it yields a
 list in the format: `list(objective = , gradient = )`.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-  # TO DO: write a working example
-} # }
-```

@@ -67,9 +67,3 @@ components not based on the saddlepoint likelihood. It is important when
 the analysis combines the saddlepoint likelihood with an external
 likelihood. If not provided, the function defaults to using solely the
 saddlepoint likelihood.
-
-## Examples
-
-``` r
-# TODO: Add examples
-```

@@ -40,9 +40,9 @@ supports two fitting options:
 In the current implementation, if the CGF imposes a non-trivial
 domain/inequality constraint on `tvec` via
 `cgf$ineq_constraint(tvec, theta)` and no analytic $`\hat t(\theta)`$ is
-available, can be **much slower**. In such cases we recommend the
-default `method = "constrained"`. Future versions may improve
-performance for constrained CGFs under `method = "two_step"`.
+available, `method = "two_step"` can be **much slower**. In such cases
+we recommend the default `method = "constrained"`. Future versions may
+improve performance for constrained CGFs under `method = "two_step"`.
 
 ### Practical recommendation
 

@@ -75,11 +75,3 @@ Minimizes the function \\K(t; \theta) - \sum(t_i y_i)\\ to enforce
 ## References
 
 - [NLOpt Documentation](https://nlopt.readthedocs.io/en/latest/)
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# TO DO: Add examples
-} # }
-```

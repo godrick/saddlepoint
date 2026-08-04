@@ -21,7 +21,7 @@ The **true discrepancy** is
 ```
 
 In practice $`\hat\theta_{\text{true}}`$ is unknown, so the package
-returns an **approximated discrepancy** $`\hat\delta`$. A alternative
+returns an **approximated discrepancy** $`\hat\delta`$. An alternative
 way to view it is:
 
 - `theta_adj = theta_spa + discrepancy` is a second-order adjusted

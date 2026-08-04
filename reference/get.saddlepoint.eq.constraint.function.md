@@ -22,7 +22,7 @@ get.saddlepoint.eq.constraint.function(tvec, theta, observed.data, cgf)
 
 - observed.data:
 
-  A numeric vector. See TO DO list.
+  A numeric vector of observations with the same length as `tvec`.
 
 - cgf:
 
@@ -42,13 +42,3 @@ In this set up, the expression of the saddlepoint equation is defined by
 \\K'(t;\theta) - y = 0\\ for `observed.data = y`. The returned function
 is designed to compute both \\K'(t;\theta) - y\\ and its gradient with
 respect to both `tvec` and `theta`.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# TO DO: write a working example
- # f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
- # f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
-} # }
-```

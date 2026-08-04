@@ -31,8 +31,8 @@ get.ineq.constraint.function(
 
 - user.ineq.constraint.function:
 
-  An optional additional inequality added by a user. Default is NULL.
-  See TO DO list.
+  An optional function of `theta` returning a list with elements
+  `constraints` and `jacobian`. Defaults to `NULL`.
 
 ## Value
 
@@ -46,13 +46,3 @@ on `cgf` with any user-defined inequality constraint function specified
 in `user.ineq.constraint.function`. If `user.ineq.constraint.function`
 is `NULL`, the function checks whether the `cgf` itself includes an
 inherent inequality constraint.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# TO DO: Add a working example
-#  f <- get.ineq_constraint.function(tvec, theta, cgf)
-#   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
-} # }
-```

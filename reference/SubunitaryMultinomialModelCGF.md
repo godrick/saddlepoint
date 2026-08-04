@@ -51,8 +51,8 @@ effectively sets \\t\_{d+1}=-\infty\\ in the multinomial CGF. This
 yields the *subunitary* CGF: \$\$
 K\_{\mathrm{subunitary}}(t_1,\dots,t_d) =
 \log\bigl\\\Pr(Y\_{d+1}=0)\bigr\\ \\+\\ K\_{W}(t_1,\dots,t_d)\\, \$\$
-where \\\Pr(Y\_{d+1}=0) = N \log\left(\\\sum\_{i=1}^d \pi_i\right)\\ and
-\\K\_{W}\\ is the usual multinomial CGF for
+where \\\log\bigl\\\Pr(Y\_{d+1}=0)\bigr\\ = N \log\left(\\\sum\_{i=1}^d
+\pi_i\right)\\ and \\K\_{W}\\ is the usual multinomial CGF for
 \\\mathrm{Multinomial}(N,p_1,\dots,p_d)\\.
 
 In many applications (such as certain capture-recapture models), some

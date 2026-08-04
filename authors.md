@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/godrick/saddlepoint/blob/master/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/godrick/saddlepoint/blob/development/DESCRIPTION)
 
 Oketch G, Goodman J, Fewster R (2026). *saddlepoint: A Framework for the
 Saddlepoint Approximation with CGF Operations*. R package version 0.9.0,

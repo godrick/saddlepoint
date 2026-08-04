@@ -75,7 +75,7 @@
       <h1>Inference: find.saddlepoint.MLE()</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/master/vignettes/mle.Rmd" class="external-link"><code>vignettes/mle.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/godrick/saddlepoint/blob/development/vignettes/mle.Rmd" class="external-link"><code>vignettes/mle.Rmd</code></a></small>
       <div class="d-none name"><code>mle.Rmd</code></div>
     </div>
 
@@ -140,9 +140,10 @@ or an unconstrained <code>tvec</code> path).</li>
 domain/inequality constraint on <code>tvec</code> via
 <code>cgf$ineq_constraint(tvec, theta)</code> and no analytic
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>t</mi><mo accent="true">̂</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>θ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\hat t(\theta)</annotation></semantics></math>
-is available, can be <strong>much slower</strong>. In such cases we
-recommend the default <code>method = "constrained"</code>. Future
-versions may improve performance for constrained CGFs under
+is available, <code>method = "two_step"</code> can be <strong>much
+slower</strong>. In such cases we recommend the default
+<code>method = "constrained"</code>. Future versions may improve
+performance for constrained CGFs under
 <code>method = "two_step"</code>.</p>
 <div class="section level3">
 <h3 id="practical-recommendation">Practical recommendation<a class="anchor" aria-label="anchor" href="#practical-recommendation"></a>
