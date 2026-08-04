@@ -121,7 +121,7 @@
 
   analytic_tvec_hat <- NULL
   if (isTRUE(base_cgf$has_analytic_tvec_hat)) {
-    hat0 <- base_cgf$analytic_tvec_hat
+    hat0 <- base_cgf$.private_api$analytic_tvec_hat_func
     analytic_tvec_hat <- function(x, param) {
       b <- b_at(param, length(x))
       hat0(x - b, param)

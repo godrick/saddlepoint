@@ -556,6 +556,7 @@
   #### Check if this doesn't make sense, (default to NULL if that's the case)
   analytic_tvec_hat <- NULL # If the base CGF had no valid function, just return NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
+    child_analytic_tvec_hat <- cgf$.private_api$analytic_tvec_hat_func
     analytic_tvec_hat <- function(x, param) {
       N <- length(x)
       d_cur <- .block_size_value(block_size, param)
@@ -566,7 +567,7 @@
       out_ <- numeric(N) * param[1]
       for (i in seq_len(B)) {
         idx <- chunkIndices(i, d)
-        out_[idx] <- cgf$analytic_tvec_hat(x[idx], param)
+        out_[idx] <- child_analytic_tvec_hat(x[idx], param)
       }
       out_
     }

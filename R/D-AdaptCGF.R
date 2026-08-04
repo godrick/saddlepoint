@@ -83,8 +83,9 @@
 
   analytic_tvec_hat <- NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
+    child_analytic_tvec_hat <- cgf$.private_api$analytic_tvec_hat_func
     analytic_tvec_hat <- function(x, param) {
-      cgf$analytic_tvec_hat(x, param_adaptor(param))
+      child_analytic_tvec_hat(x, param_adaptor(param))
     }
   }
 

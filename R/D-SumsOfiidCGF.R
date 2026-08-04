@@ -221,9 +221,10 @@
   #   Solve n*K1_X(t) = y  <=>  K1_X(t) = y/n.
   analytic_tvec_hat <- NULL
   if (isTRUE(cgf$has_analytic_tvec_hat)) {
+    child_analytic_tvec_hat <- cgf$.private_api$analytic_tvec_hat_func
     analytic_tvec_hat <- function(y, param) {
       n_val <- .get_n(param)
-      cgf$analytic_tvec_hat(y / n_val, param)
+      child_analytic_tvec_hat(y / n_val, param)
     }
   }
 

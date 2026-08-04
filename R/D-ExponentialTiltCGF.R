@@ -56,7 +56,7 @@
 
   # Analytic t-hat: if the base has one, we can shift it back by h
   has_analytic <- isTRUE(base_cgf$has_analytic_tvec_hat)
-  hat0 <- if (has_analytic) base_cgf$analytic_tvec_hat else NULL
+  hat0 <- if (has_analytic) base_cgf$.private_api$analytic_tvec_hat_func else NULL
 
   # Helper: expand h(theta) to length(tvec)
   expand_h <- function(h, m) {

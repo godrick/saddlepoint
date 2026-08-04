@@ -97,7 +97,11 @@
 
   # Analytic t-hat: only if ALL children have it
   has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat), logical(1))
-  analytic_hat_list <- if (all(has_analytic_vec)) lapply(cgf_list, function(cg) cg$analytic_tvec_hat) else NULL
+  analytic_hat_list <- if (all(has_analytic_vec)) {
+    lapply(cgf_list, function(cg) cg$.private_api$analytic_tvec_hat_func)
+  } else {
+    NULL
+  }
   basis_list <- lapply(dims, function(d) diag(1, d))
 
   validate_factored_K3K3 <- function(tvec, A, dvec, where) {
