@@ -625,13 +625,13 @@
 #'   method         = "constrained"
 #' )
 #'
-#' fit_two <- find.saddlepoint.MLE(
-#'   observed.data  = y,
-#'   cgf            = cg_sum_B,
-#'   starting.theta = c(1.2, 0.5),
-#'   lb.theta       = c(1e-4, 2e-5),
-#'   method         = "two_step"
-#' )
+#' ## fit_two <- find.saddlepoint.MLE(
+#' ##   observed.data  = y,
+#' ##   cgf            = cg_sum_B,
+#' ##   starting.theta = c(1.2, 0.5),
+#' ##   lb.theta       = c(1e-4, 2e-5),
+#' ##   method         = "two_step"
+#' ## )
 #'
 #' ## Optional quick checks: saddlepoint residual and feasibility
 #' max(abs(cg_sum_B$K1(fit_const$MLEs.tvec, fit_const$MLEs.theta) - y))
@@ -639,7 +639,7 @@
 #'
 #' cat("true theta:", theta_true, "\n")
 #' cat("constrained:", round(fit_const$MLEs.theta, 4), "\n")
-#' cat("two_step   :", round(fit_two$MLEs.theta, 4), "\n")
+#' ## cat("two_step   :", round(fit_two$MLEs.theta, 4), "\n")
 #' }
 #'
 #'
