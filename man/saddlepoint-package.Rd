@@ -28,7 +28,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Godrick Oketch \email{godrick@berkeley.edu}
+\strong{Maintainer}: Godrick Oketch \email{godrickmaradona@gmail.com}
 
 Authors:
 \itemize{
