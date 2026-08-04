@@ -10,6 +10,23 @@
     seq.int((i - 1)*block_size + 1, i*block_size)
   }
 
+  validate_factored_K3K3 <- function(tvec, A, dvec, where) {
+    A_dim <- dim(A)
+    if (length(A_dim) != 2L || A_dim[1L] != length(tvec)) {
+      stop(
+        where,
+        ": A must be matrix-like with nrow(A) == length(tvec)."
+      )
+    }
+    if (A_dim[2L] != length(dvec)) {
+      stop(
+        where,
+        ": Column/weight mismatch: ncol(A) must equal length(dvec)."
+      )
+    }
+    length(dvec)
+  }
+
   # format block_size for labels; never forces evaluation
   .format_block_size_tag <- function(block_size) {
     if (is.null(block_size)) return(NULL)
@@ -31,11 +48,15 @@
   child_K3K3operatorAABBCC <- cgf$K3K3operatorAABBCC
   child_K3K3operatorABCABC <- cgf$K3K3operatorABCABC
   child_K4operatorAABB_factored <- cgf$.private_api$K4operatorAABB_factored
-  ###### .......  Deferred optimization:
-  # child_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
-  # child_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
-  # Re-enable the factored B == 1 delegate below once factored methods are
-  # implemented broadly enough across CGFs to make this consistent.
+  child_K3K3operatorAABBCC_factored <- cgf$.private_api$K3K3operatorAABBCC_factored
+  child_K3K3operatorABCABC_factored <- cgf$.private_api$K3K3operatorABCABC_factored
+  child_K4operatorAABB_delegate_safe <-
+    .factored_delegate_is_safe(child_K4operatorAABB_factored)
+  child_K3K3operatorAABBCC_delegate_safe <-
+    .factored_delegate_is_safe(child_K3K3operatorAABBCC_factored)
+  child_K3K3operatorABCABC_delegate_safe <-
+    .factored_delegate_is_safe(child_K3K3operatorABCABC_factored)
+  child_K2_factor <- .K2_factor_method(cgf)
 
   # ------------------------------------------------------------------
   # Now all methods in a unified manner
@@ -222,6 +243,27 @@
     out
   }
 
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, param, Bmat) {
+      N <- length(tvec)
+      d_cur <- .block_size_value(block_size, param)
+      lay <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
+      d <- as.integer(lay[["d"]])
+      n_blocks <- as.integer(lay[["B"]])
+      if (ncol(Bmat) != N) {
+        stop("K2_factor: Bmat must have ncol == length(tvec).")
+      }
+
+      terms <- list()
+      for (i in seq_len(n_blocks)) {
+        idx <- chunkIndices(i, d)
+        terms[[i]] <- child_K2_factor(tvec[idx], param, Bmat[, idx, drop = FALSE])
+      }
+      unlist(terms, recursive = FALSE)
+    }
+  }
+
 
   # K3operator => sum
   K3operator <- function(tvec, param, v1, v2, v3) {
@@ -341,6 +383,10 @@
     d_cur <- .block_size_value(block_size, param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K4operatorAABB_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
 
     total <- .ad_zero_scalar(param)
     for (i in seq_len(B)) {
@@ -352,17 +398,49 @@
 
     total
   }
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored, child_K4operatorAABB_delegate_safe
+  )
 
   K3K3operatorAABBCC_factored <- function(tvec, param, A, dvec) {
     N <- length(tvec)
     d_cur <- .block_size_value(block_size, param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K3K3operatorAABBCC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
 
-    ###### ....... Deferred optimization:
-    # if (B == 1L) {
-    #   return(child_K3K3operatorAABBCC_factored(tvec, param, A, dvec))
-    # }
+    if (B == 1L && child_K3K3operatorAABBCC_delegate_safe) {
+      return(child_K3K3operatorAABBCC_factored(
+        tvec, param, A, dvec
+      ))
+    }
+
+    block_dims <- rep.int(d, B)
+    if (.use_direct_factored_rank(block_dims, r, "AABBCC")) {
+      balanced <- .balance_factored_Q(
+        A, dvec, "IID K3K3operatorAABBCC_factored"
+      )
+      idx_list <- lapply(seq_len(B), chunkIndices, block_size = d)
+      return(.block_K3K3_AABBCC_rank(
+        K3fun_list = rep(list(child_K3operator), B),
+        tvec_blocks = lapply(idx_list, function(idx) tvec[idx]),
+        row_blocks = lapply(
+          idx_list,
+          function(idx) balanced$A[idx, , drop = FALSE]
+        ),
+        dvec = balanced$d,
+        param = param
+      ))
+    }
+
+    balanced <- .balance_factored_Q(
+      A, dvec, "IID K3K3operatorAABBCC_factored fallback"
+    )
+    A <- balanced$A
+    dvec <- balanced$d
 
     basis <- diag(1, d)
     u <- .ad_zero_vector(N, param)
@@ -390,11 +468,34 @@
     d_cur <- .block_size_value(block_size, param)
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K3K3operatorABCABC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
 
-    ###### ....... Deferred optimization:
-    # if (B == 1L) {
-    #   return(child_K3K3operatorABCABC_factored(tvec, param, A, dvec))
-    # }
+    if (B == 1L && child_K3K3operatorABCABC_delegate_safe) {
+      return(child_K3K3operatorABCABC_factored(
+        tvec, param, A, dvec
+      ))
+    }
+
+    block_dims <- rep.int(d, B)
+    if (.use_direct_factored_rank(block_dims, r, "ABCABC")) {
+      balanced <- .balance_factored_Q(
+        A, dvec, "IID K3K3operatorABCABC_factored"
+      )
+      idx_list <- lapply(seq_len(B), chunkIndices, block_size = d)
+      return(.block_K3K3_ABCABC_rank(
+        K3fun_list = rep(list(child_K3operator), B),
+        tvec_blocks = lapply(idx_list, function(idx) tvec[idx]),
+        row_blocks = lapply(
+          idx_list,
+          function(idx) balanced$A[idx, , drop = FALSE]
+        ),
+        dvec = balanced$d,
+        param = param
+      ))
+    }
 
     basis <- diag(1, d)
     row_blocks <- vector("list", B)
@@ -510,7 +611,16 @@
     out <- matrix(0, nrow = N, ncol = k) * param[1]
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      out[idx, ] <- cgf$K2_solve(tvec[idx], param, rhs[idx, , drop = FALSE])
+      block_solution <- cgf$K2_solve(
+        tvec[idx],
+        param,
+        rhs[idx, , drop = FALSE]
+      )
+      if (inherits(block_solution, "Matrix") &&
+          !inherits(block_solution, "adsparse")) {
+        block_solution <- as.matrix(block_solution)
+      }
+      out[idx, ] <- block_solution
     }
     out
   }
@@ -609,6 +719,7 @@
     K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     rsim = rsim,
     op_name = op_name
   )

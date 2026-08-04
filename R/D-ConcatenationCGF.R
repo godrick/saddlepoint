@@ -55,12 +55,38 @@
 
   K2op_list       <- lapply(cgf_list, function(cg) cg$K2operator)
   K2opAK2AT_list  <- lapply(cgf_list, function(cg) cg$K2operatorAK2AT)
+  K2_factor_list  <- lapply(cgf_list, .K2_factor_method)
 
   K2_solve_list   <- lapply(cgf_list, function(cg) cg$K2_solve)
   logdet_list     <- lapply(cgf_list, function(cg) cg$logdetK2)
 
   K4AABB_list     <- lapply(cgf_list, function(cg) cg$K4operatorAABB)
+  K3K3AABBCC_list <- lapply(cgf_list, function(cg) cg$K3K3operatorAABBCC)
+  K3K3ABCABC_list <- lapply(cgf_list, function(cg) cg$K3K3operatorABCABC)
   K4AABB_factored_list <- lapply(cgf_list, function(cg) cg$.private_api$K4operatorAABB_factored)
+  K3K3AABBCC_factored_list <- lapply(
+    cgf_list,
+    function(cg) cg$.private_api$K3K3operatorAABBCC_factored
+  )
+  K3K3ABCABC_factored_list <- lapply(
+    cgf_list,
+    function(cg) cg$.private_api$K3K3operatorABCABC_factored
+  )
+  K4AABB_delegate_safe <- vapply(
+    K4AABB_factored_list,
+    .factored_delegate_is_safe,
+    logical(1)
+  )
+  K3K3AABBCC_delegate_safe <- vapply(
+    K3K3AABBCC_factored_list,
+    .factored_delegate_is_safe,
+    logical(1)
+  )
+  K3K3ABCABC_delegate_safe <- vapply(
+    K3K3ABCABC_factored_list,
+    .factored_delegate_is_safe,
+    logical(1)
+  )
 
   ineq_list       <- lapply(cgf_list, function(cg) cg$ineq_constraint)
 
@@ -73,6 +99,26 @@
   has_analytic_vec <- vapply(cgf_list, function(cg) isTRUE(cg$has_analytic_tvec_hat), logical(1))
   analytic_hat_list <- if (all(has_analytic_vec)) lapply(cgf_list, function(cg) cg$analytic_tvec_hat) else NULL
   basis_list <- lapply(dims, function(d) diag(1, d))
+
+  validate_factored_K3K3 <- function(tvec, A, dvec, where) {
+    if (length(tvec) != total_dim) {
+      stop(where, ": tvec length mismatch.")
+    }
+    A_dim <- dim(A)
+    if (length(A_dim) != 2L || A_dim[1L] != total_dim) {
+      stop(
+        where,
+        ": A must be matrix-like with nrow(A) == length(tvec)."
+      )
+    }
+    if (A_dim[2L] != length(dvec)) {
+      stop(
+        where,
+        ": Column/weight mismatch: ncol(A) must equal length(dvec)."
+      )
+    }
+    length(dvec)
+  }
 
 
 
@@ -288,6 +334,28 @@
     out
   }
 
+  K2_factor <- NULL
+  if (any(vapply(K2_factor_list, is.function, logical(1)))) {
+    K2_factor <- function(tvec, param, Bmat) {
+      if (length(tvec) != total_dim || ncol(Bmat) != total_dim) {
+        stop("K2_factor: dimension mismatch.")
+      }
+      terms <- list()
+      for (i in seq_len(L)) {
+        idx <- idx_list[[i]]
+        child_terms <- if (is.function(K2_factor_list[[i]])) {
+          K2_factor_list[[i]](tvec[idx], param, Bmat[, idx, drop = FALSE])
+        } else {
+          .K2_dense_term(
+            K2opAK2AT_list[[i]](tvec[idx], param, Bmat[, idx, drop = FALSE])
+          )
+        }
+        terms[[length(terms) + 1L]] <- child_terms
+      }
+      unlist(terms, recursive = FALSE)
+    }
+  }
+
 
   K2_solve <- function(tvec, param, rhs) {
     if (length(tvec) != total_dim) stop("K2_solve: tvec length mismatch.")
@@ -344,6 +412,9 @@
 
   K3K3operatorAABBCC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorAABBCC: tvec length mismatch.")
+    if (L == 1L) {
+      return(K3K3AABBCC_list[[1L]](tvec, param, Q))
+    }
     u <- .ad_zero_vector(total_dim, param)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
@@ -362,6 +433,9 @@
 
   K3K3operatorABCABC <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K3K3operatorABCABC: tvec length mismatch.")
+    if (L == 1L) {
+      return(K3K3ABCABC_list[[1L]](tvec, param, Q))
+    }
     k3_by_block <- vector("list", L)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
@@ -383,7 +457,10 @@
   }
 
   K4operatorAABB_factored <- function(tvec, param, A, dvec) {
-    if (length(tvec) != total_dim) stop("K4operatorAABB_factored: tvec length mismatch.")
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K4operatorAABB_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
     total <- .ad_zero_scalar(param)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
@@ -394,9 +471,43 @@
 
     total
   }
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored, all(K4AABB_delegate_safe)
+  )
 
   K3K3operatorAABBCC_factored <- function(tvec, param, A, dvec) {
-    if (length(tvec) != total_dim) stop("K3K3operatorAABBCC_factored: tvec length mismatch.")
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K3K3operatorAABBCC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
+    if (L == 1L && K3K3AABBCC_delegate_safe[[1L]]) {
+      return(K3K3AABBCC_factored_list[[1L]](
+        tvec, param, A, dvec
+      ))
+    }
+
+    if (.use_direct_factored_rank(dims, r, "AABBCC")) {
+      balanced <- .balance_factored_Q(
+        A, dvec, "concatenation K3K3operatorAABBCC_factored"
+      )
+      return(.block_K3K3_AABBCC_rank(
+        K3fun_list = K3op_list,
+        tvec_blocks = lapply(idx_list, function(idx) tvec[idx]),
+        row_blocks = lapply(
+          idx_list,
+          function(idx) balanced$A[idx, , drop = FALSE]
+        ),
+        dvec = balanced$d,
+        param = param
+      ))
+    }
+
+    balanced <- .balance_factored_Q(
+      A, dvec, "concatenation K3K3operatorAABBCC_factored fallback"
+    )
+    A <- balanced$A
+    dvec <- balanced$d
+
     u <- .ad_zero_vector(total_dim, param)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
@@ -417,7 +528,32 @@
   }
 
   K3K3operatorABCABC_factored <- function(tvec, param, A, dvec) {
-    if (length(tvec) != total_dim) stop("K3K3operatorABCABC_factored: tvec length mismatch.")
+    r <- validate_factored_K3K3(
+      tvec, A, dvec, "K3K3operatorABCABC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
+    if (L == 1L && K3K3ABCABC_delegate_safe[[1L]]) {
+      return(K3K3ABCABC_factored_list[[1L]](
+        tvec, param, A, dvec
+      ))
+    }
+
+    if (.use_direct_factored_rank(dims, r, "ABCABC")) {
+      balanced <- .balance_factored_Q(
+        A, dvec, "concatenation K3K3operatorABCABC_factored"
+      )
+      return(.block_K3K3_ABCABC_rank(
+        K3fun_list = K3op_list,
+        tvec_blocks = lapply(idx_list, function(idx) tvec[idx]),
+        row_blocks = lapply(
+          idx_list,
+          function(idx) balanced$A[idx, , drop = FALSE]
+        ),
+        dvec = balanced$d,
+        param = param
+      ))
+    }
+
     row_blocks <- vector("list", L)
     k3_by_block <- vector("list", L)
     for (i in seq_len(L)) {
@@ -545,6 +681,7 @@
     K2operatorAK2AT = K2operatorAK2AT,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     rsim = rsim,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
@@ -555,7 +692,38 @@
     op_name = op_name
   )
 
-  do.call(createCGF, c(cgf_args, list(...)))
+  extra_args <- list(...)
+  extra_args <- extra_args[!vapply(extra_args, is.null, logical(1))]
+  extra_names <- names(extra_args)
+
+  contraction_pairs <- list(
+    c("K4operatorAABB", "K4operatorAABB_factored"),
+    c("K3K3operatorAABBCC", "K3K3operatorAABBCC_factored"),
+    c("K3K3operatorABCABC", "K3K3operatorABCABC_factored")
+  )
+  for (pair in contraction_pairs) {
+    if (any(pair %in% extra_names)) {
+      cgf_args[[pair[[1L]]]] <- NULL
+      cgf_args[[pair[[2L]]]] <- NULL
+    }
+  }
+
+  contraction_names <- unlist(contraction_pairs, use.names = FALSE)
+  protected_names <- setdiff(
+    names(cgf_args), c(contraction_names, "func_T")
+  )
+  conflicting_names <- intersect(extra_names, protected_names)
+  if (length(conflicting_names) > 0L) {
+    stop(
+      "concatenationCGF cannot override generated method(s) through ",
+      "'...': ", paste(conflicting_names, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  if (any(contraction_names %in% extra_names)) cgf_args$func_T <- NULL
+
+  do.call(createCGF, modifyList(cgf_args, extra_args))
 }
 
 
