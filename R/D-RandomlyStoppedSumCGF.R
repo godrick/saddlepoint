@@ -56,24 +56,40 @@
 # ------------------------------------------------------------------
 .randomlyStoppedSumCGF_internal <- function(count_cgf, summand_cgf, ...) {
 
+  summand_K2_factor <- .K2_factor_method(summand_cgf)
+  extra_args <- list(...)
+  extra_args <- extra_args[!vapply(extra_args, is.null, logical(1))]
+  extra_names <- names(extra_args)
+  if (is.null(extra_names)) extra_names <- rep("", length(extra_args))
+
+  summand_K4AABB_factored <-
+    summand_cgf$.private_api$K4operatorAABB_factored
+  summand_K3K3AABBCC_factored <-
+    summand_cgf$.private_api$K3K3operatorAABBCC_factored
+  summand_K3K3ABCABC_factored <-
+    summand_cgf$.private_api$K3K3operatorABCABC_factored
+  summand_K4AABB_safe <-
+    .factored_delegate_is_safe(summand_K4AABB_factored)
+  summand_K3K3AABBCC_safe <-
+    .factored_delegate_is_safe(summand_K3K3AABBCC_factored)
+  summand_K3K3ABCABC_safe <-
+    .factored_delegate_is_safe(summand_K3K3ABCABC_factored)
+
+  .validate_factored_Q <- function(tvec, B, dvec, where) {
+    B_dim <- dim(B)
+    if (length(B_dim) != 2L || B_dim[1L] != length(tvec)) {
+      stop(where, ": B must have nrow(B) == length(tvec).", call. = FALSE)
+    }
+    if (B_dim[2L] != length(dvec)) {
+      stop(where, ": ncol(B) must equal length(dvec).", call. = FALSE)
+    }
+    length(dvec)
+  }
+
 
   .trace_mat <- function(M) {
     # Trace = sum of diagonal entries
     sum(diag(M))
-  }
-
-  .factor_Q_pd <- function(Q) {
-    # For symmetric PD Q, build a factorization
-    #   Q = A %*% diag(d) %*% t(A)
-    # matching the convention used elsewhere in the package.
-    #
-    # This is only used for PD inputs.
-    U <- chol(Q)                 # upper triangular, Q = t(U) %*% U
-    diagU <- diag(U)
-    # d <- diagU^2
-    d <- diagU * diagU
-    A <- t(U) %*% diag(1 / diagU, nrow = length(diagU), ncol = length(diagU))
-    list(A = A, d = d)
   }
 
   .T3_AAB <- function(cgf, tvec, param, Q, v) {
@@ -82,18 +98,155 @@
     #
     #   T3_AAB(Q,v) = \sum_{i,j,k} K^{(3)}_{i j k}(t) Q_{i j} v_k.
     #
-    # For PD Q, we compute this as a rank-d sum using a Cholesky-based
-    # factorization Q = A diag(d) A^T:
+    # Expanding one index in the coordinate basis is exact for every Q:
     #
-    #   T3_AAB(Q,v) = \sum_m d_m K3operator(a_m, a_m, v).
-    fac <- .factor_Q_pd(Q)
-    A <- fac$A
-    d <- fac$d
-    out <- 0
-    for (m in seq_along(d)) {
-      out <- out + d[m] * cgf$K3operator(tvec, param, A[, m], A[, m], v)
+    #   T3_AAB(Q,v) = \sum_j K3operator(Q[,j], e_j, v).
+    #
+    # This also covers a PSD singular Q, which occurs when a singular child
+    # covariance is rank-completed by the count-variance term.
+    d <- nrow(Q)
+    basis <- diag(d)
+    out <- .ad_zero_scalar(param)
+    for (j in seq_len(d)) {
+      out <- out + cgf$K3operator(tvec, param, Q[, j], basis[, j], v)
     }
     out
+  }
+
+  .T3_AAB_factored <- function(cgf, tvec, param, B, dvec, v) {
+    out <- .ad_zero_scalar(param)
+    for (j in seq_along(dvec)) {
+      bj <- as.vector(B[, j])
+      out <- out + dvec[j] * cgf$K3operator(tvec, param, bj, bj, v)
+    }
+    out
+  }
+
+  .coordinate_child_AABBCC <- function(tvec, param, Q) {
+    d <- length(tvec)
+    slices <- .extract_K3_slices(
+      summand_cgf$K3operator, tvec, param, d, diag(1, d)
+    )
+    u <- .k3_slices_to_aabbcc_vector(slices, Q, param)
+    sum(u * as.vector(Q %*% u))
+  }
+
+  .coordinate_child_K4_AABB <- function(tvec, param, Q) {
+    d <- nrow(Q)
+    basis <- diag(d)
+    out <- .ad_zero_scalar(param)
+    for (i in seq_len(d)) {
+      for (j in seq_len(d)) {
+        out <- out + summand_cgf$K4operator(
+          tvec, param, Q[, i], basis[, i], Q[, j], basis[, j]
+        )
+      }
+    }
+    out
+  }
+
+  .coordinate_child_ABCABC <- function(tvec, param, Q) {
+    d <- length(tvec)
+    slices <- .extract_K3_slices(
+      summand_cgf$K3operator, tvec, param, d, diag(1, d)
+    )
+    .k3_slices_abcabc_from_dense_Q(
+      list(slices), list(seq_len(d)), Q, param
+    )
+  }
+
+  # Contract T3_X with M = Q Sigma Q and v without factoring M.  For a
+  # genuinely thin Q = B D B', expand in factor space.  At large rank the
+  # coordinate expansion uses fewer K3 calls and keeps the established dense
+  # arithmetic complexity; M may be singular because .T3_AAB never calls chol.
+  .T3_QSigmaQ_v_factored <- function(cgf, tvec, param, B, dvec, G, v) {
+    r <- length(dvec)
+    out <- .ad_zero_scalar(param)
+    if (r == 0L) return(out)
+
+    if (as.double(r) * r <= nrow(B)) {
+      for (i in seq_len(r)) {
+        bi <- as.vector(B[, i])
+        out <- out + ((dvec[i] * G[i, i]) * dvec[i]) *
+          cgf$K3operator(tvec, param, bi, bi, v)
+        if (i < r) {
+          for (j in seq.int(i + 1L, r)) {
+            bj <- as.vector(B[, j])
+            coefficient <-
+              (dvec[i] * G[i, j]) * dvec[j] +
+              (dvec[i] * G[j, i]) * dvec[j]
+            out <- out + coefficient *
+              cgf$K3operator(tvec, param, bi, bj, v)
+          }
+        }
+      }
+      return(out)
+    }
+
+    M <- B %*% (dvec * (G %*% (dvec * t(B))))
+    .T3_AAB(cgf, tvec, param, M, v)
+  }
+
+  .project_summand_K2 <- function(tvec, param, B) {
+    if (is.null(summand_K2_factor)) {
+      return(summand_cgf$K2operatorAK2AT(tvec, param, t(B)))
+    }
+
+    r <- ncol(B)
+    terms <- summand_K2_factor(tvec, param, t(B))
+    if (!is.list(terms) || length(terms) == 0L) {
+      stop("Summand K2 factorization supplied no covariance terms.", call. = FALSE)
+    }
+
+    G <- .ad_zero_array(c(r, r), param)
+    for (term in terms) {
+      if (!is.null(term$S)) {
+        if (!identical(dim(term$S), c(r, r))) {
+          stop("Invalid summand K2 factor term dimensions.", call. = FALSE)
+        }
+        G <- G + term$S
+      } else if (!is.null(term$B) && !is.null(term$d)) {
+        term_d <- as.vector(term$d)
+        if (nrow(term$B) != r || ncol(term$B) != length(term_d)) {
+          stop("Invalid summand K2 factor term dimensions.", call. = FALSE)
+        }
+        G <- G + term$B %*% (term_d * t(term$B))
+      } else {
+        stop("Invalid summand K2 factor term.", call. = FALSE)
+      }
+    }
+    G
+  }
+
+  # Quantities shared by the three RSS contractions when Q = B D B'.
+  # G is only r-by-r.  A child's factor capability is projected directly;
+  # otherwise its public covariance sandwich remains authoritative.
+  .factored_contraction_terms <- function(tvec, param, B, dvec) {
+    s <- summand_cgf$K(tvec, param)
+    dv <- .count_derivs(s, param)
+    mu <- as.vector(summand_cgf$K1(tvec, param))
+    B_mu <- as.vector(t(B) %*% mu)
+    weighted_B_mu <- dvec * B_mu
+    v <- as.vector(B %*% weighted_B_mu)
+    G <- .project_summand_K2(tvec, param, B)
+    if (inherits(G, "denseMatrix") && !inherits(G, "adsparse")) {
+      G <- as.matrix(G)
+    }
+    G_weighted_B_mu <- as.vector(G %*% weighted_B_mu)
+    weighted_G <- dvec * G
+
+    list(
+      dv = dv,
+      B_mu = B_mu,
+      weighted_B_mu = weighted_B_mu,
+      v = v,
+      G = G,
+      G_weighted_B_mu = G_weighted_B_mu,
+      qmm = sum(B_mu * weighted_B_mu),
+      trSQ = sum(dvec * diag(G)),
+      tr_SQSQ = sum(weighted_G * t(weighted_G)),
+      quad_vSv = sum(weighted_B_mu * G_weighted_B_mu)
+    )
   }
 
 
@@ -150,6 +303,20 @@
     g1 <- as.numeric(summand_cgf$K1(tvec, param))
     # a2*(x^T g1)(y^T g1) + a1*(x^T g2 y)
     a2 * sum(g1 * x) * sum(g1 * y) + a1 * summand_cgf$K2operator(tvec, param, x, y)
+  }
+
+  K2_factor <- NULL
+  if (!is.null(summand_K2_factor)) {
+    K2_factor <- function(tvec, param, B) {
+      s <- summand_cgf$K(tvec, param)
+      dv <- .count_derivs(s, param)
+      terms <- .K2_factor_scale(
+        summand_K2_factor(tvec, param, B),
+        dv$a1
+      )
+      mu <- as.vector(B %*% summand_cgf$K1(tvec, param))
+      c(terms, .K2_factor_term(matrix(mu, ncol = 1L), dv$a2))
+    }
   }
 
   # 3rd-derivative contraction K^{(3)}(w1,w2,w3)
@@ -243,28 +410,30 @@
   # For Y, the Hessian is
   #   K2_Y = a2 * mu mu^T + a1 * Sigma,
   # a rank-1 update of a scaled Sigma.
-  # We exploit Sherman-Morrison + matrix determinant lemma.
 
   K2_solve <- function(tvec, param, rhs) {
+    if (!is.null(K2_factor)) {
+      return(.K2_factor_solve(K2_factor, tvec, param, rhs))
+    }
+
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
     a2 <- dv$a2
 
     mu <- as.numeric(summand_cgf$K1(tvec, param))
-    # Use summand's own K2_solve (it may be specialized / sparse)
+    # Preserve a child's specialized / sparse solve when no factor capability
+    # is available.  This is the original Sherman-Morrison fast route.
     Sig_inv_rhs <- summand_cgf$K2_solve(tvec, param, rhs)
     Sig_inv_mu  <- summand_cgf$K2_solve(tvec, param, mu)
 
-    # A = a1*Sigma, so A^{-1} = (1/a1)*Sigma^{-1}
-    x  <- Sig_inv_rhs / a1
-    u  <- Sig_inv_mu  / a1
-
-    q <- sum(mu * Sig_inv_mu)  # mu^T Sigma^{-1} mu
+    x <- Sig_inv_rhs / a1
+    u <- Sig_inv_mu / a1
+    q <- sum(mu * Sig_inv_mu)
     denom <- 1 + (a2 / a1) * q
 
     if (is.matrix(x)) {
-      cvec <- as.numeric(crossprod(mu, x)) # length = ncol(x)
+      cvec <- as.numeric(crossprod(mu, x))
       x - u %*% matrix((a2 * cvec) / denom, nrow = 1)
     } else {
       cscal <- sum(mu * x)
@@ -273,13 +442,17 @@
   }
 
   logdetK2 <- function(tvec, param) {
+    if (!is.null(K2_factor)) {
+      return(.K2_factor_logdet(K2_factor, tvec, param))
+    }
+
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
     a2 <- dv$a2
     mu <- as.numeric(summand_cgf$K1(tvec, param))
     Sig_inv_mu <- summand_cgf$K2_solve(tvec, param, mu)
-    q <- sum(mu * Sig_inv_mu)  # mu^T Sigma^{-1} mu
+    q <- sum(mu * Sig_inv_mu)
     d <- length(mu)
     logdet_Sigma <- as.numeric(summand_cgf$logdetK2(tvec, param))
     as.numeric(d * log(a1) + logdet_Sigma + log1p((a2 / a1) * q))
@@ -291,7 +464,7 @@
   # K4operatorAABB(t,Q) = \sum_{i,j,k,l} K4_{i j k l} Q_{i j} Q_{k l}.
   # The derived closed form avoids the base-class rank-factor triple loops.
 
-  K4operatorAABB <- function(tvec, param, Q) {
+  K4operatorAABB_core <- function(tvec, param, Q, K4_X) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -310,9 +483,6 @@
 
     # T3 contractions: \sum_{i,j,k} K3_{i j k} Q_{i j} v_k
     T3_Q_v <- .T3_AAB(summand_cgf, tvec, param, Q, v)
-    # Summand's own K4 AABB contraction
-    K4_X <- summand_cgf$K4operatorAABB(tvec, param, Q)
-
     # Cross quadratic term
     quad_vSv <- as.numeric(crossprod(v, Sig %*% v))
 
@@ -322,7 +492,16 @@
       a4 * (qmm * qmm)
   }
 
-  K3K3operatorAABBCC <- function(tvec, param, Q) {
+  K4operatorAABB <- function(tvec, param, Q) {
+    K4operatorAABB_core(
+      tvec,
+      param,
+      Q,
+      summand_cgf$K4operatorAABB(tvec, param, Q)
+    )
+  }
+
+  K3K3operatorAABBCC_core <- function(tvec, param, Q, base_T3T3) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -344,8 +523,6 @@
     T3_Q_v   <- .T3_AAB(summand_cgf, tvec, param, Q, v)
     T3_Q_QuU <- .T3_AAB(summand_cgf, tvec, param, Q, QuU)
 
-    base_T3T3 <- summand_cgf$K3K3operatorAABBCC(tvec, param, Q)
-
     UU <- as.numeric(crossprod(uU, Q %*% uU))
     UM <- qmm * as.numeric(crossprod(uU, v))
     MM <- (qmm * qmm) * qmm
@@ -358,7 +535,16 @@
       (a3 * a3) * MM
   }
 
-  K3K3operatorABCABC <- function(tvec, param, Q) {
+  K3K3operatorAABBCC <- function(tvec, param, Q) {
+    K3K3operatorAABBCC_core(
+      tvec,
+      param,
+      Q,
+      summand_cgf$K3K3operatorAABBCC(tvec, param, Q)
+    )
+  }
+
+  K3K3operatorABCABC_core <- function(tvec, param, Q, base_T3T3) {
     s  <- summand_cgf$K(tvec, param)
     dv <- .count_derivs(s, param)
     a1 <- dv$a1
@@ -372,11 +558,10 @@
     qmm <- as.numeric(crossprod(mu, v))
 
     # Summand tensor contractions
-    base_T3T3 <- summand_cgf$K3K3operatorABCABC(tvec, param, Q)
     T3_vvv    <- summand_cgf$K3operator(tvec, param, v, v, v)
 
-    # Cross term between T3_X and (Sigma,mu) part:
-    # needs T3_AAB(M,v) with M = Q Sigma Q (symmetric PD if Q,Sigma PD)
+    # Cross term between T3_X and (Sigma,mu) part. M can be singular even
+    # when the final RSS covariance is positive definite.
     M <- Q %*% Sig %*% Q
     T3_M_v <- .T3_AAB(summand_cgf, tvec, param, M, v)
 
@@ -402,15 +587,188 @@
       (a3 * a3) * MM
   }
 
+  K3K3operatorABCABC <- function(tvec, param, Q) {
+    K3K3operatorABCABC_core(
+      tvec,
+      param,
+      Q,
+      summand_cgf$K3K3operatorABCABC(tvec, param, Q)
+    )
+  }
+
+  K4operatorAABB_factored <- function(tvec, param, B, dvec) {
+    r <- .validate_factored_Q(
+      tvec, B, dvec, "RSS K4operatorAABB_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
+
+    balanced <- .balance_factored_Q(
+      B, dvec, "RSS K4operatorAABB_factored"
+    )
+    B <- balanced$A
+    dvec <- balanced$d
+
+    if (r > nrow(B)) {
+      Q <- .factor_block_matrix(B, dvec, B)
+      base_K4 <- if (summand_K4AABB_safe) {
+        summand_K4AABB_factored(tvec, param, B, dvec)
+      } else {
+        .coordinate_child_K4_AABB(tvec, param, Q)
+      }
+      return(K4operatorAABB_core(
+        tvec,
+        param,
+        Q,
+        base_K4
+      ))
+    }
+
+    terms <- .factored_contraction_terms(tvec, param, B, dvec)
+    dv <- terms$dv
+
+    T3_Q_v <- .T3_AAB_factored(
+      summand_cgf, tvec, param, B, dvec, terms$v
+    )
+    K4_X <- summand_cgf$.private_api$K4operatorAABB_factored(
+      tvec, param, B, dvec
+    )
+
+    dv$a1 * K4_X +
+      dv$a2 * (
+        4 * T3_Q_v + terms$trSQ * terms$trSQ + 2 * terms$tr_SQSQ
+      ) +
+      dv$a3 * (
+        2 * terms$trSQ * terms$qmm + 4 * terms$quad_vSv
+      ) +
+      dv$a4 * (terms$qmm * terms$qmm)
+  }
+
+  K3K3operatorAABBCC_factored <- function(tvec, param, B, dvec) {
+    r <- .validate_factored_Q(
+      tvec, B, dvec, "RSS K3K3operatorAABBCC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
+
+    balanced <- .balance_factored_Q(
+      B, dvec, "RSS K3K3operatorAABBCC_factored"
+    )
+    B <- balanced$A
+    dvec <- balanced$d
+
+    if (r > nrow(B)) {
+      Q <- .factor_block_matrix(B, dvec, B)
+      base_T3T3 <- if (summand_K3K3AABBCC_safe) {
+        summand_K3K3AABBCC_factored(tvec, param, B, dvec)
+      } else {
+        .coordinate_child_AABBCC(tvec, param, Q)
+      }
+      return(K3K3operatorAABBCC_core(
+        tvec, param, Q, base_T3T3
+      ))
+    }
+
+    terms <- .factored_contraction_terms(tvec, param, B, dvec)
+    dv <- terms$dv
+
+    h <- terms$trSQ * terms$B_mu + 2 * terms$G_weighted_B_mu
+    Q_uU <- as.vector(B %*% (dvec * h))
+    T3_Q_v <- .T3_AAB_factored(
+      summand_cgf, tvec, param, B, dvec, terms$v
+    )
+    T3_Q_QuU <- .T3_AAB_factored(
+      summand_cgf, tvec, param, B, dvec, Q_uU
+    )
+    base_T3T3 <-
+      summand_cgf$.private_api$K3K3operatorAABBCC_factored(
+        tvec, param, B, dvec
+      )
+
+    UU <- sum((dvec * h) * h)
+    UM <- terms$qmm * sum(h * terms$weighted_B_mu)
+    MM <- terms$qmm * terms$qmm * terms$qmm
+
+    (dv$a1 * dv$a1) * base_T3T3 +
+      2 * dv$a1 * dv$a2 * T3_Q_QuU +
+      2 * dv$a1 * dv$a3 * terms$qmm * T3_Q_v +
+      (dv$a2 * dv$a2) * UU +
+      2 * dv$a2 * dv$a3 * UM +
+      (dv$a3 * dv$a3) * MM
+  }
+
+  K3K3operatorABCABC_factored <- function(tvec, param, B, dvec) {
+    r <- .validate_factored_Q(
+      tvec, B, dvec, "RSS K3K3operatorABCABC_factored"
+    )
+    if (r == 0L) return(.ad_zero_scalar(param))
+
+    balanced <- .balance_factored_Q(
+      B, dvec, "RSS K3K3operatorABCABC_factored"
+    )
+    B <- balanced$A
+    dvec <- balanced$d
+
+    if (r > nrow(B)) {
+      Q <- .factor_block_matrix(B, dvec, B)
+      base_T3T3 <- if (summand_K3K3ABCABC_safe) {
+        summand_K3K3ABCABC_factored(tvec, param, B, dvec)
+      } else {
+        .coordinate_child_ABCABC(tvec, param, Q)
+      }
+      return(K3K3operatorABCABC_core(
+        tvec, param, Q, base_T3T3
+      ))
+    }
+
+    terms <- .factored_contraction_terms(tvec, param, B, dvec)
+    dv <- terms$dv
+
+    base_T3T3 <-
+      summand_cgf$.private_api$K3K3operatorABCABC_factored(
+        tvec, param, B, dvec
+      )
+    T3_vvv <- summand_cgf$K3operator(
+      tvec, param, terms$v, terms$v, terms$v
+    )
+    T3_M_v <- .T3_QSigmaQ_v_factored(
+      summand_cgf, tvec, param, B, dvec, terms$G, terms$v
+    )
+
+    sv_Q_sv <- sum(
+      (dvec * terms$G_weighted_B_mu) * terms$G_weighted_B_mu
+    )
+    UU <- 3 * terms$tr_SQSQ * terms$qmm + 6 * sv_Q_sv
+    UM <- 3 * terms$quad_vSv * terms$qmm
+    MM <- terms$qmm * terms$qmm * terms$qmm
+
+    (dv$a1 * dv$a1) * base_T3T3 +
+      6 * dv$a1 * dv$a2 * T3_M_v +
+      2 * dv$a1 * dv$a3 * T3_vvv +
+      (dv$a2 * dv$a2) * UU +
+      2 * dv$a2 * dv$a3 * UM +
+      (dv$a3 * dv$a3) * MM
+  }
+  # Each method selects a factor-space core only while rank does not exceed
+  # coordinate dimension, and otherwise uses the dense/coordinate core above.
+  # It is therefore safe for a singleton structural wrapper to delegate.
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored, TRUE
+  )
+  K3K3operatorAABBCC_factored <- .factored_delegate_mark(
+    K3K3operatorAABBCC_factored, TRUE
+  )
+  K3K3operatorABCABC_factored <- .factored_delegate_mark(
+    K3K3operatorABCABC_factored, TRUE
+  )
 
   func_T <- function(tvec, param) {
     d <- length(tvec)
+    self_object <- get("self", inherits = TRUE)
 
-    Q <- K2_solve(tvec, param, diag(d))  # Q = K2^{-1}
+    Q <- self_object$K2_solve(tvec, param, diag(d))  # Q = K2^{-1}
 
-    K4_AABB <- K4operatorAABB(tvec, param, Q)
-    K3K3_AABBCC <- K3K3operatorAABBCC(tvec, param, Q)
-    K3K3_ABCABC <- K3K3operatorABCABC(tvec, param, Q)
+    K4_AABB <- self_object$K4operatorAABB(tvec, param, Q)
+    K3K3_AABBCC <- self_object$K3K3operatorAABBCC(tvec, param, Q)
+    K3K3_ABCABC <- self_object$K3K3operatorABCABC(tvec, param, Q)
     (K4_AABB / 8) - (K3K3_AABBCC / 8) - (K3K3_ABCABC / 12)
   } ### Needed? May overlap with default
 
@@ -550,16 +908,51 @@
     K4operator = K4operator,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     rsim = rsim,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,
+    K4operatorAABB_factored = K4operatorAABB_factored,
+    K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+    K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     func_T = func_T,
     ineq_constraint = ineq_constraint,
     op_name = op_name_vec
   )
 
-  do.call(createCGF, c(cgf_args, list(...)))
+  contraction_pairs <- list(
+    c("K4operatorAABB", "K4operatorAABB_factored"),
+    c("K3K3operatorAABBCC", "K3K3operatorAABBCC_factored"),
+    c("K3K3operatorABCABC", "K3K3operatorABCABC_factored")
+  )
+  for (pair in contraction_pairs) {
+    if (any(pair %in% extra_names)) {
+      cgf_args[[pair[[1L]]]] <- NULL
+      cgf_args[[pair[[2L]]]] <- NULL
+    }
+  }
+
+  contraction_names <- unlist(contraction_pairs, use.names = FALSE)
+  protected_names <- setdiff(
+    names(cgf_args), c(contraction_names, "func_T")
+  )
+  conflicting_names <- intersect(extra_names, protected_names)
+  if (length(conflicting_names) > 0L) {
+    stop(
+      "randomlyStoppedSumCGF cannot override generated method(s) through ",
+      "'...': ", paste(conflicting_names, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  if (any(contraction_names %in% extra_names)) cgf_args$func_T <- NULL
+
+  if ("func_T" %in% extra_names && !is.function(extra_args$func_T)) {
+    stop("'func_T' must be a function.", call. = FALSE)
+  }
+
+  do.call(createCGF, modifyList(cgf_args, extra_args))
 }
 
 
