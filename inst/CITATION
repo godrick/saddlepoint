@@ -1,7 +1,7 @@
 citHeader("To cite 'saddlepoint' in publications, please use:")
 
 bibentry(
-  bibtype = "Unpublished",
+  bibtype = "Misc",
   title = paste(
     "A general framework for computation and estimation using the",
     "saddlepoint approximation"

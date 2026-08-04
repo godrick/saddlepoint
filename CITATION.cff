@@ -14,7 +14,7 @@ repository-code: "https://github.com/godrick/saddlepoint"
 url: "https://godrick.github.io/saddlepoint/"
 license: GPL-3.0-or-later
 preferred-citation:
-  type: unpublished
+  type: generic
   title: "A general framework for computation and estimation using the saddlepoint approximation"
   authors:
     - family-names: Oketch
