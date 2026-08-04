@@ -77,12 +77,25 @@ CGF_public_defaults <- list(
   ,
   # Default behaviour uses solve(K2, rhs), but can be overridden for structure/speed.
   K2_solve = function(tvec, parameter_vector, rhs) {
+    K2_factor <- .K2_factor_terminal_method(self)
+    if (!is.null(K2_factor)) {
+      return(.K2_factor_solve(K2_factor, tvec, parameter_vector, rhs))
+    }
     K2_val <- self$K2(tvec, parameter_vector)
+    n <- length(tvec)
+    if (is.matrix(rhs) && identical(dim(rhs), c(n, n)) &&
+        identical(rhs, diag(n))) {
+      return(solve(K2_val))
+    }
     solve(K2_val, rhs)
   }
   ,
   # Default uses determinant() for RTMB compatibility.
   logdetK2 = function(tvec, parameter_vector) {
+    K2_factor <- .K2_factor_terminal_method(self)
+    if (!is.null(K2_factor)) {
+      return(.K2_factor_logdet(K2_factor, tvec, parameter_vector))
+    }
     K2_val <- self$K2(tvec, parameter_vector)
     determinant(K2_val, logarithm = TRUE)$modulus
   }
@@ -202,8 +215,11 @@ CGF_private_defaults <- list(
   }
   ,
   func_T = function(tvec, parameter_vector) {
-    K2_val <- self$K2(tvec, parameter_vector)
-    K2_inv <- solve(K2_val)
+    K2_inv <- self$K2_solve(
+      tvec,
+      parameter_vector,
+      diag(length(tvec))
+    )
     chol_K2_inv <- chol(K2_inv)
     diag_K2_inv <- diag(chol_K2_inv)
     d <- diag_K2_inv * diag_K2_inv
