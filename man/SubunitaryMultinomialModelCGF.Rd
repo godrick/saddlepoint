@@ -44,7 +44,8 @@ From the perspective of restricting to \eqn{\{Y_{d+1}=0\}}, one effectively sets
   \;+\;
   K_{W}(t_1,\dots,t_d)\,,
 }
-where \eqn{\Pr(Y_{d+1}=0) = N \log\left(\!\sum_{i=1}^d \pi_i\right)} and
+where \eqn{\log\bigl\{\Pr(Y_{d+1}=0)\bigr\} =
+N \log\left(\!\sum_{i=1}^d \pi_i\right)} and
 \eqn{K_{W}} is the usual multinomial CGF for \eqn{\mathrm{Multinomial}(N,p_1,\dots,p_d)}.
 
 In many applications (such as certain capture-recapture models), some categories
