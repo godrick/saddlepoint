@@ -47,6 +47,7 @@
   # private methods from the base CGF
   base_tilt <- cgf$.private_api$tilting_exponent
   base_T    <- cgf$.private_api$func_T
+  child_K2_factor <- .K2_factor_method(cgf)
 
   .get_n <- function(param) {
     n_val <- n_fn(param)
@@ -125,6 +126,16 @@
     .scale_like_K2(cgf$K2operatorAK2AT(tvec, param, A), n_val)
   }
 
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, param, A) {
+      .K2_factor_scale(
+        child_K2_factor(tvec, param, A),
+        .get_n(param)
+      )
+    }
+  }
+
 
   # ------------------------------------------------------------------
   # Higher-order correction term
@@ -186,6 +197,18 @@
     n_val <- .get_n(param)
     (n_val * n_val) * base_K3K3ABCABC_fact(tvec, param, A, d)
   }
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored,
+    .factored_delegate_is_safe(base_K4AABB_factored)
+  )
+  K3K3operatorAABBCC_factored <- .factored_delegate_mark(
+    K3K3operatorAABBCC_factored,
+    .factored_delegate_is_safe(base_K3K3AABBCC_fact)
+  )
+  K3K3operatorABCABC_factored <- .factored_delegate_mark(
+    K3K3operatorABCABC_factored,
+    .factored_delegate_is_safe(base_K3K3ABCABC_fact)
+  )
 
 
   # ------------------------------------------------------------------
@@ -257,6 +280,7 @@
     func_T = func_T,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     rsim = rsim,
     K2operator = K2operator,
     K2operatorAK2AT = K2operatorAK2AT,

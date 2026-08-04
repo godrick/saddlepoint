@@ -48,6 +48,7 @@
   K2opAK2AT0 <- base_cgf$K2operatorAK2AT
   K2solve0   <- base_cgf$K2_solve
   logdet0    <- base_cgf$logdetK2
+  child_K2_factor <- .K2_factor_method(base_cgf)
 
   K4AABB0    <- base_cgf$K4operatorAABB
   K3K3A0     <- base_cgf$K3K3operatorAABBCC
@@ -64,6 +65,15 @@
   K4AABB_fact0 <- base_cgf$.private_api$K4operatorAABB_factored
   K3K3A_fact0  <- base_cgf$.private_api$K3K3operatorAABBCC_factored
   K3K3B_fact0  <- base_cgf$.private_api$K3K3operatorABCABC_factored
+  K4AABB_fact0 <- .factored_delegate_mark(
+    K4AABB_fact0, .factored_delegate_is_safe(K4AABB_fact0)
+  )
+  K3K3A_fact0 <- .factored_delegate_mark(
+    K3K3A_fact0, .factored_delegate_is_safe(K3K3A_fact0)
+  )
+  K3K3B_fact0 <- .factored_delegate_mark(
+    K3K3B_fact0, .factored_delegate_is_safe(K3K3B_fact0)
+  )
 
   # Helper: b(theta) expanded to length(tvec)
   b_at <- function(theta, n) {
@@ -95,6 +105,11 @@
 
   K2_solve <- function(tvec, param, rhs) K2solve0(tvec, param, rhs)
   logdetK2 <- function(tvec, param) logdet0(tvec, param)
+
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, param, B) child_K2_factor(tvec, param, B)
+  }
 
   K4operatorAABB <- function(tvec, param, Q) K4AABB0(tvec, param, Q)
   K3K3operatorAABBCC <- function(tvec, param, Q) K3K3A0(tvec, param, Q)
@@ -150,6 +165,7 @@
     K2operatorAK2AT = K2operatorAK2AT,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,

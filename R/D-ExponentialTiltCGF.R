@@ -40,6 +40,8 @@
 
   K2solve0 <- base_cgf$K2_solve
   logdet0  <- base_cgf$logdetK2
+  child_K2_factor <- .K2_factor_method(base_cgf)
+  funcT0 <- base_cgf$.private_api$func_T
 
   K4AABB0     <- base_cgf$K4operatorAABB
   K3K3AABBCC0 <- base_cgf$K3K3operatorAABBCC
@@ -127,6 +129,19 @@
     logdet0(tvec + h, param) + 0 * param[1]
   }
 
+  func_T <- function(tvec, param) {
+    h <- expand_h(tilt_fn(param), length(tvec))
+    funcT0(tvec + h, param) + .ad_zero_scalar(param)
+  }
+
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, param, Bmat) {
+      h <- expand_h(tilt_fn(param), length(tvec))
+      child_K2_factor(tvec + h, param, Bmat)
+    }
+  }
+
   K4operatorAABB <- function(tvec, param, Q) {
     m <- length(tvec)
     h <- expand_h(tilt_fn(param), m)
@@ -161,6 +176,18 @@
     h <- expand_h(tilt_fn(param), m)
     K3K3ABCABC_fact0(tvec + h, param, A, d) + 0 * param[1]
   }
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored,
+    .factored_delegate_is_safe(K4AABB_fact0)
+  )
+  K3K3operatorAABBCC_factored <- .factored_delegate_mark(
+    K3K3operatorAABBCC_factored,
+    .factored_delegate_is_safe(K3K3AABBCC_fact0)
+  )
+  K3K3operatorABCABC_factored <- .factored_delegate_mark(
+    K3K3operatorABCABC_factored,
+    .factored_delegate_is_safe(K3K3ABCABC_fact0)
+  )
 
   # Inequality constraints: g_base(t+h) and g_base(h)
   ineq_constraint <- function(tvec, param) {
@@ -219,6 +246,8 @@
     K4operator = K4operator,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    func_T = func_T,
+    K2_factor = K2_factor,
     K2operatorAK2AT = K2operatorAK2AT,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
@@ -232,7 +261,15 @@
     op_name = op_name
   )
 
-  do.call(createCGF, c(cgf_args, list(...)))
+  extra_args <- list(...)
+  if ("func_T" %in% names(extra_args)) {
+    if (!is.null(extra_args$func_T) && !is.function(extra_args$func_T)) {
+      stop("'func_T' must be NULL or a function.", call. = FALSE)
+    }
+    if (is.function(extra_args$func_T)) cgf_args$func_T <- extra_args$func_T
+    extra_args$func_T <- NULL
+  }
+  do.call(createCGF, c(cgf_args, extra_args))
 }
 
 #' @title Exponential Tilting of a CGF

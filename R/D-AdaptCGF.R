@@ -23,6 +23,8 @@
 
 .adaptCGF_internal <- function(cgf, param_adaptor, ...){
 
+  child_K2_factor <- .K2_factor_method(cgf)
+
   # ----------------------------------------------------------------
   #   Wrap the five required CGF methods
   # ----------------------------------------------------------------
@@ -54,6 +56,13 @@
 
   K2operatorAK2AT <- function(tvec, param, A) {
     cgf$K2operatorAK2AT(tvec, param_adaptor(param), A)
+  }
+
+  K2_factor <- NULL
+  if (!is.null(child_K2_factor)) {
+    K2_factor <- function(tvec, param, A) {
+      child_K2_factor(tvec, param_adaptor(param), A)
+    }
   }
 
   K4operatorAABB <- function(tvec, param, Q) {
@@ -92,6 +101,18 @@
   K4operatorAABB_factored     <- function(tvec, param, A, d) base_K4operatorAABB_factored(tvec, param_adaptor(param), A, d)
   K3K3operatorAABBCC_factored <- function(tvec, param, A, d) base_K3K3operatorAABBCC_factored(tvec, param_adaptor(param), A, d)
   K3K3operatorABCABC_factored <- function(tvec, param, A, d) base_K3K3operatorABCABC_factored(tvec, param_adaptor(param), A, d)
+  K4operatorAABB_factored <- .factored_delegate_mark(
+    K4operatorAABB_factored,
+    .factored_delegate_is_safe(base_K4operatorAABB_factored)
+  )
+  K3K3operatorAABBCC_factored <- .factored_delegate_mark(
+    K3K3operatorAABBCC_factored,
+    .factored_delegate_is_safe(base_K3K3operatorAABBCC_factored)
+  )
+  K3K3operatorABCABC_factored <- .factored_delegate_mark(
+    K3K3operatorABCABC_factored,
+    .factored_delegate_is_safe(base_K3K3operatorABCABC_factored)
+  )
 
 
 
@@ -150,6 +171,7 @@
     K3K3operatorABCABC_factored = K3K3operatorABCABC_factored,
     K2_solve = K2_solve,
     logdetK2 = logdetK2,
+    K2_factor = K2_factor,
     rsim = rsim,
     op_name = op_name
   )
