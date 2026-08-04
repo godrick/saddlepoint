@@ -90,7 +90,15 @@ MultinomialFamilyCGF <- R6::R6Class(
     },
 
     .diag_factored_Q = function(A, dvec) {
-      as.vector((A * A) %*% dvec)
+      as.vector(rowSums(A * t(dvec * t(A))))
+    },
+
+    # Cumulants of order >= 2 are unchanged by adding a constant to a
+    # multinomial direction. Remove that null direction before arithmetic to
+    # avoid cancellation; this is an algebraic identity, not model centering.
+    .center_factor_columns = function(A, v) {
+      column_means <- as.vector(crossprod(v, A))
+      A - outer(rep(1, nrow(A)), column_means)
     },
 
     # ------------------------------------------------------------------
@@ -132,6 +140,19 @@ MultinomialFamilyCGF <- R6::R6Class(
       N_val * (diag(v, nrow = d, ncol = d) - outer(v, v))
     },
 
+    # Private covariance capability used only by K2 solve/logdet terminals.
+    K2_factor_default = function(tvec, parameter_vector, A) {
+      d <- private$.check_block(tvec, parameter_vector, where = "K2_factor")
+      if (ncol(A) != d) {
+        stop("MultinomialFamilyCGF::K2_factor: A must have ncol == length(tvec).")
+      }
+      N_val <- parameter_vector[1]
+      v <- private$v_from_t(tvec, parameter_vector[-1])
+      mu <- as.vector(A %*% v)
+      centered <- A - outer(mu, rep(1, d))
+      .K2_factor_term(centered, N_val * v)
+    },
+
     # 3rd-order cumulant tensor contraction:
     #   K3(u1,u2,u3) = sum_{i} v_i u1_i u2_i u3_i
     #                 - mu1 * sum_i v_i u2_i u3_i
@@ -149,17 +170,10 @@ MultinomialFamilyCGF <- R6::R6Class(
       odds_val <- parameter_vector[-1]
       v <- private$v_from_t(tvec, odds_val)
 
-      vu1 <- v * u1
-      vu1s <- sum(vu1)
-      vu2s <- sum(v * u2)
-      vu3s <- sum(v * u3)
-
-      u2u3 <- u2 * u3
-      N_val * (sum(vu1 * u2u3) -
-                 vu3s * sum(vu1 * u2) -
-                 vu2s * sum(vu1 * u3) -
-                 vu1s * sum(v * u2u3) +
-                 2 * vu1s * vu2s * vu3s)
+      c1 <- u1 - sum(v * u1)
+      c2 <- u2 - sum(v * u2)
+      c3 <- u3 - sum(v * u3)
+      N_val * sum(v * c1 * c2 * c3)
     },
 
     # 4th-order cumulant tensor contraction for u1,u2,u3,u4, multiplied by N.
@@ -173,43 +187,22 @@ MultinomialFamilyCGF <- R6::R6Class(
       odds_val <- parameter_vector[-1]
       v <- private$v_from_t(tvec, odds_val)
 
-      vu1 <- v * u1
-      vu2 <- v * u2
-      vu3 <- v * u3
-      vu4 <- v * u4
+      c1 <- u1 - sum(v * u1)
+      c2 <- u2 - sum(v * u2)
+      c3 <- u3 - sum(v * u3)
+      c4 <- u4 - sum(v * u4)
 
-      vu1s <- sum(vu1)
-      vu2s <- sum(vu2)
-      vu3s <- sum(vu3)
-      vu4s <- sum(vu4)
+      cov12 <- sum(v * c1 * c2)
+      cov13 <- sum(v * c1 * c3)
+      cov14 <- sum(v * c1 * c4)
+      cov23 <- sum(v * c2 * c3)
+      cov24 <- sum(v * c2 * c4)
+      cov34 <- sum(v * c3 * c4)
 
-      u12 <- u1 * u2
-      u34 <- u3 * u4
-
-      vu12s <- sum(vu1 * u2) # = sum(v * u1 * u2)
-      vu13s <- sum(vu1 * u3)
-      vu14s <- sum(vu1 * u4)
-      vu23s <- sum(vu2 * u3)
-      vu24s <- sum(vu2 * u4)
-      vu34s <- sum(vu3 * u4)
-
-      vu123 <- u12 * vu3 # = v * u1 * u2 * u3
-
-      N_val * (sum(vu123 * u4) -
-                 vu4s * sum(vu123) -
-                 vu3s * sum(u12 * vu4) -
-                 vu2s * sum(u34 * vu1) -
-                 vu1s * sum(u34 * vu2) -
-                 vu12s * vu34s -
-                 vu13s * vu24s -
-                 vu14s * vu23s +
-                 2 * (vu12s * vu3s * vu4s +
-                        vu13s * vu2s * vu4s +
-                        vu14s * vu2s * vu3s +
-                        vu23s * vu1s * vu4s +
-                        vu24s * vu1s * vu3s +
-                        vu34s * vu1s * vu2s) -
-                 6 * vu1s * vu2s * vu3s * vu4s)
+      N_val * (
+        sum(v * c1 * c2 * c3 * c4) -
+          cov12 * cov34 - cov13 * cov24 - cov14 * cov23
+      )
     },
 
     # K4operatorAABB(t, Q) for the multinomial:
@@ -315,12 +308,13 @@ MultinomialFamilyCGF <- R6::R6Class(
       if (length(dvec) == 0L) return(0 * N_val)
 
       v <- private$v_from_t(tvec, odds_val)
+      A <- private$.center_factor_columns(A, v)
       Qv <- private$.apply_factored_Q(A, dvec, v)
       vQv <- sum(v * Qv)
 
       diag_Q <- private$.diag_factored_Q(A, dvec)
-      G <- crossprod(A, v * A)
-      res_double_indices <- sum(tcrossprod(dvec) * (G * G))
+      weighted_G <- crossprod(t(dvec * t(A)), v * A)
+      res_double_indices <- sum(weighted_G * t(weighted_G))
       tmp <- sum(v * diag_Q)
 
       N_val * (-2 * res_double_indices +
@@ -339,6 +333,12 @@ MultinomialFamilyCGF <- R6::R6Class(
       if (length(dvec) == 0L) return(0 * N_val)
 
       v <- private$v_from_t(tvec, odds_val)
+      A <- private$.center_factor_columns(A, v)
+      balanced <- .balance_factored_Q(
+        A, dvec, "multinomial K3K3operatorAABBCC_factored"
+      )
+      A <- balanced$A
+      dvec <- balanced$d
       Qv  <- private$.apply_factored_Q(A, dvec, v)
       vQv <- sum(v * Qv)
 
@@ -377,28 +377,40 @@ MultinomialFamilyCGF <- R6::R6Class(
       N_val    <- parameter_vector[1]
       odds_val <- parameter_vector[-1]
       r <- length(dvec)
-      if (r == 0L) return(0 * N_val)
+      if (length(dvec) == 0L) return(0 * N_val)
 
       v <- private$v_from_t(tvec, odds_val)
-      z <- as.vector(crossprod(A, v))
-      G <- crossprod(A, v * A)
-      zzT <- tcrossprod(z)
-      d_outer <- tcrossprod(dvec)
+      A <- private$.center_factor_columns(A, v)
 
-      total <- 0 * N_val
-      for (p in seq_len(r)) {
-        H_slice <- crossprod(A, A * as.vector(v * A[, p]))
-        C_slice <- N_val * (
-          H_slice -
-            outer(z, G[, p]) -
-            outer(G[, p], z) -
-            z[p] * G +
-            2 * z[p] * zzT
+      # For a genuinely thin factor, contract the centered third cumulant in
+      # factor space.  This avoids expanding a d-by-r factor into a d-by-d Q.
+      # When r is large, the dense expression has lower arithmetic complexity;
+      # retain it so near-square mappings do not acquire an O(d r^3) regression.
+      if (as.double(r) * r <= d) {
+        balanced <- .balance_factored_Q(
+          A, dvec, "multinomial K3K3operatorABCABC_factored"
         )
-        total <- total + dvec[p] * sum(d_outer * (C_slice * C_slice))
+        A <- balanced$A
+        dvec <- balanced$d
+        d_outer <- tcrossprod(dvec)
+        total <- 0 * N_val
+        for (p in seq_len(r)) {
+          C_slice <- N_val * crossprod(
+            A,
+            A * as.vector(v * A[, p])
+          )
+          total <- total +
+            dvec[p] * sum(d_outer * (C_slice * C_slice))
+        }
+        return(total)
       }
 
-      total
+      Q_centered <- A %*% (dvec * t(A))
+      private$K3K3operatorABCABC_default(
+        tvec,
+        parameter_vector,
+        Q_centered
+      )
     },
 
     simulate_default = function(n, vector_length, parameter_vector, tvec = NULL, ...) {
@@ -471,6 +483,8 @@ MultinomialFamilyCGF <- R6::R6Class(
       K4operator = NULL,
       K2operator = NULL,
       K2operatorAK2AT = NULL,
+      K2_factor = NULL,
+      K2_factor_terminal = NULL,
       K4operatorAABB = NULL,
       K3K3operatorAABBCC = NULL,
       K3K3operatorABCABC = NULL,
@@ -495,29 +509,69 @@ MultinomialFamilyCGF <- R6::R6Class(
       final_K1 <- if (is.null(K1)) private$K1_default else K1
       final_K2 <- if (is.null(K2)) private$K2_default else K2
 
-      final_K3operator <- if (is.null(K3operator)) private$K3operator_default else K3operator
-      final_K4operator <- if (is.null(K4operator)) private$K4operator_default else K4operator
-
-      final_K4operatorAABB <- if (is.null(K4operatorAABB)) private$K4operatorAABB_default else K4operatorAABB
-      final_K3K3operatorAABBCC <- if (is.null(K3K3operatorAABBCC)) private$K3K3operatorAABBCC_default else K3K3operatorAABBCC
-      final_K3K3operatorABCABC <- if (is.null(K3K3operatorABCABC)) private$K3K3operatorABCABC_default else K3K3operatorABCABC
-      final_K4operatorAABB_factored <- if (is.null(K4operatorAABB_factored)) private$K4operatorAABB_factored_default else K4operatorAABB_factored
-      final_K3K3operatorAABBCC_factored <- if (is.null(K3K3operatorAABBCC_factored)) private$K3K3operatorAABBCC_factored_default else K3K3operatorAABBCC_factored
-      final_K3K3operatorABCABC_factored <- if (is.null(K3K3operatorABCABC_factored)) private$K3K3operatorABCABC_factored_default else K3K3operatorABCABC_factored
-
-      # Build func_T: if not provided, create a closure that uses the final_* functions
-      # (not the *_default versions, which would ignore user overrides)
-      if (is.null(func_T)) {
-        final_func_T <- function(tvec, parameter_vector) {
-          Q <- solve(final_K2(tvec, parameter_vector))
-          K3K3operatorABCABC_val <- final_K3K3operatorABCABC(tvec, parameter_vector, Q)
-          K3K3operatorAABBCC_val <- final_K3K3operatorAABBCC(tvec, parameter_vector, Q)
-          K4operatorAABB_val <- final_K4operatorAABB(tvec, parameter_vector, Q)
-          K4operatorAABB_val / 8 - K3K3operatorAABBCC_val / 8 - K3K3operatorABCABC_val / 12
-        }
+      use_default_K2_factor <- is.null(K2) &&
+        is.null(K2operatorAK2AT) &&
+        is.null(K2_factor)
+      final_K2_factor <- if (is.function(K2_factor)) {
+        K2_factor
+      } else if (use_default_K2_factor) {
+        private$K2_factor_default
       } else {
-        final_func_T <- func_T
+        NULL
       }
+
+      use_default_K3 <- is.null(K3operator)
+      use_default_K4 <- is.null(K4operator)
+      final_K3operator <- if (use_default_K3) private$K3operator_default else K3operator
+      final_K4operator <- if (use_default_K4) private$K4operator_default else K4operator
+
+      contraction_overrides <- .add_factored_contraction_bridges(list(
+        K4operatorAABB = K4operatorAABB,
+        K3K3operatorAABBCC = K3K3operatorAABBCC,
+        K3K3operatorABCABC = K3K3operatorABCABC,
+        K4operatorAABB_factored = K4operatorAABB_factored,
+        K3K3operatorAABBCC_factored = K3K3operatorAABBCC_factored,
+        K3K3operatorABCABC_factored = K3K3operatorABCABC_factored
+      ))
+      contraction_method <- function(name, default, use_default) {
+        method <- contraction_overrides[[name]]
+        if (is.function(method)) return(method)
+        if (use_default) default else NULL
+      }
+      final_K4operatorAABB <- contraction_method(
+        "K4operatorAABB", private$K4operatorAABB_default, use_default_K4
+      )
+      final_K3K3operatorAABBCC <- contraction_method(
+        "K3K3operatorAABBCC", private$K3K3operatorAABBCC_default, use_default_K3
+      )
+      final_K3K3operatorABCABC <- contraction_method(
+        "K3K3operatorABCABC", private$K3K3operatorABCABC_default, use_default_K3
+      )
+      final_K4operatorAABB_factored <- contraction_method(
+        "K4operatorAABB_factored",
+        private$K4operatorAABB_factored_default,
+        use_default_K4
+      )
+      if (use_default_K4 &&
+          !is.function(contraction_overrides$K4operatorAABB_factored)) {
+        # The analytic default forms an r-by-r weighted Gram matrix.  It is
+        # excellent for thin factors but is not bounded when r exceeds the
+        # category dimension, so outer wrappers should use its public dense
+        # contraction in that regime.  Explicit overrides retain precedence.
+        final_K4operatorAABB_factored <- .factored_delegate_mark(
+          final_K4operatorAABB_factored, FALSE
+        )
+      }
+      final_K3K3operatorAABBCC_factored <- contraction_method(
+        "K3K3operatorAABBCC_factored",
+        private$K3K3operatorAABBCC_factored_default,
+        use_default_K3
+      )
+      final_K3K3operatorABCABC_factored <- contraction_method(
+        "K3K3operatorABCABC_factored",
+        private$K3K3operatorABCABC_factored_default,
+        use_default_K3
+      )
 
       final_rsim <- if (is.null(rsim)) private$simulate_default else rsim
 
@@ -537,7 +591,7 @@ MultinomialFamilyCGF <- R6::R6Class(
         ineq_constraint = ineq_constraint,
         tilting_exponent = tilting_exponent,
         neg_ll  = neg_ll,
-        func_T  = final_func_T,
+        func_T  = func_T,
 
         K2operator      = K2operator,
         K2operatorAK2AT = K2operatorAK2AT,
@@ -549,6 +603,9 @@ MultinomialFamilyCGF <- R6::R6Class(
         K4operatorAABB_factored     = final_K4operatorAABB_factored,
         K3K3operatorAABBCC_factored = final_K3K3operatorAABBCC_factored,
         K3K3operatorABCABC_factored = final_K3K3operatorABCABC_factored,
+
+        K2_factor = final_K2_factor,
+        K2_factor_terminal = K2_factor_terminal,
 
         ...
       )
@@ -569,6 +626,8 @@ createMultinomialFamilyCGF <- function(iidReps = "any",
                                        K4operator = NULL,
                                        K2operator = NULL,
                                        K2operatorAK2AT = NULL,
+                                       K2_factor = NULL,
+                                       K2_factor_terminal = NULL,
                                        K4operatorAABB = NULL,
                                        K3K3operatorAABBCC = NULL,
                                        K3K3operatorABCABC = NULL,
@@ -593,6 +652,8 @@ createMultinomialFamilyCGF <- function(iidReps = "any",
     K4operator = K4operator,
     K2operator = K2operator,
     K2operatorAK2AT = K2operatorAK2AT,
+    K2_factor = K2_factor,
+    K2_factor_terminal = K2_factor_terminal,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,
