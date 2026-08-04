@@ -45,7 +45,3 @@ It adds flexibility by allowing incorporation of likelihood components not based
 It is important when the analysis combines the saddlepoint likelihood with an external likelihood.
 If not provided, the function defaults to using solely the saddlepoint likelihood.
 }
-\examples{
-# TODO: Add examples
-
-}

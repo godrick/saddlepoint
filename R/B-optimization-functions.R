@@ -12,13 +12,6 @@
 #' @param cgf An object of class 'CGF'.
 #' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
 #  the gradient of the function with respect to both \code{tvec} and \code{theta}.
-#'
-#' @examples
-#' \dontrun{
-#'   #...TO DO: write a working example
-#'   # f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
-#'   # f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
-#' }
 #' @export
 get.saddlepoint.nll.function <- function(tvec, theta, cgf
                                          # , observations)
@@ -57,12 +50,6 @@ get.saddlepoint.nll.function <- function(tvec, theta, cgf
 #' @param cgf An object of class 'CGF'.
 #' @return A function that takes a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to the returned function, it yields a list in the format: \code{list(objective = , gradient = )}.
 #  the gradient of the function with respect to both \code{tvec} and \code{theta}.
-#'
-#' @examples
-#' \dontrun{
-#'   # TO DO: write a working example
-#' }
-#'
 #' @export
 get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf) {
   stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
@@ -100,20 +87,14 @@ get.zeroth.saddlepoint.nll.function <- function(tvec, theta, cgf) {
 #'
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector.
-#' @param observed.data A numeric vector. See TO DO list.
-#  TO DO: Add something on the length ...
+#' @param observed.data A numeric vector of observations with the same length as
+#'   \code{tvec}.
 #' @param cgf An object of class 'CGF'.
 #'
 #' @importFrom Matrix head
 #' @importFrom Matrix tail
 #'
 #' @return A function that accepts a vector 'a' as an argument. When `a = c(tvec, theta)` is passed to this function, it generates a list containing 'constraints' and 'jacobian'. 'constraints' are computed as \eqn{K'(t;\theta) - y}, and 'jacobian' represents the gradient of these constraints with respect to both \code{tvec} and \code{theta}.
-#' @examples
-#' \dontrun{
-#' # TO DO: write a working example
-#'  # f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
-#'  # f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
-#' }
 #' @export
 get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, cgf){
   stopifnot(is.numeric(tvec), is.numeric(theta), is.numeric(observed.data), is(cgf, "CGF"))
@@ -145,15 +126,10 @@ get.saddlepoint.eq.constraint.function <- function(tvec, theta, observed.data, c
 #' @param tvec A numeric vector.
 #' @param theta A numeric vector.
 #' @param cgf An object of class 'CGF'.
-#' @param user.ineq.constraint.function An optional additional inequality added by a user. Default is NULL. See TO DO list.
-#  TO DO: Add additional documentation on this.
+#' @param user.ineq.constraint.function An optional function of \code{theta}
+#'   returning a list with elements \code{constraints} and \code{jacobian}.
+#'   Defaults to \code{NULL}.
 #' @return A function that takes a vector `a` as an argument. This function returns either NULL or a list with 'constraints' and 'jacobian'.
-#' @examples
-#' \dontrun{
-#' # TO DO: Add a working example
-#' #  f <- get.ineq_constraint.function(tvec, theta, cgf)
-#' #   f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = ) or NULL
-#' }
 #' @export
 get.ineq.constraint.function <- function(tvec, theta, cgf, user.ineq.constraint.function = NULL){
   stopifnot(is.numeric(tvec), is.numeric(theta), is(cgf, "CGF"))
@@ -308,11 +284,6 @@ create_saddlepoint.ineq.constraint_function <- function(tvec, theta, cgf){
 #' @references
 #' \itemize{
 #'   \item \href{https://nlopt.readthedocs.io/en/latest/}{NLOpt Documentation}
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # TO DO: Add examples
 #' }
 #'
 #' @export
@@ -497,9 +468,6 @@ configure.sadd.eqn.opts <- function(sadd.eqn.opts) {
 #'
 #' @importFrom methods is
 #'
-#' @examples
-#' # TODO: Add examples
-#'
 #' @export
 compute.std.error <- function(observed.data,
                               estimated.tvec,
@@ -526,8 +494,6 @@ compute.std.error <- function(observed.data,
   inverse.hessian <- solve(matrix.H)
   list(std.error = sqrt(diag(inverse.hessian)), inverse.hessian = inverse.hessian)
 }
-
-
 
 
 

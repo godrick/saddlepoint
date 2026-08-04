@@ -11,7 +11,8 @@ get.saddlepoint.eq.constraint.function(tvec, theta, observed.data, cgf)
 
 \item{theta}{A numeric vector.}
 
-\item{observed.data}{A numeric vector. See TO DO list.}
+\item{observed.data}{A numeric vector of observations with the same length as
+\code{tvec}.}
 
 \item{cgf}{An object of class 'CGF'.}
 }
@@ -23,11 +24,4 @@ This function creates and returns a function of the form \code{function(a) \{...
 }
 \details{
 In this set up, the expression of the saddlepoint equation is defined by \eqn{K'(t;\theta) - y = 0} for \code{observed.data = y}. The returned function is designed to compute both \eqn{K'(t;\theta) - y} and its gradient with respect to both \code{tvec} and \code{theta}.
-}
-\examples{
-\dontrun{
-# TO DO: write a working example
- # f <- get.saddlepoint_eq_constraint.function(tvec, theta, observed.data, cgf)
- # f(c(tvec, theta)) # returns a list of the form list(constraints = , jacobian = )
-}
 }

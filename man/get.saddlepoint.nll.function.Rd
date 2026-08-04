@@ -19,10 +19,3 @@ A function that takes a vector 'a' as an argument. When \code{a = c(tvec, theta)
 \description{
 This function creates and returns a function of the form \code{function(a) \{...\}}, where 'a' combines \code{tvec} and \code{theta} arguments to a single vector, in that order.
 }
-\examples{
-\dontrun{
-  #...TO DO: write a working example
-  # f <- get.saddlepoint.nll.function(tvec, theta, PoissonCGF)
-  # f(c(tvec, theta)) # returns a list of the form list(objective = , gradient = )
-}
-}

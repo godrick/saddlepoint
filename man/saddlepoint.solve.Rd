@@ -52,12 +52,6 @@ approach instead.
 \details{
 Minimizes the function \eqn{K(t; \theta) - \sum(t_i y_i)} to enforce \eqn{K1(t, \theta) = y}.
 }
-\examples{
-\dontrun{
-# TO DO: Add examples
-}
-
-}
 \references{
 \itemize{
 \item \href{https://nlopt.readthedocs.io/en/latest/}{NLOpt Documentation}
