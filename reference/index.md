@@ -122,8 +122,8 @@
 
 - [`saddlepoint`](https://godrick.github.io/saddlepoint/reference/saddlepoint-package.md)
   [`saddlepoint-package`](https://godrick.github.io/saddlepoint/reference/saddlepoint-package.md)
-  : saddlepoint: A framework for the saddlepoint approximation with CGF
-  operations
+  : saddlepoint: A Framework for the Saddlepoint Approximation with CGF
+  Operations
 
 - [`saddlepoint.solve()`](https://godrick.github.io/saddlepoint/reference/saddlepoint.solve.md)
   : Numerical saddlepoint equation solver

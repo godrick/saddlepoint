@@ -4,23 +4,25 @@
 
 - **Godrick Oketch**. Author, maintainer.
 
-- **Jesse Goodman**. Author.
+- **Rachel M. Fewster**. Author.
 
-- **Rachel Fewster**. Author.
+- **Jesse Goodman**. Author.
 
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/godrick/saddlepoint/blob/master/DESCRIPTION)
+[`inst/CITATION`](https://github.com/godrick/saddlepoint/blob/master/inst/CITATION)
 
-Oketch G, Goodman J, Fewster R (2026). *saddlepoint: A Framework for the
-Saddlepoint Approximation with CGF Operations*. R package version 0.9.0,
-<https://godrick.github.io/saddlepoint/>.
+Oketch G, Fewster RM, Goodman J (2026). “A general framework for
+computation and estimation using the saddlepoint approximation.”
+[doi:10.48550/arXiv.2607.17464](https://doi.org/10.48550/arXiv.2607.17464).
+arXiv:2607.17464 \[stat.CO\], <https://arxiv.org/abs/2607.17464>.
 
-    @Manual{,
-      title = {saddlepoint: A Framework for the Saddlepoint Approximation with CGF Operations},
-      author = {Godrick Oketch and Jesse Goodman and Rachel Fewster},
+    @Unpublished{oketch2026saddlepoint,
+      title = {A general framework for computation and estimation using the saddlepoint approximation},
+      author = {Godrick Oketch and Rachel M. Fewster and Jesse Goodman},
       year = {2026},
-      note = {R package version 0.9.0},
-      url = {https://godrick.github.io/saddlepoint/},
+      note = {arXiv:2607.17464 [stat.CO]},
+      doi = {10.48550/arXiv.2607.17464},
+      url = {https://arxiv.org/abs/2607.17464},
     }

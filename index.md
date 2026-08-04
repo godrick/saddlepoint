@@ -43,3 +43,15 @@ fit <- find.saddlepoint.MLE(
 fit$MLEs.theta
 fit$std.error
 ```
+
+## Citation
+
+If you use `saddlepoint`, please cite the accompanying paper:
+
+> Oketch, G., Fewster, R. M., and Goodman, J. (2026). *A general
+> framework for computation and estimation using the saddlepoint
+> approximation*. arXiv:2607.17464.
+> <https://doi.org/10.48550/arXiv.2607.17464>
+
+Use `citation("saddlepoint")` for an automatically formatted citation
+and BibTeX entry.
