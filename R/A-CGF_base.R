@@ -232,7 +232,32 @@ CGF_private_defaults <- list(
   }
   ,
   K4operatorAABB_factored = function(tvec, parameter_vector, A, d) {
+    balanced <- .balance_factored_Q(A, d, "K4operatorAABB_factored")
+    A <- balanced$A
+    d <- balanced$d
     r <- length(d)
+
+    # When a valid representation has more columns than ambient dimensions,
+    # contracting every factor pair is unnecessarily expensive.  Expand the
+    # represented Q in the coordinate basis instead.  This remains valid for
+    # singular Q and leaves explicit dense/factored overrides authoritative,
+    # because createCGF() installs those in place of this base default.
+    n <- nrow(A)
+    if (r > n) {
+      Q <- .factor_block_matrix(A, d, A)
+      basis <- diag(n)
+      res <- 0
+      for (m1 in seq_len(n)) {
+        for (m2 in seq_len(n)) {
+          res <- res + self$K4operator(
+            tvec, parameter_vector,
+            Q[, m1], basis[, m1], Q[, m2], basis[, m2]
+          )
+        }
+      }
+      return(res)
+    }
+
     res <- 0
     for (m1 in seq_len(r)) {
       for (m2 in seq_len(r)) {
@@ -245,6 +270,9 @@ CGF_private_defaults <- list(
   }
   ,
   K3K3operatorAABBCC_factored = function(tvec, parameter_vector, A, d) {
+    balanced <- .balance_factored_Q(A, d, "K3K3operatorAABBCC_factored")
+    A <- balanced$A
+    d <- balanced$d
     r <- length(d)
     res <- 0
     for (m2 in seq_len(r)) {
@@ -258,6 +286,9 @@ CGF_private_defaults <- list(
   }
   ,
   K3K3operatorABCABC_factored = function(tvec, parameter_vector, A, d) {
+    balanced <- .balance_factored_Q(A, d, "K3K3operatorABCABC_factored")
+    A <- balanced$A
+    d <- balanced$d
     r <- length(d)
     message("The discrepancy option/compute.funcT has initiated a computation that may take a few moments...")
     res <- 0
@@ -271,6 +302,69 @@ CGF_private_defaults <- list(
     }
     res
   }
+)
+
+
+# Keep a supplied dense contraction authoritative when its matching factored
+# override is omitted.  This bridge is only installed for such an override;
+# ordinary/default factored methods retain their existing route.
+.add_factored_contraction_bridges <- function(methods) {
+  pairs <- list(
+    c("K4operatorAABB", "K4operatorAABB_factored"),
+    c("K3K3operatorAABBCC", "K3K3operatorAABBCC_factored"),
+    c("K3K3operatorABCABC", "K3K3operatorABCABC_factored")
+  )
+
+  for (pair in pairs) {
+    dense_name <- pair[[1L]]
+    factored_name <- pair[[2L]]
+    if (is.function(methods[[dense_name]]) &&
+        !is.function(methods[[factored_name]])) {
+      methods[[factored_name]] <- local({
+        method_name <- dense_name
+        function(tvec, parameter_vector, A, d) {
+          get("self", inherits = TRUE)[[method_name]](
+            tvec,
+            parameter_vector,
+            A %*% (d * t(A))
+          )
+        }
+      })
+    }
+  }
+  methods
+}
+
+
+# A singleton structural wrapper may delegate a factored contraction only when
+# the installed child method is itself a bounded/specialized implementation.
+# Untouched CGF base defaults deliberately have no marker.  Explicit methods
+# and compatibility bridges are authoritative and are marked when installed;
+# pure pass-through wrappers copy the marker from their child.
+.factored_delegate_method_names <- c(
+  "K4operatorAABB_factored",
+  "K3K3operatorAABBCC_factored",
+  "K3K3operatorABCABC_factored"
+)
+
+.factored_delegate_is_safe <- function(method) {
+  is.function(method) &&
+    isTRUE(attr(method, "saddlepoint.factored_delegate_safe", exact = TRUE))
+}
+
+.factored_delegate_mark <- function(method, safe) {
+  if (!is.function(method)) {
+    stop("Internal error: factored delegate capability requires a function.")
+  }
+  attr(method, "saddlepoint.factored_delegate_safe") <- isTRUE(safe)
+  method
+}
+
+# The generic K4 default bounds a wide representation by ambient dimension.
+# Mark it explicitly because it is installed directly by the R6 class rather
+# than passing through createCGF()'s override machinery.
+CGF_private_defaults$K4operatorAABB_factored <- .factored_delegate_mark(
+  CGF_private_defaults$K4operatorAABB_factored, TRUE
 )
 
 
@@ -446,12 +540,21 @@ CGF <- R6::R6Class(
         if (!is.function(m)) {
           stop("Override for '", n, "' must be a function (or NULL to keep default).", call. = FALSE)
         }
+        delegate_capability <- attr(
+          m,
+          "saddlepoint.factored_delegate_safe",
+          exact = TRUE
+        )
         m <- as_method(m)
         target_fun <- get(n, envir = e, inherits = FALSE)
         if (!is.function(target_fun)) {
           stop("Cannot override non-function member '", n, "'.", call. = FALSE)
         }
         m <- wrap_like(target_fun, m)
+        if (n %in% .factored_delegate_method_names) {
+          if (is.null(delegate_capability)) delegate_capability <- TRUE
+          m <- .factored_delegate_mark(m, delegate_capability)
+        }
         unlockBinding(n, e)
         assign(n, m, envir = e)
         lockBinding(n, e)
@@ -583,6 +686,7 @@ createCGF <- function(K, K1, K2, K3operator, K4operator,
 
   all_optional_methods <- modifyList(user_optional_methods, additional_methods)
   all_optional_methods <- all_optional_methods[!vapply(all_optional_methods, is.null, logical(1))]
+  all_optional_methods <- .add_factored_contraction_bridges(all_optional_methods)
 
   do.call(CGF$new, c(
     list(
