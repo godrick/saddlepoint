@@ -2,6 +2,11 @@
 #' @section Package development: 
 #' The package is still in development and there may still be bugs and errors. 
 #' While we do not expect major changes to the general user interface, there may be changes to the internal workings of the package as well as new additions and functionality.
+#'
+#' @references
+#' Oketch, G., Fewster, R. M., and Goodman, J. (2026).
+#' *A general framework for computation and estimation using the saddlepoint
+#' approximation*. \doi{10.48550/arXiv.2607.17464}
 "_PACKAGE"
 
 ## usethis namespace: start

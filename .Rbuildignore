@@ -22,3 +22,4 @@
 ^Meta$
 ^dev/reference-tests($|/)
 ^tests/testthat/more-examples$
+^CITATION\.cff$

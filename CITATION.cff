@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying paper below."
+type: software
+title: "saddlepoint: A Framework for the Saddlepoint Approximation with CGF Operations"
+authors:
+  - family-names: Oketch
+    given-names: Godrick
+  - family-names: Fewster
+    given-names: "Rachel M."
+  - family-names: Goodman
+    given-names: Jesse
+version: 0.9.0
+repository-code: "https://github.com/godrick/saddlepoint"
+url: "https://godrick.github.io/saddlepoint/"
+license: GPL-3.0-or-later
+preferred-citation:
+  type: unpublished
+  title: "A general framework for computation and estimation using the saddlepoint approximation"
+  authors:
+    - family-names: Oketch
+      given-names: Godrick
+    - family-names: Fewster
+      given-names: "Rachel M."
+    - family-names: Goodman
+      given-names: Jesse
+  year: 2026
+  status: preprint
+  doi: "10.48550/arXiv.2607.17464"
+  url: "https://arxiv.org/abs/2607.17464"

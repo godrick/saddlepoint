@@ -1,0 +1,19 @@
+citHeader("To cite 'saddlepoint' in publications, please use:")
+
+bibentry(
+  bibtype = "Unpublished",
+  title = paste(
+    "A general framework for computation and estimation using the",
+    "saddlepoint approximation"
+  ),
+  author = c(
+    person("Godrick", "Oketch"),
+    person(c("Rachel", "M."), "Fewster"),
+    person("Jesse", "Goodman")
+  ),
+  year = "2026",
+  note = "arXiv:2607.17464 [stat.CO]",
+  doi = "10.48550/arXiv.2607.17464",
+  url = "https://arxiv.org/abs/2607.17464",
+  key = "oketch2026saddlepoint"
+)
