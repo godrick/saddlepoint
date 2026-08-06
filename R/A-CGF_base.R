@@ -204,6 +204,12 @@ CGF_public_defaults <- list(
 
 
 CGF_private_defaults <- list(
+  # Internal construction-time capability used only when an enclosing
+  # covariance update can safely reuse this object's structured solve/logdet
+  # pair.  Package wrappers propagate it mechanically; direct custom pairs are
+  # authoritative unless explicitly tagged otherwise.
+  K2_structured_pair = function() FALSE,
+
   tilting_exponent = function(tvec, parameter_vector) {
     self$K(tvec, parameter_vector) - sum(tvec * self$K1(tvec, parameter_vector))
   }
@@ -533,6 +539,37 @@ CGF <- R6Class(
       }
       if (length(extra_args) > 0L && any(!nzchar(extra_names))) {
         warning("Unnamed entries in '...' are ignored. Please provide named overrides.", call. = FALSE)
+      }
+
+      # Record whether a supplied solve/logdet pair is authoritative for a
+      # structured enclosing update.  Untagged pairs are direct/custom methods;
+      # package-generated wrappers tag both closures and propagate the child's
+      # capability.  This metadata is private and does not alter either public
+      # method or its precedence.
+      K2_pair_names <- c("K2_solve", "logdetK2")
+      if (all(K2_pair_names %in% extra_names)) {
+        K2_pair_tags <- lapply(
+          extra_args[K2_pair_names],
+          attr,
+          which = "saddlepoint.K2_structured_pair",
+          exact = TRUE
+        )
+        pair_is_direct <- all(vapply(
+          K2_pair_tags, is.null, logical(1)
+        ))
+        pair_is_generated_safe <- all(vapply(
+          K2_pair_tags, isTRUE, logical(1)
+        ))
+        # A one-sided direct override must not be combined with the other
+        # method from an inherited generated pair.  Only a complete direct
+        # pair or a complete safely generated pair is authoritative for an
+        # enclosing covariance update.
+        K2_pair_safe <- pair_is_direct || pair_is_generated_safe
+        extra_args[["K2_structured_pair"]] <- local({
+          safe <- K2_pair_safe
+          function() safe
+        })
+        extra_names <- names(extra_args)
       }
 
       override_name <- function(n, e) {

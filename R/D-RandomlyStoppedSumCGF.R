@@ -57,6 +57,12 @@
 .randomlyStoppedSumCGF_internal <- function(count_cgf, summand_cgf, ...) {
 
   summand_K2_factor <- .K2_factor_method(summand_cgf)
+  # Reuse a child's structured solve/logdet pair only when its constructor has
+  # certified that pair for an enclosing covariance update.  Otherwise factor
+  # the completed RSS covariance, allowing the count term to complete a
+  # singular child's rank.  This is private capability propagation, not a
+  # distribution or wrapper identity check.
+  prefer_structured_K2 <- .K2_structured_pair_is_safe(summand_cgf)
   extra_args <- list(...)
   extra_args <- extra_args[!vapply(extra_args, is.null, logical(1))]
   extra_names <- names(extra_args)
@@ -412,7 +418,7 @@
   # a rank-1 update of a scaled Sigma.
 
   K2_solve <- function(tvec, param, rhs) {
-    if (!is.null(K2_factor)) {
+    if (!is.null(K2_factor) && !prefer_structured_K2) {
       return(.K2_factor_solve(K2_factor, tvec, param, rhs))
     }
 
@@ -442,7 +448,7 @@
   }
 
   logdetK2 <- function(tvec, param) {
-    if (!is.null(K2_factor)) {
+    if (!is.null(K2_factor) && !prefer_structured_K2) {
       return(.K2_factor_logdet(K2_factor, tvec, param))
     }
 
@@ -602,6 +608,8 @@
     )
     if (r == 0L) return(.ad_zero_scalar(param))
 
+    raw_B <- B
+    raw_dvec <- dvec
     balanced <- .balance_factored_Q(
       B, dvec, "RSS K4operatorAABB_factored"
     )
@@ -611,7 +619,7 @@
     if (r > nrow(B)) {
       Q <- .factor_block_matrix(B, dvec, B)
       base_K4 <- if (summand_K4AABB_safe) {
-        summand_K4AABB_factored(tvec, param, B, dvec)
+        summand_K4AABB_factored(tvec, param, raw_B, raw_dvec)
       } else {
         .coordinate_child_K4_AABB(tvec, param, Q)
       }
@@ -630,7 +638,7 @@
       summand_cgf, tvec, param, B, dvec, terms$v
     )
     K4_X <- summand_cgf$.private_api$K4operatorAABB_factored(
-      tvec, param, B, dvec
+      tvec, param, raw_B, raw_dvec
     )
 
     dv$a1 * K4_X +
@@ -897,6 +905,13 @@
       Y
     }
   }
+
+  # An RSS covariance can itself be singular and later rank-completed by an
+  # enclosing operation, so its generated pair is not advertised as a safe
+  # child-inverse route.  Its own public methods still use the completed final
+  # factor whenever one is available.
+  K2_solve <- .K2_structured_pair_mark(K2_solve, FALSE)
+  logdetK2 <- .K2_structured_pair_mark(logdetK2, FALSE)
 
   # Build args list (names match createCGF parameters exactly)
   cgf_args <- list(

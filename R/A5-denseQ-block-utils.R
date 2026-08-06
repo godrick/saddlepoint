@@ -177,99 +177,6 @@
 }
 
 
-# Branch-free TwoSum accumulation.  The leading sum and its recovered rounding
-# residual stay separate until the result is consumed.
-.ad_compensated_state <- function(param) {
-  list(
-    total = .ad_zero_scalar(param),
-    correction = .ad_zero_scalar(param),
-    magnitude = .ad_zero_scalar(param)
-  )
-}
-
-.ad_compensated_add <- function(state, value) {
-  next_total <- state$total + value
-  recovered_value <- next_total - state$total
-  adjustment <-
-    (state$total - (next_total - recovered_value)) +
-    (value - recovered_value)
-
-  list(
-    total = next_total,
-    correction = state$correction + adjustment,
-    magnitude = state$magnitude + abs(value)
-  )
-}
-
-.ad_compensated_value <- function(state) {
-  state$total + state$correction
-}
-
-# Compensated arithmetic can recover a primal value even when ordinary reverse
-# AD loses the corresponding derivative in upstream cancellation.  Reject an
-# order-independent, severely ill-conditioned primal sum instead of returning
-# a plausible finite result.  A value-only terminal cannot certify every
-# possible derivative-only cancellation, so this is deliberately a numerical-
-# loss detector rather than a universal derivative certificate.  Rejection is
-# propagated through derivative tapes and the atomic holds no mutable state.
-.ad_sum_guard_atomic <- local({
-  forward <- function(x) {
-    x <- base::as.numeric(.rtmb_value_real(x))
-    result <- x[1L]
-    if (!is.finite(result)) return(c(result, NaN))
-    if (length(x) == 1L) return(c(result, 1))
-    if ((length(x) - 1L) %% 3L != 0L) return(c(NaN, NaN))
-
-    states <- base::matrix(x[-1L], nrow = 3L)
-    tolerance <- 64 * .Machine$double.eps
-    for (j in seq_len(ncol(states))) {
-      leading <- states[1L, j]
-      residual <- states[2L, j]
-      magnitude <- states[3L, j]
-      state_value <- leading + residual
-      if (!is.finite(leading) || !is.finite(residual) ||
-          !is.finite(magnitude) || magnitude < 0 ||
-          !is.finite(state_value)) return(c(NaN, NaN))
-      if (state_value != 0 &&
-          abs(state_value) <= tolerance * magnitude) {
-        return(c(NaN, NaN))
-      }
-    }
-    c(result, 1)
-  }
-
-  reverse <- function(x, out, out_bar) {
-    x <- RTMB::AD(x)
-    out <- RTMB::AD(out)
-    out_bar <- RTMB::AD(out_bar)
-    result <- numeric(length(x)) * out_bar[1L]
-    # The second atomic output is an explicit validity status.  Its zero
-    # derivative is written as status/status - 1 so invalid status also
-    # poisons tapes derived from this reverse pass, without cached state.
-    status_derivative <- out[2L] / out[2L] - 1
-    result[1L] <- out_bar[1L] * out[2L] +
-      out_bar[2L] * status_derivative
-    result + 0 * x
-  }
-
-  RTMB::ADjoint(forward, reverse, name = "factored_sum_guard")
-})
-
-.ad_guard_compensated_sums <- local({
-  atomic <- .ad_sum_guard_atomic
-  function(result, states) {
-    if (length(states) == 0L) return(result)
-    diagnostics <- unlist(lapply(
-      states,
-      function(state) list(
-        state$total, state$correction, state$magnitude
-      )
-    ), recursive = FALSE)
-    payload <- do.call(c, c(list(result), diagnostics))
-    atomic(as.vector(payload))[1L]
-  }
-})
-
 .symmetric_K3_count <- function(d) {
   as.double(d) * (d + 1) * (d + 2) / 6
 }
@@ -310,37 +217,26 @@
     stop("Internal block-list mismatch in AABBCC rank contraction.")
   }
 
-  total <- .ad_compensated_state(param)
-  diagnostics <- list()
+  total <- .ad_zero_scalar(param)
   for (m2 in seq_len(r)) {
-    inner <- .ad_compensated_state(param)
+    inner <- .ad_zero_scalar(param)
     for (m1 in seq_len(r)) {
-      across_blocks <- .ad_compensated_state(param)
+      across_blocks <- .ad_zero_scalar(param)
       for (b in seq_len(B)) {
         A_b <- row_blocks[[b]]
-        term <- K3fun_list[[b]](
+        across_blocks <- across_blocks + K3fun_list[[b]](
           tvec_blocks[[b]], param,
           as.vector(A_b[, m1]),
           as.vector(A_b[, m1]),
           as.vector(A_b[, m2])
         )
-        across_blocks <- .ad_compensated_add(across_blocks, term)
       }
-      diagnostics[[length(diagnostics) + 1L]] <- across_blocks
-      inner <- .ad_compensated_add(
-        inner,
-        dvec[m1] * .ad_compensated_value(across_blocks)
-      )
+      inner <- inner + dvec[m1] * across_blocks
     }
-    diagnostics[[length(diagnostics) + 1L]] <- inner
-    g <- .ad_compensated_value(inner)
-    total <- .ad_compensated_add(total, (dvec[m2] * g) * g)
+    total <- total + (dvec[m2] * inner) * inner
   }
 
-  .ad_guard_compensated_sums(
-    .ad_compensated_value(total),
-    c(diagnostics, list(total))
-  )
+  total
 }
 
 .block_K3K3_ABCABC_rank <- function(K3fun_list, tvec_blocks, row_blocks,
@@ -351,24 +247,20 @@
     stop("Internal block-list mismatch in ABCABC rank contraction.")
   }
 
-  total <- .ad_compensated_state(param)
-  diagnostics <- list()
+  total <- .ad_zero_scalar(param)
   for (m1 in seq_len(r)) {
     for (m2 in m1:r) {
       for (m3 in m2:r) {
-        across_blocks <- .ad_compensated_state(param)
+        across_blocks <- .ad_zero_scalar(param)
         for (b in seq_len(B)) {
           A_b <- row_blocks[[b]]
-          term <- K3fun_list[[b]](
+          across_blocks <- across_blocks + K3fun_list[[b]](
             tvec_blocks[[b]], param,
             as.vector(A_b[, m1]),
             as.vector(A_b[, m2]),
             as.vector(A_b[, m3])
           )
-          across_blocks <- .ad_compensated_add(across_blocks, term)
         }
-        diagnostics[[length(diagnostics) + 1L]] <- across_blocks
-        value <- .ad_compensated_value(across_blocks)
         multiplicity <- if (m1 == m3) {
           1
         } else if (m1 == m2 || m2 == m3) {
@@ -377,19 +269,14 @@
           6
         }
         weighted_square <-
-          ((dvec[m1] * value) * dvec[m2]) * (dvec[m3] * value)
-        total <- .ad_compensated_add(
-          total,
-          multiplicity * weighted_square
-        )
+          ((dvec[m1] * across_blocks) * dvec[m2]) *
+            (dvec[m3] * across_blocks)
+        total <- total + multiplicity * weighted_square
       }
     }
   }
 
-  .ad_guard_compensated_sums(
-    .ad_compensated_value(total),
-    c(diagnostics, list(total))
-  )
+  total
 }
 
 .extract_symmetric_K3_tensor <- function(K3fun,
@@ -621,9 +508,9 @@
       }
     }
 
-    aggregate_states <- lapply(
+    aggregate_values <- lapply(
       seq_len(n_factor_triples),
-      function(q) .ad_compensated_state(param)
+      function(q) .ad_zero_scalar(param)
     )
     for (i in seq_len(B)) {
       A_i <- row_blocks[[i]]
@@ -636,30 +523,22 @@
           value <-
             projected_slice[triple_m1[q], triple_m2[q]] *
             A_i[k, triple_m3[q]]
-          aggregate_states[[q]] <- .ad_compensated_add(
-            aggregate_states[[q]], value
-          )
+          aggregate_values[[q]] <- aggregate_values[[q]] + value
         }
       }
     }
 
-    total <- .ad_compensated_state(param)
+    total <- .ad_zero_scalar(param)
     for (q in seq_len(n_factor_triples)) {
       m1 <- triple_m1[q]
       m2 <- triple_m2[q]
       m3 <- triple_m3[q]
-      value <- .ad_compensated_value(aggregate_states[[q]])
+      value <- aggregate_values[[q]]
       weighted_square <-
         ((dvec[m1] * value) * dvec[m2]) * (dvec[m3] * value)
-      total <- .ad_compensated_add(
-        total,
-        multiplicity[q] * weighted_square
-      )
+      total <- total + multiplicity[q] * weighted_square
     }
-    return(.ad_guard_compensated_sums(
-      .ad_compensated_value(total),
-      c(aggregate_states, list(total))
-    ))
+    return(total)
   }
 
   total <- .ad_zero_scalar(param)

@@ -493,14 +493,12 @@ make_solver_tvec_atomic <- function(cgf, y, solver_fun, theta_init, t_init = NUL
     thetaAD <- RTMB::AD(theta)
     tvecAD  <- RTMB::AD(tvec)
     dtAD    <- RTMB::AD(dtvec)
-         wAD     <- solve(cgf$K2(tvecAD, thetaAD), dtAD)
-    # wAD     <- cgf$K2_solve(tvecAD, thetaAD, dtAD)
+    wAD     <- cgf$K2_solve(tvecAD, thetaAD, dtAD)
     -as.vector(Htheta_atm(c(thetaAD, tvecAD, wAD)))
   }
 
   RTMB::ADjoint(f, df, name = "solver_tvec_atomic")
 }
-
 
 
 

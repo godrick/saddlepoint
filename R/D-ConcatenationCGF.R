@@ -224,10 +224,15 @@
         length(v3)   != total_dim) {
       stop("dimension mismatch in K3operator arguments.")
     }
+    if (L == 1L) {
+      return(K3op_list[[1L]](tvec, param, v1, v2, v3))
+    }
+
     total <- 0
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
-      total <- total + K3op_list[[i]](tvec[idx], param, v1[idx], v2[idx], v3[idx])
+      total <- total +
+        K3op_list[[i]](tvec[idx], param, v1[idx], v2[idx], v3[idx])
     }
     total
   }
@@ -265,10 +270,16 @@
         length(v4)   != total_dim) {
       stop("dimension mismatch in K4operator arguments.")
     }
+    if (L == 1L) {
+      return(K4op_list[[1L]](tvec, param, v1, v2, v3, v4))
+    }
+
     total <- 0
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
-      total <- total + K4op_list[[i]](tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx])
+      total <- total + K4op_list[[i]](
+        tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx]
+      )
     }
     total
   }
@@ -405,11 +416,16 @@
 
   K4operatorAABB <- function(tvec, param, Q) {
     if (length(tvec) != total_dim) stop("K4operatorAABB: tvec length mismatch.")
+    if (L == 1L) {
+      return(K4AABB_list[[1L]](tvec, param, Q))
+    }
+
     total <- 0
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
-      total <- total + K4AABB_list[[i]](tvec[idx], param,
-                                        Q[idx, idx, drop = FALSE])
+      total <- total + K4AABB_list[[i]](
+        tvec[idx], param, Q[idx, idx, drop = FALSE]
+      )
     }
     total
   }
@@ -465,6 +481,10 @@
       tvec, A, dvec, "K4operatorAABB_factored"
     )
     if (r == 0L) return(.ad_zero_scalar(param))
+    if (L == 1L) {
+      return(K4AABB_factored_list[[1L]](tvec, param, A, dvec))
+    }
+
     total <- .ad_zero_scalar(param)
     for (i in seq_len(L)) {
       idx <- idx_list[[i]]
@@ -668,6 +688,12 @@
       out
     }
   }
+
+  structured_pair_safe <- all(vapply(
+    cgf_list, .K2_structured_pair_is_safe, logical(1)
+  ))
+  K2_solve <- .K2_structured_pair_mark(K2_solve, structured_pair_safe)
+  logdetK2 <- .K2_structured_pair_mark(logdetK2, structured_pair_safe)
 
   # Build args list (names match createCGF parameters exactly)
   cgf_args <- list(

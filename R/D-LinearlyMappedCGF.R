@@ -187,19 +187,7 @@
   # Cholesky-factor that singular pullback.
   factor_output_Q <- function(Q, normalize = TRUE) {
     if (inherits(Q, "Matrix") && !inherits(Q, "adsparse")) Q <- as.matrix(Q)
-    chol_Q <- chol(Q)
-    if (!normalize) {
-      return(list(B = t(chol_Q), d = rep(1, nrow(chol_Q))))
-    }
-    diag_Q <- diag(chol_Q)
-    list(
-      B = t(chol_Q) %*% diag(
-        1 / diag_Q,
-        nrow = length(diag_Q),
-        ncol = length(diag_Q)
-      ),
-      d = diag_Q * diag_Q
-    )
+    .K2_dense_spd_factor(Q, normalize = normalize)
   }
 
   mapped_Q_contraction <- function(self_object, tvec, parameter_vector, Q,
@@ -302,6 +290,9 @@
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B_inner <- tA %*% B
+    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
+      B_inner <- as.matrix(B_inner)
+    }
     base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
   K4operatorAABB_factored <- .factored_delegate_mark(
@@ -314,6 +305,9 @@
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B_inner <- tA %*% B
+    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
+      B_inner <- as.matrix(B_inner)
+    }
     base_K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
 
@@ -322,6 +316,9 @@
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
     B_inner <- tA %*% B
+    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
+      B_inner <- as.matrix(B_inner)
+    }
     base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
   K3K3operatorAABBCC_factored <- .factored_delegate_mark(

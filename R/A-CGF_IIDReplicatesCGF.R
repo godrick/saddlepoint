@@ -273,10 +273,15 @@
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
 
+    if (B == 1L) {
+      return(cgf$K3operator(tvec, param, v1, v2, v3))
+    }
+
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      total <- total + cgf$K3operator(tvec[idx], param, v1[idx], v2[idx], v3[idx])
+      total <- total +
+        cgf$K3operator(tvec[idx], param, v1[idx], v2[idx], v3[idx])
     }
     total
   }
@@ -289,10 +294,16 @@
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
 
+    if (B == 1L) {
+      return(cgf$K4operator(tvec, param, v1, v2, v3, v4))
+    }
+
     total <- 0
     for (i in seq_len(B)) {
       idx <- chunkIndices(i, d)
-      total <- total + cgf$K4operator(tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx])
+      total <- total + cgf$K4operator(
+        tvec[idx], param, v1[idx], v2[idx], v3[idx], v4[idx]
+      )
     }
     total
   }
@@ -305,6 +316,10 @@
     lay  <- .resolve_rep_layout(N, block_size = d_cur, iidReps = iidReps)
     d    <- as.integer(lay[["d"]]); B <- as.integer(lay[["B"]])
 
+
+    if (B == 1L) {
+      return(cgf$K4operatorAABB(tvec, param, Q))
+    }
 
     total <- 0
     for (i in seq_len(B)) {
@@ -387,6 +402,9 @@
       tvec, A, dvec, "K4operatorAABB_factored"
     )
     if (r == 0L) return(.ad_zero_scalar(param))
+    if (B == 1L) {
+      return(child_K4operatorAABB_factored(tvec, param, A, dvec))
+    }
 
     total <- .ad_zero_scalar(param)
     for (i in seq_len(B)) {
@@ -698,6 +716,10 @@
   # Build the new CGF object
   # ------------------------------------------------------------------
   op_name <- c(cgf$call_history, op_label)
+
+  structured_pair_safe <- .K2_structured_pair_is_safe(cgf)
+  K2_solve <- .K2_structured_pair_mark(K2_solve, structured_pair_safe)
+  logdetK2 <- .K2_structured_pair_mark(logdetK2, structured_pair_safe)
 
   cgf_args <- list(
     K = K,

@@ -49,8 +49,16 @@
   )
 
   func_T <- NULL
+  neg_ll <- NULL
+  K2_solve <- NULL
+  logdetK2 <- NULL
+  analytic_tvec_hat <- NULL
   if (length(cgf_list) == 1L) {
-    child_func_T <- cgf_list[[1L]]$.private_api$func_T
+    singleton_child <- cgf_list[[1L]]
+    child_func_T <- singleton_child$.private_api$func_T
+    child_neg_ll <- singleton_child$.private_api$neg_ll
+    child_K2_solve <- singleton_child$K2_solve
+    child_logdetK2 <- singleton_child$logdetK2
     # Do not pass the child's bound R6 method directly to createCGF(): doing so
     # rebinds its `self` to the sum.  This forwarding closure retains the
     # child's authoritative method and environment.
@@ -58,6 +66,26 @@
       child_T <- child_func_T
       function(tvec, param) child_T(tvec, param)
     })
+    neg_ll <- local({
+      child_method <- child_neg_ll
+      function(tvec, param) child_method(tvec, param)
+    })
+    K2_solve <- local({
+      child_method <- child_K2_solve
+      function(tvec, param, rhs) child_method(tvec, param, rhs)
+    })
+    logdetK2 <- local({
+      child_method <- child_logdetK2
+      function(tvec, param) child_method(tvec, param)
+    })
+    if (isTRUE(singleton_child$has_analytic_tvec_hat)) {
+      child_analytic_tvec_hat <-
+        singleton_child$.private_api$analytic_tvec_hat_func
+      analytic_tvec_hat <- local({
+        child_method <- child_analytic_tvec_hat
+        function(x, param) child_method(x, param)
+      })
+    }
   }
 
   validate_factored <- function(tvec, A, d, where) {
@@ -97,16 +125,10 @@
     accum
   }
 
-  # Factored contractions reuse the state and certify all child sums with one
-  # terminal atomic.  Public primitive calls still certify immediately; this
-  # avoids an R atomic crossing inside every rank/coordinate loop.
-  K3operator_sum_state <- function(tvec, param, v1, v2, v3) {
-    total <- .ad_compensated_state(param)
+  K3operator_sum <- function(tvec, param, v1, v2, v3) {
+    total <- .ad_zero_scalar(param)
     for (f in K3op_list) {
-      total <- .ad_compensated_add(
-        total,
-        f(tvec, param, v1, v2, v3)
-      )
+      total <- total + f(tvec, param, v1, v2, v3)
     }
     total
   }
@@ -116,17 +138,13 @@
       return(K3op_list[[1L]](tvec, param, v1, v2, v3))
     }
 
-    total <- K3operator_sum_state(tvec, param, v1, v2, v3)
-    .ad_guard_compensated_sums(.ad_compensated_value(total), list(total))
+    K3operator_sum(tvec, param, v1, v2, v3)
   }
 
-  K4operator_sum_state <- function(tvec, param, v1, v2, v3, v4) {
-    total <- .ad_compensated_state(param)
+  K4operator_sum <- function(tvec, param, v1, v2, v3, v4) {
+    total <- .ad_zero_scalar(param)
     for (f in K4op_list) {
-      total <- .ad_compensated_add(
-        total,
-        f(tvec, param, v1, v2, v3, v4)
-      )
+      total <- total + f(tvec, param, v1, v2, v3, v4)
     }
     total
   }
@@ -136,8 +154,7 @@
       return(K4op_list[[1L]](tvec, param, v1, v2, v3, v4))
     }
 
-    total <- K4operator_sum_state(tvec, param, v1, v2, v3, v4)
-    .ad_guard_compensated_sums(.ad_compensated_value(total), list(total))
+    K4operator_sum(tvec, param, v1, v2, v3, v4)
   }
 
   tilting_exponent <- function(tvec, param) {
@@ -180,11 +197,11 @@
       return(K4AABB_list[[1L]](tvec, param, Q))
     }
 
-    total <- .ad_compensated_state(param)
+    total <- .ad_zero_scalar(param)
     for (f in K4AABB_list) {
-      total <- .ad_compensated_add(total, f(tvec, param, Q))
+      total <- total + f(tvec, param, Q)
     }
-    .ad_guard_compensated_sums(.ad_compensated_value(total), list(total))
+    total
   }
 
   K3K3operatorAABBCC <- if (length(cgf_list) == 1L) {
@@ -237,35 +254,14 @@
       return(K4AABB_factored_list[[1L]](tvec, param, A, d))
     }
 
-    balanced <- .balance_factored_Q(
-      A, d, "sumOfIndependent K4operatorAABB_factored"
-    )
-    A <- balanced$A
-    d <- balanced$d
-
-    Acols <- lapply(seq_len(r), function(i) A[, i])
-
-    res <- .ad_compensated_state(param)
-    diagnostics <- list()
-    for (i in seq_len(r)) {
-      ai <- Acols[[i]]
-      di <- d[i]
-      for (j in i:r) {
-        aj <- Acols[[j]]
-        mult <- if (i == j) 1 else 2
-        child_sum <- K4operator_sum_state(
-          tvec, param, ai, ai, aj, aj
-        )
-        diagnostics[[length(diagnostics) + 1L]] <- child_sum
-        res <- .ad_compensated_add(
-          res,
-          mult * (di * d[j]) * .ad_compensated_value(child_sum)
-        )
-      }
+    # K4 is additive for independent sums, so delegate the represented Q to
+    # each child directly.  This preserves child factored overrides and avoids
+    # expanding a thin factor into O(r^2) primitive contractions here.
+    total <- .ad_zero_scalar(param)
+    for (f in K4AABB_factored_list) {
+      total <- total + f(tvec, param, A, d)
     }
-    .ad_guard_compensated_sums(
-      .ad_compensated_value(res), c(diagnostics, list(res))
-    )
+    total
   }
 
 
@@ -308,27 +304,17 @@
 
     Acols <- lapply(seq_len(r), function(i) A[, i])
 
-    res <- .ad_compensated_state(param)
-    diagnostics <- list()
+    res <- .ad_zero_scalar(param)
     for (j in seq_len(r)) {
       aj <- Acols[[j]]
-      g <- .ad_compensated_state(param)
+      g <- .ad_zero_scalar(param)
       for (i in seq_len(r)) {
         ai <- Acols[[i]]
-        child_sum <- K3operator_sum_state(tvec, param, ai, ai, aj)
-        diagnostics[[length(diagnostics) + 1L]] <- child_sum
-        g <- .ad_compensated_add(
-          g,
-          d[i] * .ad_compensated_value(child_sum)
-        )
+        g <- g + d[i] * K3operator_sum(tvec, param, ai, ai, aj)
       }
-      diagnostics[[length(diagnostics) + 1L]] <- g
-      g_value <- .ad_compensated_value(g)
-      res <- .ad_compensated_add(res, (d[j] * g_value) * g_value)
+      res <- res + d[j] * g * g
     }
-    .ad_guard_compensated_sums(
-      .ad_compensated_value(res), c(diagnostics, list(res))
-    )
+    res
   }
 
   K3K3operatorABCABC_factored <- function(tvec, param, A, d) {
@@ -365,8 +351,7 @@
 
     Acols <- lapply(seq_len(r), function(i) A[, i])
 
-    res <- .ad_compensated_state(param)
-    diagnostics <- list()
+    res <- .ad_zero_scalar(param)
     for (i in seq_len(r)) {
       ai <- Acols[[i]]
       di <- d[i]
@@ -375,9 +360,7 @@
         dij <- di * d[j]
         for (k in j:r) {
           ak <- Acols[[k]]
-          child_sum <- K3operator_sum_state(tvec, param, ai, aj, ak)
-          diagnostics[[length(diagnostics) + 1L]] <- child_sum
-          val <- .ad_compensated_value(child_sum)
+          val <- K3operator_sum(tvec, param, ai, aj, ak)
 
           mult <- if (i == j && j == k) {
             1
@@ -387,23 +370,17 @@
             6
           }
 
-          res <- .ad_compensated_add(
-            res,
-            mult * (dij * d[k]) * (val * val)
-          )
+          res <- res + mult * (dij * d[k]) * (val * val)
         }
       }
     }
-    .ad_guard_compensated_sums(
-      .ad_compensated_value(res), c(diagnostics, list(res))
-    )
+    res
   }
-  # A singleton K4 delegate is bounded exactly when its child is.  Multi-child
-  # K4 rank loops are deliberately marked unsafe so an outer consumer can use
-  # the public coordinate contraction instead.
+  # Independent fourth cumulants add.  Delegation is bounded exactly when all
+  # child factored implementations are bounded.
   K4operatorAABB_factored <- .factored_delegate_mark(
     K4operatorAABB_factored,
-    length(cgf_list) == 1L && K4AABB_delegate_safe[[1L]]
+    all(K4AABB_delegate_safe)
   )
 
   # A singleton either delegates a safe child or uses the bounded coordinate
@@ -458,6 +435,12 @@
     }
   }
 
+  if (length(cgf_list) == 1L) {
+    structured_pair_safe <- .K2_structured_pair_is_safe(cgf_list[[1L]])
+    K2_solve <- .K2_structured_pair_mark(K2_solve, structured_pair_safe)
+    logdetK2 <- .K2_structured_pair_mark(logdetK2, structured_pair_safe)
+  }
+
   # Build args list (names match createCGF parameters exactly)
   cgf_args <- list(
     K = K,
@@ -472,6 +455,10 @@
     K2_factor = K2_factor,
     K2_factor_terminal = if (!is.null(K2_factor)) function() TRUE else NULL,
     func_T = func_T,
+    neg_ll = neg_ll,
+    K2_solve = K2_solve,
+    logdetK2 = logdetK2,
+    analytic_tvec_hat = analytic_tvec_hat,
     K4operatorAABB = K4operatorAABB,
     K3K3operatorAABBCC = K3K3operatorAABBCC,
     K3K3operatorABCABC = K3K3operatorABCABC,
@@ -499,8 +486,11 @@
   }
 
   contraction_names <- unlist(contraction_pairs, use.names = FALSE)
+  numerical_override_names <- c(
+    "neg_ll", "K2_solve", "logdetK2", "analytic_tvec_hat"
+  )
   protected_names <- setdiff(
-    names(cgf_args), c(contraction_names, "func_T")
+    names(cgf_args), c(contraction_names, "func_T", numerical_override_names)
   )
   conflicting_names <- intersect(extra_names, protected_names)
   if (length(conflicting_names) > 0L) {
@@ -512,6 +502,17 @@
   }
 
   if (any(contraction_names %in% extra_names)) cgf_args$func_T <- NULL
+
+  # A singleton normally preserves the child's authoritative numerical
+  # methods.  Explicit wrapper overrides remain authoritative: fall back to
+  # the base dependent method when its delegated child method would otherwise
+  # bypass the override.
+  if ("K2_solve" %in% extra_names && !("func_T" %in% extra_names)) {
+    cgf_args$func_T <- NULL
+  }
+  if ("logdetK2" %in% extra_names && !("neg_ll" %in% extra_names)) {
+    cgf_args$neg_ll <- NULL
+  }
 
   if ("func_T" %in% extra_names && !is.function(extra_args$func_T)) {
     stop("'func_T' must be a function.", call. = FALSE)

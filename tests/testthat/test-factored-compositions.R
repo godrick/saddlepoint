@@ -21,6 +21,15 @@ make_factored_composition_child <- function() {
   )
 }
 
+factored_tape_vgh <- function(objective, theta) {
+  tape <- RTMB::MakeTape(objective, theta)
+  c(
+    value = tape(theta),
+    gradient = tape$jacobian(theta),
+    hessian = as.vector(tape$jacfun()$jacobian(theta))
+  )
+}
+
 expect_factored_composition_vgh <- function(cgf, tvec, theta, factor_A,
                                              factor_d) {
   dense_Q <- function(p) {
@@ -143,7 +152,11 @@ test_that("singleton wrappers preserve authoritative correction methods", {
     K4operatorAABB_factored = function(tvec, p, A, d) 8 + p[1]^2,
     K3K3operatorAABBCC_factored = function(tvec, p, A, d) 8 - p[1],
     K3K3operatorABCABC_factored = function(tvec, p, A, d) 12 + p[1],
-    func_T = function(tvec, p) 5 + p[1]^3
+    func_T = function(tvec, p) 5 + p[1]^3,
+    neg_ll = function(tvec, p) 41 + p[1]^2,
+    K2_solve = function(tvec, p, rhs) rhs / (3 + p[1]),
+    logdetK2 = function(tvec, p) length(tvec) * log(3 + p[1]),
+    analytic_tvec_hat = function(x, p) x / (3 + p[1])
   )
   singleton <- sumOfIndependentCGF(list(child), iidReps = 1L)
   tvec <- 0.2
@@ -181,6 +194,21 @@ test_that("singleton wrappers preserve authoritative correction methods", {
     ),
     tolerance = 1e-12
   )
+  expect_equal(
+    singleton$K2_solve(tvec, theta, 2),
+    child$K2_solve(tvec, theta, 2),
+    tolerance = 0
+  )
+  expect_equal(singleton$logdetK2(tvec, theta), child$logdetK2(tvec, theta))
+  expect_equal(
+    singleton$.private_api$neg_ll(tvec, theta),
+    child$.private_api$neg_ll(tvec, theta)
+  )
+  expect_true(singleton$has_analytic_tvec_hat)
+  expect_equal(
+    singleton$analytic_tvec_hat(2, theta),
+    child$analytic_tvec_hat(2, theta)
+  )
 
   stages <- list(
     adaptCGF(child, function(p) p),
@@ -204,39 +232,245 @@ test_that("singleton wrappers preserve authoritative correction methods", {
   }
 
   combined <- sumOfIndependentCGF(list(child, child), iidReps = 1L)
-  expect_equal(combined$.private_api$func_T(tvec, theta), 0)
+  expect_equal(
+    combined$.private_api$func_T(tvec, theta),
+    2 * (8 + theta^2) / 8,
+    tolerance = 1e-12
+  )
   overridden <- sumOfIndependentCGF(
     list(child),
     iidReps = 1L,
     func_T = function(tvec, p) 77 + 0 * p[1]
   )
   expect_equal(overridden$.private_api$func_T(tvec, theta), 77)
+
+  numerical_override <- sumOfIndependentCGF(
+    list(child),
+    iidReps = 1L,
+    K2_solve = function(tvec, p, rhs) 7 * rhs + 0 * p[1],
+    logdetK2 = function(tvec, p) 13 + 0 * p[1],
+    neg_ll = function(tvec, p) 17 + 0 * p[1],
+    analytic_tvec_hat = function(x, p) x + 19 + 0 * p[1]
+  )
+  expect_equal(numerical_override$K2_solve(tvec, theta, 2), 14)
+  expect_equal(numerical_override$logdetK2(tvec, theta), 13)
+  expect_equal(numerical_override$.private_api$neg_ll(tvec, theta), 17)
+  expect_equal(numerical_override$analytic_tvec_hat(2, theta), 21)
 })
 
-test_that("independent sums reject cancellation and recover on one tape", {
+test_that("independent sums add child factored K4 methods directly", {
+  calls <- new.env(parent = emptyenv())
+  calls$primitive <- 0L
+  calls$factored <- 0L
+  make_child <- function() createCGF(
+    K = function(tvec, p) 0 * p[1],
+    K1 = function(tvec, p) numeric(length(tvec)) * p[1],
+    K2 = function(tvec, p) diag(length(tvec)) * (1 + 0 * p[1]),
+    K3operator = function(tvec, p, a, b, c) 0 * p[1],
+    K4operator = function(tvec, p, a, b, c, d) {
+      calls$primitive <- calls$primitive + 1L
+      0 * p[1]
+    },
+    K4operatorAABB_factored = function(tvec, p, A, d) {
+      calls$factored <- calls$factored + 1L
+      8 + p[1]^2
+    }
+  )
+  cgf <- sumOfIndependentCGF(
+    list(make_child(), make_child()), iidReps = 1L
+  )
+  tvec <- c(0.1, -0.2, 0.3)
+  A <- matrix(c(1, 0.2, -0.1, 0.5, 0.8, 0.3), nrow = 3L)
+  d <- c(1, 0.7)
+
+  tape <- RTMB::MakeTape(
+    function(p) cgf$.private_api$K4operatorAABB_factored(tvec, p, A, d),
+    0.4
+  )
+  expect_equal(
+    c(tape(0.4), tape$jacobian(0.4), tape$jacfun()$jacobian(0.4)),
+    c(16.32, 1.6, 4),
+    tolerance = 1e-12
+  )
+  expect_identical(calls$primitive, 0L)
+  expect_identical(calls$factored, 2L)
+})
+
+test_that("independent sums keep ordinary near-cancellation differentiable", {
   make_mapped_poisson <- function(coefficient) {
     linearlyMappedCGF(
-      PoissonModelCGF(lambda = function(p) 1 + 0 * p[1], iidReps = 1L),
+      PoissonModelCGF(lambda = function(p) exp(p[1]), iidReps = 1L),
       matrix(coefficient, 1L, 1L),
       iidReps = 1L
     )
   }
-  lossy <- sumOfIndependentCGF(
-    lapply(c(2^18, 1, -2^18), make_mapped_poisson),
+  coefficients <- c(1, -(1 - 2^-52))
+  nearly_symmetric <- sumOfIndependentCGF(
+    lapply(coefficients, make_mapped_poisson),
     iidReps = 1L
   )
   tape <- RTMB::MakeTape(function(p) {
-    lossy$K3operator(0, p, p[1], p[1], p[1])
-  }, 0)
+    nearly_symmetric$K3operator(0, p, 1, 1, 1)
+  }, 0.2)
 
-  expect_true(all(is.nan(c(
-    tape(1),
-    tape$jacobian(1),
-    tape$jacfun()$jacobian(1)
-  ))))
-  expect_equal(c(
-    tape(0),
-    tape$jacobian(0),
-    tape$jacfun()$jacobian(0)
-  ), c(0, 0, 0))
+  expected <- sum(coefficients^3) * exp(0.2)
+  result <- c(tape(0.2), tape$jacobian(0.2), tape$jacfun()$jacobian(0.2))
+  expect_true(all(is.finite(result)))
+  expect_equal(result, rep(expected, 3), tolerance = 1e-14)
+})
+
+test_that("K4 delegation preserves equivalent zero-column factors", {
+  theta <- c(0.1, 0)
+  tvec <- c(-0.02, 0.005, 0.03)
+  v <- c(
+    0.213962502184879833,
+    0.47965813457087475,
+    0.087828704973743787
+  )
+  factor_zero <- cbind(diag(3), numeric(3))
+  factor_delta <- cbind(matrix(0, 3, 3), v)
+  column_factor <- function(p) factor_zero + p[2] * factor_delta
+  column_weight <- function(p) rep(1, 4)
+  weight_factor <- function(p) cbind(diag(3), v)
+  weight_weight <- function(p) {
+    c(1, 1, 1, 0) + c(0, 0, 0, 1) * p[2]^2
+  }
+  dense_Q <- function(p) diag(3) + p[2]^2 * tcrossprod(v)
+
+  independent_sum <- sumOfIndependentCGF(
+    list(
+      make_factored_composition_child(),
+      make_factored_composition_child()
+    ),
+    iidReps = 1L
+  )
+  sum_column <- factored_tape_vgh(function(p) {
+    independent_sum$.private_api$K4operatorAABB_factored(
+      tvec, p, column_factor(p), column_weight(p)
+    )
+  }, theta)
+  sum_weight <- factored_tape_vgh(function(p) {
+    independent_sum$.private_api$K4operatorAABB_factored(
+      tvec, p, weight_factor(p), weight_weight(p)
+    )
+  }, theta)
+  expect_equal(sum_column, sum_weight, tolerance = 1e-12)
+  expect_equal(
+    sum_column[["hessian4"]],
+    8 * sum(exp(theta[1] + tvec) * v^2),
+    tolerance = 1e-12
+  )
+
+  count <- PoissonModelCGF(
+    lambda = function(p) exp(p[1]),
+    iidReps = 1L
+  )
+  rss <- randomlyStoppedSumCGF(
+    count,
+    make_factored_composition_child(),
+    block_size = 3L,
+    iidReps = 1L
+  )
+  rss_column <- factored_tape_vgh(function(p) {
+    rss$.private_api$K4operatorAABB_factored(
+      tvec, p, column_factor(p), column_weight(p)
+    )
+  }, theta)
+  rss_weight <- factored_tape_vgh(function(p) {
+    rss$.private_api$K4operatorAABB_factored(
+      tvec, p, weight_factor(p), weight_weight(p)
+    )
+  }, theta)
+  rss_dense <- factored_tape_vgh(function(p) {
+    rss$K4operatorAABB(tvec, p, dense_Q(p))
+  }, theta)
+  expect_equal(rss_column, rss_weight, tolerance = 1e-11)
+  expect_equal(rss_column, rss_dense, tolerance = 1e-11)
+})
+
+test_that("mapped factored bridges accept fixed Matrix factors with AD weights", {
+  dense_child <- createCGF(
+    K = function(tvec, p) 0 * p[1],
+    K1 = function(tvec, p) 0 * tvec + 0 * p[1],
+    K2 = function(tvec, p) diag(length(tvec)) + 0 * p[1],
+    K3operator = function(tvec, p, a, b, c) sum(a * b * c) + 0 * p[1],
+    K4operator = function(tvec, p, a, b, c, d) {
+      sum(a * b * c * d) + 0 * p[1]
+    },
+    K4operatorAABB = function(tvec, p, Q) sum(Q^2) + p[1],
+    K3K3operatorAABBCC = function(tvec, p, Q) sum(Q)^2 + p[1],
+    K3K3operatorABCABC = function(tvec, p, Q) sum(Q^3) + p[1]
+  )
+  mapped <- linearlyMappedCGF(dense_child, diag(3), iidReps = 1L)
+  factor_A <- Matrix::Matrix(
+    cbind(diag(3), c(0.2, 0.4, 0.1)),
+    sparse = FALSE
+  )
+  theta <- c(0.1, 0)
+  factor_d <- function(p) {
+    c(1, 1, 1, 0) + c(0, 0, 0, 1) * p[2]^2
+  }
+
+  for (method_name in c(
+    "K4operatorAABB_factored",
+    "K3K3operatorAABBCC_factored",
+    "K3K3operatorABCABC_factored"
+  )) {
+    mapped_vgh <- factored_tape_vgh(function(p) {
+      mapped$.private_api[[method_name]](
+        numeric(3), p, factor_A, factor_d(p)
+      )
+    }, theta)
+    child_vgh <- factored_tape_vgh(function(p) {
+      dense_child$.private_api[[method_name]](
+        numeric(3), p, base::as.matrix(factor_A), factor_d(p)
+      )
+    }, theta)
+    expect_equal(mapped_vgh, child_vgh, tolerance = 1e-12)
+  }
+})
+
+test_that("shared-Poisson IID correction remains finite", {
+  dimension <- 3L
+  blocks <- 5L
+  shared_scalar <- PoissonModelCGF(
+    lambda = adaptor(indices = 2), iidReps = 1L
+  )
+  shared_vector <- linearlyMappedCGF(
+    shared_scalar, matrix(1, nrow = dimension), iidReps = 1L
+  )
+  independent_vector <- PoissonModelCGF(
+    lambda = adaptor(indices = 1), iidReps = dimension
+  )
+  model <- iidReplicatesCGF(
+    sumOfIndependentCGF(
+      list(independent_vector, shared_vector), iidReps = 1L
+    ),
+    iidReps = blocks
+  )
+  tvec <- seq(-0.04, 0.05, length.out = dimension * blocks)
+  theta <- c(14, 7)
+  tape <- RTMB::MakeTape(
+    function(p) model$.private_api$func_T(tvec, p), theta
+  )
+  result <- c(
+    tape(theta),
+    tape$jacobian(theta),
+    tape$jacfun()$jacobian(theta)
+  )
+
+  expect_true(all(is.finite(result)))
+  expect_equal(
+    result,
+    c(
+      -0.049469809893120435,
+      0.001190996049301184,
+      0.004685123600414837,
+      6.723910735767176e-05,
+      -4.747628002299675e-04,
+      -4.747628002299674e-04,
+      -3.890811425157328e-04
+    ),
+    tolerance = 1e-11
+  )
 })

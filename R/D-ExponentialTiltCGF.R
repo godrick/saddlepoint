@@ -236,6 +236,10 @@
   hist <- paste(base_cgf$call_history, collapse = " -> ")
   op_name <- c(hist, "ExponentialTiltCGF")
 
+  structured_pair_safe <- .K2_structured_pair_is_safe(base_cgf)
+  K2_solve <- .K2_structured_pair_mark(K2_solve, structured_pair_safe)
+  logdetK2 <- .K2_structured_pair_mark(logdetK2, structured_pair_safe)
+
   # Build args list (names match createCGF parameters exactly)
   cgf_args <- list(
     K = K,
