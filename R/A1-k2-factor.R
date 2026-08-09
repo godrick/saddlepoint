@@ -196,27 +196,48 @@
       # Validate a mixed contribution only after completing it.  A dense term
       # can have a roundoff-sized negative eigenvalue while the final covariance
       # is safely SPD; neither the term nor the completed sum is projected.
-      S_scale <- max(abs(S))
-      symmetry_tolerance <-
-        10 * max(1L, m) * .Machine$double.eps * S_scale
-      if (!is.finite(S_scale) ||
-          max(abs(S - t(S))) > symmetry_tolerance) return(bad)
-      S <- 0.5 * (S + t(S))
-
       completed_diagonal <- base::diag(S) + factor_scale * factor_scale
       if (any(!is.finite(completed_diagonal)) ||
           any(completed_diagonal <= 0)) return(bad)
       factor_scale <- sqrt(completed_diagonal)
 
-      S_scaled <- base::sweep(S, 1L, factor_scale, "/")
-      S_scaled <- base::sweep(S_scaled, 2L, factor_scale, "/")
+      # A covariance is symmetric by contract, but solve() can leave a small
+      # skew in a computed inverse.  Decompose the equilibrated dense term
+      # without adding two near-overflow entries: scaling each transposed pair
+      # first also preserves equal subnormal entries.
+      S_scaled_raw <- base::sweep(S, 1L, factor_scale, "/")
+      S_scaled_raw <- base::sweep(
+        S_scaled_raw, 2L, factor_scale, "/"
+      )
+      if (any(!is.finite(S_scaled_raw))) return(bad)
+      S_scaled_transpose <- t(S_scaled_raw)
+      pair_scale <- pmax(abs(S_scaled_raw), abs(S_scaled_transpose))
+      pair_divisor <- pair_scale
+      pair_divisor[pair_divisor == 0] <- 1
+      S_unit <- S_scaled_raw / pair_divisor
+      S_transpose_unit <- S_scaled_transpose / pair_divisor
+      S_scaled <- pair_scale * ((S_unit + S_transpose_unit) / 2)
+      half_skew_scaled <-
+        pair_scale * abs((S_unit - S_transpose_unit) / 2)
+      symmetry_discrepancy <- rowSums(half_skew_scaled)
+
+      # Since abs((S-S')/2) is symmetric, its maximum row sum bounds its
+      # spectral norm.  Use the existing formation-discrepancy budget rather
+      # than a separate global scale heuristic, and retain accepted skew in
+      # every downstream solve/logdet certificate.
+      symmetry_tolerance <- sqrt(.Machine$double.eps) / 4
+      if (any(!is.finite(symmetry_discrepancy)) ||
+          max(symmetry_discrepancy) > symmetry_tolerance) return(bad)
+
       F_scaled <- if (r == 0L) F else F / factor_scale
       factor_reference <- S_scaled
       if (r > 0L) {
         factor_reference <- factor_reference + base::tcrossprod(F_scaled)
       }
       if (any(!is.finite(factor_reference))) return(bad)
-      reference <- 0.5 * (factor_reference + t(factor_reference))
+      # Both terms above are constructed symmetrically, so no second midpoint
+      # is needed (and equal subnormal entries remain unchanged).
+      reference <- factor_reference
       active_columns <- if (r == 0L) {
         logical(0)
       } else {
@@ -236,7 +257,7 @@
       # Scaling S and adding it to the factor Gram each contribute only
       # m-by-m rounding.  Include both in the same rowwise certificate.
       dense_gamma <- (2L * max(1L, m) + 4L) * .Machine$double.eps
-      formation_discrepancy <- factor_roundoff +
+      formation_discrepancy <- symmetry_discrepancy + factor_roundoff +
         dense_gamma * rowSums(abs(S_scaled)) +
         .Machine$double.eps * rowSums(abs(reference))
 

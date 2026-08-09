@@ -214,6 +214,71 @@ test_that("mapped func_T rejects invalid AD evaluations and recovers", {
   )
 })
 
+test_that("mapped func_T accepts solve roundoff skew and rejects asymmetry", {
+  n <- 5L
+  set.seed(313)
+  directions <- qr.Q(qr(matrix(rnorm(n * n), nrow = n)))
+  eigenvalues <- exp(seq(0, -log(3000), length.out = n))
+  root <- sweep(directions, 2L, sqrt(eigenvalues), "*")
+  map <- cbind(root, 0)
+
+  child <- PoissonModelCGF(
+    lambda = function(p) rep(exp(p[1]), n + 1L),
+    iidReps = 1L
+  )
+  mapped <- linearlyMappedCGF(child, map, iidReps = 1L)
+  tvec <- numeric(n)
+  Q <- mapped$K2_solve(tvec, 0, diag(n))
+
+  expect_gt(
+    min(eigen((Q + t(Q)) / 2, symmetric = TRUE, only.values = TRUE)$values),
+    0
+  )
+  expect_silent(chol(Q))
+  expect_equal(mapped$.private_api$func_T(tvec, 0), -5 / 12,
+               tolerance = 1e-10)
+
+  tape <- RTMB::MakeTape(
+    function(p) mapped$.private_api$func_T(tvec, p),
+    0
+  )
+  expect_equal(
+    c(tape(0), tape$jacobian(0), tape$jacfun()$jacobian(0)),
+    c(-5 / 12, 5 / 12, -5 / 12),
+    tolerance = 1e-10
+  )
+
+  roundoff_Q <- diag(n)
+  roundoff_Q[1L, 2L] <- 0.2 + 1e-13
+  roundoff_Q[2L, 1L] <- 0.2 - 1e-13
+  symmetric_Q <- (roundoff_Q + t(roundoff_Q)) / 2
+  expect_equal(
+    mapped$K4operatorAABB(tvec, 0, roundoff_Q),
+    mapped$K4operatorAABB(tvec, 0, symmetric_Q),
+    tolerance = 1e-12
+  )
+
+  asymmetric_Q <- diag(n)
+  asymmetric_Q[1L, 2L] <- 0.1
+  asymmetric_Q[2L, 1L] <- -0.1
+  expect_error(
+    mapped$K4operatorAABB(tvec, 0, asymmetric_Q),
+    "singular|indefinite|ill-conditioned"
+  )
+
+  large_scale <- 0.75 * .Machine$double.xmax
+  large_Q <- large_scale * matrix(c(1, 0.25, 0.25, 1), 2L)
+  large_factor <- saddlepoint:::.K2_dense_spd_factor(
+    large_Q, normalize = FALSE
+  )
+  expect_true(all(is.finite(large_factor$B)))
+  expect_equal(
+    tcrossprod(large_factor$B / sqrt(large_scale)),
+    large_Q / large_scale,
+    tolerance = 1e-14
+  )
+})
+
 test_that("solver tvec atomic uses the public K2_solve method", {
   calls <- new.env(parent = emptyenv())
   calls$dense <- 0L
