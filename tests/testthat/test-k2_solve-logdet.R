@@ -633,6 +633,32 @@ test_that("factor terminals validate completion, scale, and numerical loss", {
     "log-determinant.*numerical accuracy"
   )
 
+  # A log-determinant has a different numerical contract from a solve.  Its
+  # certified perturbation bound remains accurate well past the condition at
+  # which an inverse may need to be rejected.
+  for (logdet_condition in c(1e5, 1e6)) {
+    logdet_correlation <-
+      (logdet_condition - 1) / (logdet_condition + 1)
+    logdet_K2 <- matrix(c(
+      1, logdet_correlation,
+      logdet_correlation, 1
+    ), 2)
+    logdet_root <- t(chol(logdet_K2))
+    logdet_factor <- local({
+      root <- logdet_root
+      function(tvec, parameter_vector, A) {
+        saddlepoint:::.K2_factor_term(A %*% root, c(1, 1))
+      }
+    })
+    expect_equal(
+      saddlepoint:::.K2_factor_logdet(
+        logdet_factor, numeric(2), numeric()
+      ),
+      log(4) + log(logdet_condition) - 2 * log1p(logdet_condition),
+      tolerance = 1e-9
+    )
+  }
+
   # Acceptance is a property of the represented covariance, not the raw
   # number of factor columns.  Splitting columns or appending zero columns
   # therefore leaves both terminal results unchanged.
@@ -867,7 +893,7 @@ test_that("solve certification refines conservative condition metadata", {
   solution <- w / scale
 
   terminal <- saddlepoint:::.K2_terminal_root_guard(
-    R, discrepancy, covariance_is_ad = FALSE
+    R, discrepancy, solve_mode = TRUE
   )
   expect_equal(as.numeric(terminal$condition_is_bound), 1)
   expect_equal(saddlepoint:::.K2_solution_guard(
@@ -1019,6 +1045,84 @@ test_that("factor solve rejects unreliable Hessians and recovers", {
   }
   expect_true(all(is.nan(flat_evaluate(0))))
   expect_true(all(is.finite(flat_evaluate(0.1))))
+})
+
+test_that("mapped multinomial logdet remains accurate across ordinary conditions", {
+  selector <- rbind(c(1, 0, 0), c(0, 1, 0))
+  mapped <- linearlyMappedCGF(
+    MultinomialCGF, selector, iidReps = 1L
+  )
+  multinomial_parameters <- function(x) {
+    parameters <- x[rep(1L, 4L)] * 0
+    parameters[1:3] <- 1
+    parameters[4] <- exp(x[1])
+    parameters
+  }
+
+  logdet_objective <- function(x) {
+    mapped$logdetK2(numeric(2), multinomial_parameters(x))
+  }
+  logdet_tape <- RTMB::MakeTape(logdet_objective, 0)
+  logdet_derivative_tape <- logdet_tape$jacfun()
+  evaluate_logdet <- function(x) {
+    c(
+      value = logdet_tape(x),
+      gradient = logdet_tape$jacobian(x),
+      hessian = logdet_derivative_tape$jacobian(x)
+    )
+  }
+
+  for (condition_number in c(201, 801, 2001, 8334, 20001, 200001)) {
+    q <- 2 / (condition_number - 1)
+    x <- log(q)
+    expected_logdet <- c(
+      value = x - 3 * log(2 + q),
+      gradient = 1 - 3 * q / (2 + q),
+      hessian = -6 * q / (2 + q)^2
+    )
+    expect_equal(
+      evaluate_logdet(x), expected_logdet,
+      tolerance = 1e-9
+    )
+  }
+})
+
+test_that("logdet derivatives and invalid evaluations recover", {
+  singular_root <- cbind(c(1, 1), c(1, -1))
+  singular_factor <- function(tvec, p, A) {
+    saddlepoint:::.K2_factor_term(
+      A %*% singular_root, c(1 + 0 * p[1], p[1])
+    )
+  }
+  singular_tape <- RTMB::MakeTape(function(p) {
+    saddlepoint:::.K2_factor_logdet(
+      singular_factor, numeric(2), p
+    )
+  }, 0.5)
+  singular_derivative_tape <- singular_tape$jacfun()
+  evaluate_singular <- function(p) {
+    c(
+      value = singular_tape(p),
+      gradient = singular_tape$jacobian(p),
+      hessian = singular_derivative_tape$jacobian(p)
+    )
+  }
+  expect_equal(
+    evaluate_singular(0.5),
+    c(value = log(2), gradient = 2, hessian = -4),
+    tolerance = 1e-10
+  )
+  expect_equal(
+    evaluate_singular(1e-6),
+    c(value = log(4e-6), gradient = 1e6, hessian = -1e12),
+    tolerance = 1e-8
+  )
+  expect_true(all(is.nan(evaluate_singular(0))))
+  expect_equal(
+    evaluate_singular(0.25),
+    c(value = 0, gradient = 4, hessian = -16),
+    tolerance = 1e-10
+  )
 })
 
 test_that("composition order and mixed covariance terms retain one result", {

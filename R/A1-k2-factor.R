@@ -412,18 +412,23 @@
 }
 
 # A root can be useful for a higher-order contraction even when its covariance
-# is too ill-conditioned to invert accurately.  Keep the stronger condition
-# and factor-formation checks in this terminal-only guard.  It returns the
-# condition information used by the solve certificate, avoiding another SVD.
+# is too ill-conditioned to invert accurately.  This terminal applies the
+# operation-specific acceptance rule while retaining the shared formation and
+# reconstruction certificate.  It also returns the condition information used
+# by the solve certificate, avoiding another SVD.
 #' @keywords internal
 .K2_terminal_root_guard_atomic <- local({
   forward <- function(x) {
     x <- .rtmb_value_real(x)
-    derivative_mode <- as.integer(x[length(x)])
+    terminal_mode <- as.integer(x[length(x)])
+    # 0 = logdet, 1 = numeric/fixed-covariance solve,
+    # 2 = solve whose covariance is represented on the AD tape.
+    solve_mode <- terminal_mode > 0L
+    derivative_mode <- terminal_mode == 2L
     payload <- x[-length(x)]
     m <- as.integer((sqrt(1 + 4 * length(payload)) - 1) / 2)
     bad <- rep(NaN, m * m + 4L)
-    if (!(derivative_mode %in% 0:1) || m < 1L ||
+    if (!(terminal_mode %in% 0:2) || m < 1L ||
         m * (m + 1L) != length(payload) ||
         any(!is.finite(x))) return(bad)
     R <- base::matrix(payload[seq_len(m * m)], nrow = m, ncol = m)
@@ -431,7 +436,10 @@
     if (any(covariance_discrepancy < 0)) return(bad)
 
     accuracy_floor <- 4 * max(1L, m) * sqrt(.Machine$double.eps)
-    derivative_condition_floor <- if (derivative_mode == 1L) {
+    # Second derivatives of a solve contain up to three inverse factors.  Keep
+    # the established u^(1/4) floor only for parameter-dependent solves; the
+    # log-determinant has its separate perturbation certificate below.
+    derivative_condition_floor <- if (derivative_mode) {
       .Machine$double.eps^(1 / 4)
     } else {
       0
@@ -521,11 +529,27 @@
         } else {
           Inf
         }
-        fast_spectral_proof <-
-          is.finite(rho_lower) && rho_lower > condition_floor &&
-          is.finite(discrepancy_ratio_upper) &&
-          discrepancy_ratio_upper < 1 &&
-          discrepancy_ratio_upper <= discrepancy_tolerance
+        if (solve_mode) {
+          fast_spectral_proof <-
+            is.finite(rho_lower) && rho_lower > condition_floor &&
+            is.finite(discrepancy_ratio_upper) &&
+            discrepancy_ratio_upper < 1 &&
+            discrepancy_ratio_upper <= discrepancy_tolerance
+        } else if (is.finite(discrepancy_ratio_upper) &&
+                   discrepancy_ratio_upper >= 0 &&
+                   discrepancy_ratio_upper < 1) {
+          # If E = R'R and ||Delta||_2 <= delta, then
+          # tau=delta/lambda_min(E)<1 proves E+Delta is SPD and bounds the
+          # absolute log-determinant error by -m*log(1-tau).  Use that direct
+          # bound instead of a solve condition threshold; logdet does not
+          # require an inverse solution.
+          logdet_error_bound <-
+            -max(1L, m) * base::log1p(-discrepancy_ratio_upper)
+          fast_spectral_proof <-
+            is.finite(logdet_error_bound) &&
+            logdet_error_bound <=
+              max(1L, m) * sqrt(.Machine$double.eps)
+        }
       }
     }
 
@@ -543,22 +567,21 @@
     if (is.null(singular_values) || any(!is.finite(singular_values)) ||
         max(singular_values) <= 0) return(bad)
     rho_K <- (min(singular_values) / max(singular_values))^2
-    if (!is.finite(rho_K) || rho_K <= accuracy_floor) return(bad)
-
-    # Second derivatives of a solve contain up to three inverse factors.  When
-    # this terminal is recorded on an AD tape, reject reciprocal conditions
-    # below u^(1/4), where the corresponding generic cubic roundoff
-    # amplification can exceed u^(1/4) (about 1e-4 in double precision).
-    # Numeric or parameter-independent covariance terms retain the ordinary
-    # condition rule above.
-    if (rho_K <= derivative_condition_floor) {
-      return(bad)
-    }
     lambda_min <- min(singular_values)^2
     discrepancy_ratio <- max(covariance_discrepancy) / lambda_min
     if (!is.finite(lambda_min) || lambda_min <= 0 ||
-        !is.finite(discrepancy_ratio) || discrepancy_ratio >= 1 ||
-        discrepancy_ratio > discrepancy_tolerance) return(bad)
+        !is.finite(discrepancy_ratio) || discrepancy_ratio < 0 ||
+        discrepancy_ratio >= 1) return(bad)
+    if (solve_mode) {
+      if (!is.finite(rho_K) || rho_K <= condition_floor ||
+          discrepancy_ratio > discrepancy_tolerance) return(bad)
+    } else {
+      logdet_error_bound <-
+        -max(1L, m) * base::log1p(-discrepancy_ratio)
+      if (!is.finite(logdet_error_bound) ||
+          logdet_error_bound >
+            max(1L, m) * sqrt(.Machine$double.eps)) return(bad)
+    }
     c(base::as.vector(R), rho_K, lambda_min, 0, 1)
   }
 
@@ -584,11 +607,17 @@
 #' @keywords internal
 .K2_terminal_root_guard <- local({
   atomic <- .K2_terminal_root_guard_atomic
-  function(R, covariance_discrepancy, covariance_is_ad) {
+  function(R, covariance_discrepancy, solve_mode, covariance_is_ad = FALSE) {
     m <- nrow(R)
-    derivative_mode <- as.integer(isTRUE(covariance_is_ad))
+    terminal_mode <- if (!isTRUE(solve_mode)) {
+      0L
+    } else if (isTRUE(covariance_is_ad)) {
+      2L
+    } else {
+      1L
+    }
     out <- atomic(c(
-      as.vector(R), covariance_discrepancy, derivative_mode
+      as.vector(R), covariance_discrepancy, terminal_mode
     ))
     guarded_R <- out[seq_len(m * m)]
     attr(guarded_R, "dim") <- dim(R)
@@ -987,7 +1016,8 @@
   factorization <- .K2_factor_chol(K2_factor, tvec, parameter_vector)
   terminal <- .K2_terminal_root_guard(
     factorization$R, factorization$covariance_discrepancy,
-    factorization$covariance_is_ad
+    solve_mode = TRUE,
+    covariance_is_ad = factorization$covariance_is_ad
   )
   R <- terminal$R
   if (!inherits(R, "advector") &&
@@ -1017,7 +1047,7 @@
   factorization <- .K2_factor_chol(K2_factor, tvec, parameter_vector)
   terminal <- .K2_terminal_root_guard(
     factorization$R, factorization$covariance_discrepancy,
-    factorization$covariance_is_ad
+    solve_mode = FALSE
   )
   R <- terminal$R
   if (!inherits(R, "advector") && any(!is.finite(R))) {
