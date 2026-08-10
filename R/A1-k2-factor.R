@@ -828,8 +828,6 @@
           solution_bound <- w_bound / scale
           if (!is.finite(error_bound) || any(!is.finite(w_bound)) ||
               any(!is.finite(solution_bound)) ||
-              any(w_bound >
-                    accuracy_tolerance * pmax(1, abs(w_checked[, j]))) ||
               any(solution_bound >
                     accuracy_tolerance *
                       pmax(1, abs(solution_checked[, j])))) {
@@ -860,8 +858,8 @@
         # Bound the error componentwise from the residual of the completed
         # equilibrated covariance.  The gamma envelope accounts for rounding
         # in the matrix-vector product even when its observed residual is zero.
-        # This catches a small lost solution component without charging a
-        # worst-case triangular recurrence to every ordinary solve.
+        # Certify the returned public solution after undoing equilibration;
+        # accuracy of the internal scaled coordinate is not part of the API.
         product_length <- max(1L, m + 1L)
         product_gamma <-
           product_length * .Machine$double.eps /
@@ -899,13 +897,11 @@
           )
         returned_bound <- component_bound / scale
         if (any(!is.finite(component_bound)) ||
-            any(!is.finite(returned_bound)) ||
-            any(component_bound >
-                  accuracy_tolerance * pmax(1, abs(w_checked))) ||
-            any(returned_bound >
-                  accuracy_tolerance * pmax(1, abs(solution_checked)))) {
-          return(bad)
-        }
+            any(!is.finite(returned_bound))) return(bad)
+
+        if (any(returned_bound >
+                  accuracy_tolerance *
+                    pmax(1, abs(solution_checked)))) return(bad)
       }
     }
     c(as.vector(solution), 1)

@@ -430,6 +430,156 @@ test_that("mapped factored bridges accept fixed Matrix factors with AD weights",
   }
 })
 
+test_that("mapped dense contractions preserve AD with numeric Matrix inputs", {
+  child <- PoissonModelCGF(
+    lambda = adaptor(indices = 1L),
+    iidReps = 2L
+  )
+  A <- matrix(c(
+    1, 0.2,
+    0.3, -0.1,
+    0.8, 0.4
+  ), nrow = 3L, byrow = TRUE)
+  mapped <- linearlyMappedCGF(child, A)
+  tvec <- c(0.01, -0.02, 0.03)
+  Q <- matrix(c(
+    2, 0.2, 0.1,
+    0.2, 1.5, 0.3,
+    0.1, 0.3, 1.2
+  ), 3L, 3L)
+  theta <- 1.1
+  inner_tvec <- as.vector(t(A) %*% tvec)
+  inner_Q <- t(A) %*% Q %*% A
+
+  for (Q_input in list(Q, Matrix::Matrix(Q, sparse = FALSE))) {
+    for (method in c("K3K3operatorAABBCC", "K3K3operatorABCABC")) {
+      candidate <- factored_tape_vgh(
+        function(p) mapped[[method]](tvec, p, Q_input), theta
+      )
+      reference <- factored_tape_vgh(
+        function(p) child[[method]](inner_tvec, p, inner_Q), theta
+      )
+      expect_equal(candidate, reference, tolerance = 1e-12)
+    }
+  }
+})
+
+test_that("parameter-dependent maps accept numeric Matrix contractions", {
+  child <- PoissonModelCGF(
+    lambda = adaptor(indices = 1L),
+    iidReps = 2L
+  )
+  A0 <- matrix(c(1, 0.2, 0.3, -0.1, 0.8, 0.4), 3L, 2L)
+  A_delta <- matrix(c(0.02, -0.01, 0.03, 0.01, -0.02, 0.01), 3L, 2L)
+  A_fun <- function(p) A0 + p[1] * A_delta
+  mapped <- linearlyMappedCGF(child, A_fun)
+  tvec <- c(0.01, -0.02, 0.03)
+  Q <- matrix(c(2, 0.2, 0.1, 0.2, 1.5, 0.3, 0.1, 0.3, 1.2), 3L)
+  Q_matrix <- Matrix::Matrix(Q, sparse = FALSE)
+  theta <- 1.1
+
+  for (method in c("K3K3operatorAABBCC", "K3K3operatorABCABC")) {
+    candidate <- factored_tape_vgh(
+      function(p) mapped[[method]](tvec, p, Q_matrix), theta
+    )
+    reference <- factored_tape_vgh(function(p) {
+      A <- A_fun(p)
+      child[[method]](
+        as.vector(t(A) %*% tvec), p,
+        t(A) %*% Q %*% A
+      )
+    }, theta)
+    expect_equal(candidate, reference, tolerance = 1e-11)
+  }
+
+  operator_B <- matrix(c(1, 0.2, 0.3, 0.4, 0.5, 0.6), 2L, 3L)
+  expect_equal(
+    factored_tape_vgh(
+      function(p) sum(mapped$K2operatorAK2AT(
+        tvec, p, Matrix::Matrix(operator_B, sparse = FALSE)
+      )), theta
+    ),
+    factored_tape_vgh(
+      function(p) sum(mapped$K2operatorAK2AT(tvec, p, operator_B)), theta
+    ),
+    tolerance = 1e-12
+  )
+
+  factor_B <- matrix(c(1, 0.2, 0.3, 0.4, 0.5, 0.6), 3L, 2L)
+  factor_d <- function(p) {
+    d <- p[rep(1L, 2L)] * 0
+    d[1L] <- 1
+    d[2L] <- p[1]^2
+    d
+  }
+  for (method in c(
+    "K4operatorAABB_factored",
+    "K3K3operatorAABBCC_factored",
+    "K3K3operatorABCABC_factored"
+  )) {
+    candidate <- factored_tape_vgh(function(p) {
+      mapped$.private_api[[method]](
+        tvec, p, Matrix::Matrix(factor_B, sparse = FALSE), factor_d(p)
+      )
+    }, theta)
+    reference <- factored_tape_vgh(function(p) {
+      mapped$.private_api[[method]](tvec, p, factor_B, factor_d(p))
+    }, theta)
+    expect_equal(candidate, reference, tolerance = 1e-11)
+  }
+
+  multinomial_map <- linearlyMappedCGF(MultinomialCGF, A_fun)
+  mapped_factor <- saddlepoint:::.K2_factor_method(multinomial_map)
+  multinomial_parameter <- c(10, 0.4, 0.6)
+  factor_value <- function(p, B) {
+    terms <- mapped_factor(tvec, p, B)
+    sum(terms[[1L]]$B) + sum(terms[[1L]]$d)
+  }
+  expect_equal(
+    factored_tape_vgh(
+      function(p) factor_value(
+        p, Matrix::Matrix(operator_B, sparse = FALSE)
+      ), multinomial_parameter
+    ),
+    factored_tape_vgh(
+      function(p) factor_value(p, operator_B), multinomial_parameter
+    ),
+    tolerance = 1e-11
+  )
+})
+
+test_that("mapped factored contractions pass ordinary numeric factors", {
+  strict_factored <- function(value) {
+    force(value)
+    function(tvec, p, B, d) {
+      if (!is.matrix(B)) stop("factor B must be an ordinary matrix")
+      value + 0 * sum(B) + 0 * sum(d) + 0 * sum(p)
+    }
+  }
+  child <- createCGF(
+    K = function(tvec, p) sum(exp(p[1]) * (exp(tvec) - 1)),
+    K1 = function(tvec, p) exp(p[1] + tvec),
+    K2 = function(tvec, p) diag(exp(p[1] + tvec), length(tvec)),
+    K3operator = function(tvec, p, a, b, c) {
+      sum(exp(p[1] + tvec) * a * b * c)
+    },
+    K4operator = function(tvec, p, a, b, c, d) {
+      sum(exp(p[1] + tvec) * a * b * c * d)
+    },
+    K4operatorAABB_factored = strict_factored(8),
+    K3K3operatorAABBCC_factored = strict_factored(8),
+    K3K3operatorABCABC_factored = strict_factored(12)
+  )
+  mapped <- linearlyMappedCGF(
+    child,
+    matrix(c(1, 0.2, 0.3, -0.1, 0.8, 0.4), nrow = 2L, byrow = TRUE)
+  )
+
+  expect_equal(mapped$K4operatorAABB(c(0, 0), 1, diag(2)), 8)
+  expect_equal(mapped$K3K3operatorAABBCC(c(0, 0), 1, diag(2)), 8)
+  expect_equal(mapped$K3K3operatorABCABC(c(0, 0), 1, diag(2)), 12)
+})
+
 test_that("shared-Poisson IID correction remains finite", {
   dimension <- 3L
   blocks <- 5L

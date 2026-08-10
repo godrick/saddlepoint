@@ -939,6 +939,47 @@ test_that("factor terminals validate completion, scale, and numerical loss", {
   )
 })
 
+test_that("numeric factor solve certifies the returned public solution", {
+  A <- matrix(c(
+    -1.0295831616329141, 0.7537973286395325, 0.3180092254628808,
+    -1.6734795183709306, 0.3182798250721517, 1.3662313469694245,
+    1.6443574037225106, 0.6203839204135480, 1.1389923430543860,
+    0.0183791078191809, 2.6853125516886749, 1.2013991211883255,
+    -0.8181043471010678, -0.4705873686301221, -2.1426447924667360,
+    0.8165912518369038, 0.4653284105581280, 1.3121124773926873,
+    -0.2387924084851842, -1.4680435895916326, 0.8322544119216485,
+    -0.1533399633773679, -1.1917775586639732, 1.5008761099640489
+  ), nrow = 4L)
+  parameter <- c(
+    9, 123.6878902346769, 0.0807027826860322,
+    75.12987031131783, 0.0069805450341088,
+    0.1110180815031406, 0.0305517629605729
+  )
+  tvec <- c(
+    0.0202693046070635, 0.0636407276615500,
+    -0.0470632877200842, -0.0163980430923402
+  )
+  rhs <- matrix(c(
+    -0.895832957150837, -1.75552178844533,
+    0.587442549689941, 0.944209293348568,
+    -0.658915585548328, 1.92977712373801,
+    -1.86136135212416, -2.28421537253286
+  ), nrow = 4L)
+  mapped <- linearlyMappedCGF(MultinomialCGF, A, iidReps = 1L)
+  K2 <- as.matrix(mapped$K2(tvec, parameter))
+  condition <- kappa(K2, exact = TRUE)
+  solution <- mapped$K2_solve(tvec, parameter, rhs)
+
+  expect_gt(condition, 9000)
+  expect_lt(condition, 9500)
+  expect_equal(solution, solve(K2, rhs), tolerance = 1e-10)
+  expect_lt(
+    max(abs(K2 %*% solution - rhs)) /
+      (max(abs(K2)) * max(abs(solution)) + max(abs(rhs))),
+    1e-13
+  )
+})
+
 test_that("solve certification refines conservative condition metadata", {
   # The determinant/trace proof is intentionally conservative.  It is enough
   # to certify a log-determinant, but an accurate row-scaled solve can require

@@ -57,6 +57,33 @@
     if (is_already_sparse) matrix_A else A_fun(param)
   }
 
+  mapping_is_ad <- function(A_current) {
+    inherits(A_current, "advector") || inherits(A_current, "adsparse")
+  }
+
+  prepare_mapped_operand <- function(A_current, operand) {
+    if (mapping_is_ad(A_current) && inherits(operand, "denseMatrix") &&
+        !inherits(operand, "adsparse")) {
+      as.matrix(operand)
+    } else {
+      operand
+    }
+  }
+
+  ordinary_dense_result <- function(value) {
+    if (inherits(value, "denseMatrix") && !inherits(value, "adsparse")) {
+      as.matrix(value)
+    } else {
+      value
+    }
+  }
+
+  pull_back_factor <- function(A_current, tA, B) {
+    ordinary_dense_result(
+      tA %*% prepare_mapped_operand(A_current, B)
+    )
+  }
+
   child_K2_factor <- .K2_factor_method(cgf)
   extra_args <- list(...)
   extra_args <- extra_args[!vapply(extra_args, is.null, logical(1))]
@@ -135,10 +162,9 @@
   # Key identity: B K_Y'' B^T = B A K_X'' A^T B^T = (B A) K_X'' (B A)^T
   K2operatorAK2AT <- function(tvec, parameter_vector, B) {
     A_current <- get_sparse_A(parameter_vector)
-    B_A <- B %*% A_current
-    if (inherits(B_A, "denseMatrix") && !inherits(B_A, "adsparse")) {
-      B_A <- as.matrix(B_A)
-    }
+    B_A <- ordinary_dense_result(
+      prepare_mapped_operand(A_current, B) %*% A_current
+    )
     cgf$K2operatorAK2AT(as.vector(t(A_current) %*% tvec), parameter_vector, B_A)
   }
 
@@ -146,10 +172,9 @@
   if (!is.null(child_K2_factor)) {
     K2_factor <- function(tvec, parameter_vector, B) {
       A_current <- get_sparse_A(parameter_vector)
-      B_A <- B %*% A_current
-      if (inherits(B_A, "denseMatrix") && !inherits(B_A, "adsparse")) {
-        B_A <- as.matrix(B_A)
-      }
+      B_A <- ordinary_dense_result(
+        prepare_mapped_operand(A_current, B) %*% A_current
+      )
       child_K2_factor(
         as.vector(t(A_current) %*% tvec),
         parameter_vector,
@@ -193,9 +218,12 @@
   mapped_Q_contraction <- function(self_object, tvec, parameter_vector, Q,
                                    dense_method, factored_name) {
     A_current <- get_sparse_A(parameter_vector)
+    # Keep Matrix dispatch from recursing before RTMB sees an AD-valued map;
+    # fixed-map sparse operations retain their existing sparse route.
+    Q <- prepare_mapped_operand(A_current, Q)
     if (!force_factored_contractions && nrow(A_current) >= ncol(A_current)) {
       tA <- t(A_current)
-      Q_inner <- tA %*% Q %*% A_current
+      Q_inner <- ordinary_dense_result(tA %*% Q %*% A_current)
       return(dense_method(
         as.vector(tA %*% tvec), parameter_vector, Q_inner
       ))
@@ -212,9 +240,10 @@
     }
 
     tA <- t(A_current)
+    B_inner <- pull_back_factor(A_current, tA, Q_factor$B)
     cgf$.private_api[[factored_name]](
       as.vector(tA %*% tvec), parameter_vector,
-      tA %*% Q_factor$B, Q_factor$d
+      B_inner, Q_factor$d
     )
   }
 
@@ -289,10 +318,7 @@
   K4operatorAABB_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B_inner <- tA %*% B
-    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
-      B_inner <- as.matrix(B_inner)
-    }
+    B_inner <- pull_back_factor(A_current, tA, B)
     base_K4operatorAABB_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
   K4operatorAABB_factored <- .factored_delegate_mark(
@@ -304,10 +330,7 @@
   K3K3operatorAABBCC_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B_inner <- tA %*% B
-    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
-      B_inner <- as.matrix(B_inner)
-    }
+    B_inner <- pull_back_factor(A_current, tA, B)
     base_K3K3operatorAABBCC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
 
@@ -315,10 +338,7 @@
   K3K3operatorABCABC_factored <- function(tvec, parameter_vector, B, d) {
     A_current <- get_sparse_A(parameter_vector)
     tA <- t(A_current)
-    B_inner <- tA %*% B
-    if (inherits(B_inner, "denseMatrix") && !inherits(B_inner, "adsparse")) {
-      B_inner <- as.matrix(B_inner)
-    }
+    B_inner <- pull_back_factor(A_current, tA, B)
     base_K3K3operatorABCABC_factored(as.vector(tA %*% tvec), parameter_vector, B_inner, d)
   }
   K3K3operatorAABBCC_factored <- .factored_delegate_mark(
