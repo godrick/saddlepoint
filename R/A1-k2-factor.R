@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
-# Internal K2 factor support
+# Internal structured K2 factor support
 #
-# A certified factor method has signature
+# A factor method has signature
 #
 #   K2_factor(tvec, parameter_vector, A)
 #
@@ -10,8 +10,9 @@
 #
 #   A K2(t, theta) A' = sum S + sum B diag(d) B'.
 #
-# This is deliberately private to the numerical K2 solve/logdet path.  CGFs that
-# do not supply the capability continue to use the existing dense methods.
+# The representation lets compositions combine singular covariance
+# contributions before requiring the completed covariance to be invertible.
+# CGFs without this capability retain their existing dense methods.
 # -----------------------------------------------------------------------------
 
 #' @keywords internal
@@ -24,7 +25,8 @@
 .K2_factor_terminal_method <- function(cgf) {
   factor_method <- .K2_factor_method(cgf)
   use_terminal <- cgf$additional_methods[["K2_factor_terminal"]]
-  if (!is.null(factor_method) && is.function(use_terminal) && isTRUE(use_terminal())) {
+  if (!is.null(factor_method) && is.function(use_terminal) &&
+      isTRUE(use_terminal())) {
     factor_method
   } else {
     NULL
@@ -33,9 +35,7 @@
 
 # A structured solve/logdet pair may be preferred by an enclosing covariance
 # update even when a factor representation is also available.  The marker is
-# construction-time provenance only: package wrappers propagate it
-# mechanically, while an untagged pair supplied directly to createCGF() is
-# authoritative by default.
+# construction-time provenance only.
 #' @keywords internal
 .K2_structured_pair_mark <- function(method, safe) {
   if (is.null(method)) return(NULL)
@@ -80,10 +80,14 @@
   })
 }
 
-# The forward factorization sees sqrt(d), but sqrt(d) is intentionally not part
-# of the AD tape.  The reverse rule differentiates B diag(d) B' directly, so
-# derivatives remain defined at d == 0 (including underflow to zero).  Each
-# evaluation is stateless and initializes a fresh invalid result.
+# Build a row-equilibrated Cholesky root of
+#
+#   S + B diag(d) B'.
+#
+# sqrt(d) is used only in the numeric forward calculation.  The custom reverse
+# rule differentiates B diag(d) B' directly, keeping derivatives defined when
+# d is exactly zero or underflows to zero.  The atomic is stateless so an
+# invalid optimizer evaluation cannot contaminate a later valid evaluation.
 #' @keywords internal
 .weighted_gram_chol_atomic <- local({
   forward <- function(x) {
@@ -91,14 +95,15 @@
     m <- as.integer(x[1L])
     r <- as.integer(x[2L])
     has_dense <- as.integer(x[3L])
-    bad <- rep(NaN, m * m + 2L * m)
+    bad <- rep(NaN, m * m + m)
 
     if (m < 1L || !(has_dense %in% 0:1)) return(bad)
 
     cursor <- 4L
     S <- base::matrix(0, nrow = m, ncol = m)
     if (has_dense == 1L) {
-      S <- base::matrix(x[cursor:(cursor + m * m - 1L)], nrow = m, ncol = m)
+      S <- base::matrix(x[cursor:(cursor + m * m - 1L)],
+                        nrow = m, ncol = m)
       cursor <- cursor + m * m
       if (any(!is.finite(S))) return(bad)
     }
@@ -108,15 +113,16 @@
     d <- base::as.numeric(packed[1L, ])
     B <- base::matrix(
       base::as.numeric(packed[-1L, , drop = FALSE]),
-      nrow = m,
-      ncol = r
+      nrow = m, ncol = r
     )
-    if (any(!is.finite(d)) || any(d < 0) || any(!is.finite(B))) return(bad)
+    if (any(!is.finite(d)) || any(d < 0) || any(!is.finite(B))) {
+      return(bad)
+    }
 
     F <- B * rep(sqrt(d), each = m)
     if (any(!is.finite(F))) return(bad)
 
-    # Overflow-safe row Euclidean norms.
+    # Overflow-safe Euclidean norm of each factor row.
     factor_scale <- if (r == 0L) {
       rep(0, m)
     } else {
@@ -126,37 +132,17 @@
     }
 
     if (has_dense == 0L) {
-      # Form the Gram matrix only after row equilibration.  Certify its
-      # dot-product roundoff with a rowwise a-priori bound.  This needs only
-      # O(m*r) work, unlike forming a second m-by-m Gram product, and it also
-      # detects the shared rounding loss that two algebraically equivalent
-      # BLAS products can reproduce identically.
-      if (r < m || any(!is.finite(factor_scale)) || any(factor_scale <= 0)) {
-        return(bad)
-      }
-      F_scaled <- F / factor_scale
-      factor_reference <- base::tcrossprod(F_scaled)
-      if (any(!is.finite(factor_reference))) return(bad)
-      reference <- 0.5 * (factor_reference + t(factor_reference))
-      active_columns <- colSums(abs(F_scaled)) > 0
-      effective_width <- sum(active_columns)
-      gram_operations <- effective_width + 8L
-      gram_gamma <- gram_operations * .Machine$double.eps /
-        (1 - gram_operations * .Machine$double.eps)
-      if (!is.finite(gram_gamma) || gram_gamma >= 1) return(bad)
-      formation_discrepancy <- if (effective_width == 0L) {
-        rep(0, m)
-      } else {
-        active_F <- abs(F_scaled[, active_columns, drop = FALSE])
-        gram_gamma * as.vector(active_F %*% colSums(active_F))
-      }
+      if (r < m || any(!is.finite(factor_scale)) ||
+          any(factor_scale <= 0)) return(bad)
 
-      # Cholesky is the ordinary route.  Direct-factor QR is only a recovery
-      # path when the rounded Gram matrix has lost positive definiteness.  The
-      # stricter covariance-level condition and accuracy checks belong to the
-      # solve/logdet terminal below; this root builder is also used by mapped
-      # higher-order contractions, which do not require an inverse.
+      F_scaled <- F / factor_scale
+      reference <- base::tcrossprod(F_scaled)
+      if (any(!is.finite(reference))) return(bad)
       R_scaled <- tryCatch(base::chol(reference), error = function(e) NULL)
+
+      # Direct-factor QR is a recovery route only when rounding the Gram
+      # matrix has hidden positive definiteness.  The ordinary path therefore
+      # retains the same inexpensive Gram-plus-Cholesky structure as before.
       if (is.null(R_scaled)) {
         qr_pivoted <- tryCatch(
           base::qr(t(F_scaled), LAPACK = TRUE),
@@ -167,9 +153,6 @@
         if (!identical(dim(R_pivoted), c(m, m)) ||
             any(!is.finite(R_pivoted))) return(bad)
 
-        # Undo LAPACK's coordinate pivot before returning the ordinary-
-        # coordinate positive-diagonal root.  A discrepancy from the rounded
-        # Gram matrix is retained below and certified by every solve.
         unpivoted_root <- base::matrix(0, nrow = m, ncol = m)
         unpivoted_root[, qr_pivoted$pivot] <- R_pivoted
         qr_canonical <- tryCatch(
@@ -181,6 +164,8 @@
         signs <- ifelse(base::diag(R_scaled) < 0, -1, 1)
         R_scaled <- R_scaled * rep(signs, times = m)
 
+        # Reject only effective rank loss at machine precision.  This is not
+        # a moderate condition-number policy.
         singular_values <- tryCatch(
           base::svd(R_scaled, nu = 0L, nv = 0L)$d,
           error = function(e) NULL
@@ -193,23 +178,19 @@
         }
       }
     } else {
-      # Validate a mixed contribution only after completing it.  A dense term
-      # can have a roundoff-sized negative eigenvalue while the final covariance
-      # is safely SPD; neither the term nor the completed sum is projected.
+      # Validate the completed covariance, not its individual contributions.
       completed_diagonal <- base::diag(S) + factor_scale * factor_scale
       if (any(!is.finite(completed_diagonal)) ||
           any(completed_diagonal <= 0)) return(bad)
       factor_scale <- sqrt(completed_diagonal)
 
-      # A covariance is symmetric by contract, but solve() can leave a small
-      # skew in a computed inverse.  Decompose the equilibrated dense term
-      # without adding two near-overflow entries: scaling each transposed pair
-      # first also preserves equal subnormal entries.
       S_scaled_raw <- base::sweep(S, 1L, factor_scale, "/")
-      S_scaled_raw <- base::sweep(
-        S_scaled_raw, 2L, factor_scale, "/"
-      )
+      S_scaled_raw <- base::sweep(S_scaled_raw, 2L, factor_scale, "/")
       if (any(!is.finite(S_scaled_raw))) return(bad)
+
+      # Accept ordinary roundoff skew while rejecting a materially asymmetric
+      # object that cannot represent a covariance.  The midpoint is formed
+      # without adding two near-overflow entries.
       S_scaled_transpose <- t(S_scaled_raw)
       pair_scale <- pmax(abs(S_scaled_raw), abs(S_scaled_transpose))
       pair_divisor <- pair_scale
@@ -217,81 +198,36 @@
       S_unit <- S_scaled_raw / pair_divisor
       S_transpose_unit <- S_scaled_transpose / pair_divisor
       S_scaled <- pair_scale * ((S_unit + S_transpose_unit) / 2)
-      half_skew_scaled <-
-        pair_scale * abs((S_unit - S_transpose_unit) / 2)
-      symmetry_discrepancy <- rowSums(half_skew_scaled)
-
-      # Since abs((S-S')/2) is symmetric, its maximum row sum bounds its
-      # spectral norm.  Use the existing formation-discrepancy budget rather
-      # than a separate global scale heuristic, and retain accepted skew in
-      # every downstream solve/logdet certificate.
+      half_skew <- pair_scale * abs((S_unit - S_transpose_unit) / 2)
       symmetry_tolerance <- sqrt(.Machine$double.eps) / 4
-      if (any(!is.finite(symmetry_discrepancy)) ||
-          max(symmetry_discrepancy) > symmetry_tolerance) return(bad)
+      if (any(!is.finite(half_skew)) ||
+          max(rowSums(half_skew)) > symmetry_tolerance) {
+        return(bad)
+      }
 
       F_scaled <- if (r == 0L) F else F / factor_scale
-      factor_reference <- S_scaled
-      if (r > 0L) {
-        factor_reference <- factor_reference + base::tcrossprod(F_scaled)
-      }
-      if (any(!is.finite(factor_reference))) return(bad)
-      # Both terms above are constructed symmetrically, so no second midpoint
-      # is needed (and equal subnormal entries remain unchanged).
-      reference <- factor_reference
-      active_columns <- if (r == 0L) {
-        logical(0)
-      } else {
-        colSums(abs(F_scaled)) > 0
-      }
-      effective_width <- sum(active_columns)
-      gram_operations <- effective_width + 8L
-      gram_gamma <- gram_operations * .Machine$double.eps /
-        (1 - gram_operations * .Machine$double.eps)
-      if (!is.finite(gram_gamma) || gram_gamma >= 1) return(bad)
-      factor_roundoff <- if (effective_width == 0L) {
-        rep(0, m)
-      } else {
-        active_F <- abs(F_scaled[, active_columns, drop = FALSE])
-        gram_gamma * as.vector(active_F %*% colSums(active_F))
-      }
-      # Scaling S and adding it to the factor Gram each contribute only
-      # m-by-m rounding.  Include both in the same rowwise certificate.
-      dense_gamma <- (2L * max(1L, m) + 4L) * .Machine$double.eps
-      formation_discrepancy <- symmetry_discrepancy + factor_roundoff +
-        dense_gamma * rowSums(abs(S_scaled)) +
-        .Machine$double.eps * rowSums(abs(reference))
+      reference <- S_scaled
+      if (r > 0L) reference <- reference + base::tcrossprod(F_scaled)
+      if (any(!is.finite(reference))) return(bad)
 
       R_scaled <- tryCatch(base::chol(reference), error = function(e) NULL)
-      if (is.null(R_scaled) || any(!is.finite(R_scaled))) return(bad)
+      if (is.null(R_scaled)) return(bad)
     }
 
-    if (any(!is.finite(R_scaled)) || any(base::diag(R_scaled) <= 0)) return(bad)
-    reconstruction_delta <- abs(base::crossprod(R_scaled) - reference)
-    root_operations <- max(1L, m) + 8L
-    root_gamma <- root_operations * .Machine$double.eps /
-      (1 - root_operations * .Machine$double.eps)
-    if (!is.finite(root_gamma) || root_gamma >= 1) return(bad)
-    abs_root <- abs(R_scaled)
-    root_roundoff <- root_gamma * as.vector(
-      t(abs_root) %*% rowSums(abs_root)
-    )
-    if (any(!is.finite(root_roundoff))) return(bad)
-    reconstruction_discrepancy <-
-      rowSums(reconstruction_delta) + root_roundoff
-    reconstruction_error <- max(reconstruction_delta) / max(abs(reference))
+    if (any(!is.finite(R_scaled)) || any(base::diag(R_scaled) <= 0) ||
+        any(!is.finite(reference))) return(bad)
+
+    # A compact implementation check: the returned root must reconstruct the
+    # completed, equilibrated covariance to ordinary double precision.
+    reconstruction_error <-
+      max(abs(base::crossprod(R_scaled) - reference)) /
+      max(abs(reference))
     reconstruction_tolerance <-
       100 * max(1L, m) * .Machine$double.eps
     if (!is.finite(reconstruction_error) ||
         reconstruction_error > reconstruction_tolerance) return(bad)
 
-    # Carry rowwise factor-formation and root-reconstruction loss into every
-    # solve certificate.  Keeping rows separate prevents one local discrepancy
-    # from being charged to every coordinate.
-    solve_discrepancy <- formation_discrepancy + reconstruction_discrepancy
-    c(
-      base::as.vector(R_scaled), factor_scale,
-      solve_discrepancy
-    )
+    c(base::as.vector(R_scaled), factor_scale)
   }
 
   reverse <- function(x, out, out_bar) {
@@ -299,18 +235,16 @@
     out <- RTMB::AD(out)
     out_bar <- RTMB::AD(out_bar)
 
-    m <- as.integer(sqrt(length(out) + 1L) - 1L)
+    m <- as.integer((sqrt(1 + 4 * length(out)) - 1) / 2)
     payload_length <- length(x) - 3L
     has_dense <- as.integer(payload_length %% (m + 1L) == 1L)
     r <- as.integer((payload_length - has_dense * m * m) / (m + 1L))
     R_index <- seq_len(m * m)
     scale_index <- m * m + seq_len(m)
-    discrepancy_index <- m * m + m + seq_len(m)
     R <- matrix(out[R_index], nrow = m, ncol = m)
     R_bar <- matrix(out_bar[R_index], nrow = m, ncol = m)
     scale <- as.vector(out[scale_index])
     scale_bar <- as.vector(out_bar[scale_index])
-    discrepancy_bar <- out_bar[discrepancy_index]
 
     cursor <- 4L
     if (has_dense == 1L) {
@@ -324,8 +258,7 @@
     d <- as.vector(packed[1L, ])
     B <- packed[-1L, , drop = FALSE]
 
-    # Reverse the equilibrated Cholesky, then K = D E D with
-    # D=sqrt(diag(K)).  All triangular solves use the equilibrated root.
+    # Reverse the canonical Cholesky of E, then reverse K = D E D.
     L <- t(R)
     M <- t(L) %*% t(R_bar)
     lower_mask <- lower.tri(matrix(0, m, m), diag = FALSE)
@@ -359,8 +292,7 @@
       x[integer(0)]
     }
 
-    prefix_bar <- c(0 * x[1L], 0 * x[2L], 0 * x[3L]) +
-      0 * sum(discrepancy_bar)
+    prefix_bar <- c(0 * x[1L], 0 * x[2L], 0 * x[3L])
     dense_bar <- if (has_dense == 1L) {
       as.vector(K_bar + 0 * x[S_index])
     } else {
@@ -389,17 +321,13 @@
     out <- atomic(payload)
     R <- out[seq_len(m * m)]
     attr(R, "dim") <- c(m, m)
-    list(
-      R = R,
-      scale = out[m * m + seq_len(m)],
-      covariance_discrepancy = out[m * m + m + seq_len(m)]
-    )
+    list(R = R, scale = out[m * m + seq_len(m)])
   }
 })
 
-# Factor a dense SPD matrix through the same stateless, certified terminal used
-# by structured K2 factors.  This is intentionally private and is used only
-# where a valid thin square root must be propagated to higher-order operators.
+# Factor a dense SPD matrix through the same stateless terminal used by
+# structured K2 factors.  This is used when a valid thin square root must be
+# propagated to higher-order contractions.
 #' @keywords internal
 .K2_dense_spd_factor <- function(Q, normalize = TRUE) {
   Q_dim <- dim(Q)
@@ -408,7 +336,8 @@
     Q_dim <- c(1L, 1L)
   }
   if (length(Q_dim) != 2L || Q_dim[1L] < 1L || Q_dim[1L] != Q_dim[2L]) {
-    stop("Dense K2 factor input must be a non-empty square matrix.", call. = FALSE)
+    stop("Dense K2 factor input must be a non-empty square matrix.",
+         call. = FALSE)
   }
 
   n <- Q_dim[1L]
@@ -416,10 +345,8 @@
   factorization <- .weighted_gram_chol(packed, Q)
   if (!inherits(factorization$R, "advector") &&
       any(!is.finite(c(factorization$R, factorization$scale)))) {
-    stop(
-      "Matrix is singular, indefinite, or numerically ill-conditioned.",
-      call. = FALSE
-    )
+    stop("Matrix is singular, indefinite, or numerically invalid.",
+         call. = FALSE)
   }
 
   B <- factorization$scale * t(factorization$R)
@@ -432,478 +359,54 @@
   )
 }
 
-# A root can be useful for a higher-order contraction even when its covariance
-# is too ill-conditioned to invert accurately.  This terminal applies the
-# operation-specific acceptance rule while retaining the shared formation and
-# reconstruction certificate.  It also returns the condition information used
-# by the solve certificate, avoiding another SVD.
+# Check only the componentwise backward residual of the completed scaled
+# solve.  This is an implementation sanity check, not a guarantee of forward
+# or derivative accuracy.  Its pullback is the identity on successful values.
 #' @keywords internal
-.K2_terminal_root_guard_atomic <- local({
-  forward <- function(x) {
-    x <- .rtmb_value_real(x)
-    terminal_mode <- as.integer(x[length(x)])
-    # 0 = logdet, 1 = numeric/fixed-covariance solve,
-    # 2 = solve whose covariance is represented on the AD tape.
-    solve_mode <- terminal_mode > 0L
-    derivative_mode <- terminal_mode == 2L
-    payload <- x[-length(x)]
-    m <- as.integer((sqrt(1 + 4 * length(payload)) - 1) / 2)
-    bad <- rep(NaN, m * m + 4L)
-    if (!(terminal_mode %in% 0:2) || m < 1L ||
-        m * (m + 1L) != length(payload) ||
-        any(!is.finite(x))) return(bad)
-    R <- base::matrix(payload[seq_len(m * m)], nrow = m, ncol = m)
-    covariance_discrepancy <- payload[m * m + seq_len(m)]
-    if (any(covariance_discrepancy < 0)) return(bad)
-
-    accuracy_floor <- 4 * max(1L, m) * sqrt(.Machine$double.eps)
-    # Second derivatives of a solve contain up to three inverse factors.  Keep
-    # the established u^(1/4) floor only for parameter-dependent solves; the
-    # log-determinant has its separate perturbation certificate below.
-    derivative_condition_floor <- if (derivative_mode) {
-      .Machine$double.eps^(1 / 4)
-    } else {
-      0
-    }
-    condition_floor <- max(accuracy_floor, derivative_condition_floor)
-    discrepancy_tolerance <- sqrt(.Machine$double.eps) / 4
-
-    # Most equilibrated roots are comfortably conditioned.  Before paying for
-    # a full SVD, try a conservative spectral proof based only on positive
-    # products.  For E = R'R with eigenvalues lambda_1 <= ... <= lambda_m,
-    #
-    #   lambda_1 >= det(E) / (trace(E) / (m - 1))^(m - 1),
-    #   lambda_m <= trace(E).
-    #
-    # Every floating-point quantity below is rounded outwards.  Relative
-    # product bounds are used only in the normal range; underflow, overflow,
-    # or an inconclusive bound falls through to the unchanged SVD route.
-    gamma_n <- function(k) {
-      ku <- k * .Machine$double.eps
-      if (!is.finite(ku) || ku >= 1) Inf else ku / (1 - ku)
-    }
-    tiny <- .Machine$double.xmin
-    R_values <- base::as.vector(R)
-    squared_values <- R_values * R_values
-    diagonal_squared <- base::diag(R) * base::diag(R)
-    fast_spectral_proof <- FALSE
-    lambda_lower <- 0
-    rho_lower <- 0
-
-    if (all(is.finite(squared_values)) &&
-        all(is.finite(diagonal_squared)) &&
-        all(diagonal_squared >= tiny)) {
-      trace_gamma <- gamma_n(length(squared_values) + 16L)
-      trace_upper <- (
-        sum(squared_values) + length(squared_values) * tiny
-      ) / (1 - trace_gamma)
-
-      determinant_path <- cumprod(diagonal_squared)
-      determinant_observed <- determinant_path[length(determinant_path)]
-      determinant_gamma <- gamma_n(4L * m + 16L)
-      determinant_lower <- if (
-        all(is.finite(determinant_path)) &&
-          all(determinant_path >= tiny) &&
-          is.finite(determinant_gamma)
-      ) {
-        determinant_observed * (1 - determinant_gamma)
-      } else {
-        0
-      }
-
-      if (is.finite(trace_upper) && trace_upper > 0 &&
-          determinant_lower > 0) {
-        if (m == 1L) {
-          lambda_lower <- determinant_lower
-        } else {
-          mean_upper <- (trace_upper / (m - 1L)) /
-            (1 - 8 * .Machine$double.eps)
-          denominator_observed <- prod(rep(mean_upper, m - 1L))
-          power_gamma <- gamma_n(m + 16L)
-          denominator_upper <- if (
-            is.finite(denominator_observed) &&
-              denominator_observed >= tiny && is.finite(power_gamma)
-          ) {
-            denominator_observed / (1 - power_gamma)
-          } else {
-            Inf
-          }
-          quotient <- determinant_lower / denominator_upper
-          lambda_lower <- if (is.finite(quotient) && quotient > 0) {
-            quotient * (1 - 8 * .Machine$double.eps)
-          } else {
-            0
-          }
-        }
-
-        quotient <- lambda_lower / trace_upper
-        rho_lower <- if (is.finite(quotient) && quotient > 0) {
-          quotient * (1 - 8 * .Machine$double.eps)
-        } else {
-          0
-        }
-        quotient <- max(covariance_discrepancy) / lambda_lower
-        discrepancy_ratio_upper <- if (
-          is.finite(quotient) && lambda_lower > 0
-        ) {
-          quotient / (1 - 8 * .Machine$double.eps) + 8 * tiny
-        } else {
-          Inf
-        }
-        if (solve_mode) {
-          fast_spectral_proof <-
-            is.finite(rho_lower) && rho_lower > condition_floor &&
-            is.finite(discrepancy_ratio_upper) &&
-            discrepancy_ratio_upper < 1 &&
-            discrepancy_ratio_upper <= discrepancy_tolerance
-        } else if (is.finite(discrepancy_ratio_upper) &&
-                   discrepancy_ratio_upper >= 0 &&
-                   discrepancy_ratio_upper < 1) {
-          # If E = R'R and ||Delta||_2 <= delta, then
-          # tau=delta/lambda_min(E)<1 proves E+Delta is SPD and bounds the
-          # absolute log-determinant error by -m*log(1-tau).  Use that direct
-          # bound instead of a solve condition threshold; logdet does not
-          # require an inverse solution.
-          logdet_error_bound <-
-            -max(1L, m) * base::log1p(-discrepancy_ratio_upper)
-          fast_spectral_proof <-
-            is.finite(logdet_error_bound) &&
-            logdet_error_bound <=
-              max(1L, m) * sqrt(.Machine$double.eps)
-        }
-      }
-    }
-
-    if (fast_spectral_proof) {
-      return(c(
-        base::as.vector(R), rho_lower, lambda_lower,
-        1, 1
-      ))
-    }
-
-    singular_values <- tryCatch(
-      base::svd(R, nu = 0L, nv = 0L)$d,
-      error = function(e) NULL
-    )
-    if (is.null(singular_values) || any(!is.finite(singular_values)) ||
-        max(singular_values) <= 0) return(bad)
-    rho_K <- (min(singular_values) / max(singular_values))^2
-    lambda_min <- min(singular_values)^2
-    discrepancy_ratio <- max(covariance_discrepancy) / lambda_min
-    if (!is.finite(lambda_min) || lambda_min <= 0 ||
-        !is.finite(discrepancy_ratio) || discrepancy_ratio < 0 ||
-        discrepancy_ratio >= 1) return(bad)
-    if (solve_mode) {
-      if (!is.finite(rho_K) || rho_K <= condition_floor ||
-          discrepancy_ratio > discrepancy_tolerance) return(bad)
-    } else {
-      logdet_error_bound <-
-        -max(1L, m) * base::log1p(-discrepancy_ratio)
-      if (!is.finite(logdet_error_bound) ||
-          logdet_error_bound >
-            max(1L, m) * sqrt(.Machine$double.eps)) return(bad)
-    }
-    c(base::as.vector(R), rho_K, lambda_min, 0, 1)
-  }
-
-  reverse <- function(x, out, out_bar) {
-    x <- RTMB::AD(x)
-    out <- RTMB::AD(out)
-    out_bar <- RTMB::AD(out_bar)
-    m <- as.integer(sqrt(length(out) - 4L))
-    status_index <- m * m + 4L
-    status <- out[status_index]
-    status_derivative <- status / status - 1
-    root_bar <- out_bar[seq_len(m * m)] * status +
-      out_bar[status_index] * status_derivative
-    c(
-      root_bar + 0 * x[seq_len(m * m)],
-      0 * x[(m * m + 1L):length(x)]
-    )
-  }
-
-  RTMB::ADjoint(forward, reverse, name = "K2_terminal_root_guard")
-})
-
-#' @keywords internal
-.K2_terminal_root_guard <- local({
-  atomic <- .K2_terminal_root_guard_atomic
-  function(R, covariance_discrepancy, solve_mode, covariance_is_ad = FALSE) {
-    m <- nrow(R)
-    terminal_mode <- if (!isTRUE(solve_mode)) {
-      0L
-    } else if (isTRUE(covariance_is_ad)) {
-      2L
-    } else {
-      1L
-    }
-    out <- atomic(c(
-      as.vector(R), covariance_discrepancy, terminal_mode
-    ))
-    guarded_R <- out[seq_len(m * m)]
-    attr(guarded_R, "dim") <- dim(R)
-    list(
-      R = guarded_R,
-      rho = out[m * m + 1L],
-      lambda_min = out[m * m + 2L],
-      condition_is_bound = out[m * m + 3L]
-    )
-  }
-})
-
-# Certify the actual scaled solve at each primal evaluation.  The atomic is the
-# identity on every valid evaluation, so its pullback is exactly the identity
-# and adds no derivative approximation or mutable cache.  As with any local
-# solve, this cannot inspect cancellation introduced later by an enclosing AD
-# tangent or adjoint contraction.
-#' @keywords internal
-.K2_solution_guard_atomic <- local({
-  exact_root_condition <- function(R, covariance_discrepancy,
-                                   condition_tolerance) {
-    singular_values <- tryCatch(
-      base::svd(R, nu = 0L, nv = 0L)$d,
-      error = function(e) NULL
-    )
-    if (is.null(singular_values) || any(!is.finite(singular_values)) ||
-        max(singular_values) <= 0) return(NULL)
-
-    rho_K <- (min(singular_values) / max(singular_values))^2
-    lambda_min <- min(singular_values)^2
-    discrepancy_ratio <- max(covariance_discrepancy) / lambda_min
-    discrepancy_tolerance <- sqrt(.Machine$double.eps) / 4
-    if (!is.finite(rho_K) || rho_K <= condition_tolerance ||
-        !is.finite(lambda_min) || lambda_min <= 0 ||
-        !is.finite(discrepancy_ratio) || discrepancy_ratio >= 1 ||
-        discrepancy_ratio > discrepancy_tolerance) return(NULL)
-
-    list(rho = rho_K, lambda_min = lambda_min)
-  }
-
+.K2_residual_check_atomic <- local({
   forward <- function(x) {
     x <- .rtmb_value_real(x)
     m <- as.integer(x[1L])
     nrhs <- as.integer(x[2L])
     solution_length <- m * nrhs
     bad <- rep(NaN, solution_length + 1L)
-    expected_length <- 5L + m * m + 3L * solution_length + 2L * m
+    expected_length <- 2L + m * m + 3L * solution_length
     if (m < 1L || nrhs < 1L || length(x) != expected_length ||
         any(!is.finite(x))) return(bad)
 
     cursor <- 3L
     solution <- base::matrix(
       x[cursor:(cursor + solution_length - 1L)],
-      nrow = m,
-      ncol = nrhs
+      nrow = m, ncol = nrhs
     )
     cursor <- cursor + solution_length
-    R <- base::matrix(x[cursor:(cursor + m * m - 1L)], nrow = m, ncol = m)
+    R <- base::matrix(x[cursor:(cursor + m * m - 1L)],
+                      nrow = m, ncol = m)
     cursor <- cursor + m * m
     w <- base::matrix(x[cursor:(cursor + solution_length - 1L)],
                       nrow = m, ncol = nrhs)
     cursor <- cursor + solution_length
     z <- base::matrix(x[cursor:(cursor + solution_length - 1L)],
                       nrow = m, ncol = nrhs)
-    cursor <- cursor + solution_length
-    scale <- x[cursor:(cursor + m - 1L)]
-    cursor <- cursor + m
-    covariance_discrepancy <- x[cursor:(cursor + m - 1L)]
-    cursor <- cursor + m
-    rho_K <- x[cursor]
-    lambda_min <- x[cursor + 1L]
-    condition_is_bound <- x[cursor + 2L]
-    if (any(scale <= 0) || any(covariance_discrepancy < 0)) return(bad)
-    if (!(condition_is_bound %in% 0:1)) return(bad)
-    condition_tolerance <- 4 * max(1L, m) * sqrt(.Machine$double.eps)
-    if (!is.finite(rho_K) || rho_K <= condition_tolerance ||
-        !is.finite(lambda_min) || lambda_min <= 0) return(bad)
+    if (any(base::diag(R) <= 0)) return(bad)
 
-    E <- base::crossprod(R)
-    E_norm <- max(rowSums(abs(E)))
-    residual <- z - E %*% w
+    Rw <- R %*% w
+    residual <- z - t(R) %*% Rw
+    # |R'R| |w| is bounded by |R'| |R| |w|.  Using the triangular
+    # factors avoids rebuilding the dense covariance for every right-hand
+    # side while retaining a standard componentwise backward-error scale.
+    denominator <- abs(z) + t(abs(R)) %*% (abs(R) %*% abs(w))
+    active <- denominator > 0
+    if (any(!active & residual != 0)) return(bad)
+    backward_error <- if (any(active)) {
+      max(abs(residual[active]) / denominator[active])
+    } else {
+      0
+    }
     backward_tolerance <- 64 * max(1L, m) * .Machine$double.eps
-    roundoff_floor <- 8 * max(1L, m) * .Machine$double.eps
-    columns_to_certify <- integer(0)
-    eta <- numeric(nrhs)
-    for (j in seq_len(nrhs)) {
-      denominator <- E_norm * max(abs(w[, j])) + max(abs(z[, j]))
-      eta[j] <- if (denominator == 0) {
-        0
-      } else {
-        max(abs(residual[, j])) / denominator
-      }
-      if (!is.finite(eta[j]) || eta[j] > backward_tolerance) return(bad)
+    if (!is.finite(backward_error) ||
+        backward_error > backward_tolerance) return(bad)
 
-      if (all(z[, j] == 0)) {
-        if (any(solution[, j] != 0)) return(bad)
-      } else if (max(abs(solution[, j])) == 0) {
-        return(bad)
-      } else {
-        columns_to_certify <- c(columns_to_certify, j)
-      }
-    }
-
-    relative_error_proxy <- pmax(eta, roundoff_floor) / rho_K
-    if (any(!is.finite(relative_error_proxy)) ||
-        any(relative_error_proxy >= 1)) {
-      if (condition_is_bound != 1) return(bad)
-      exact <- exact_root_condition(
-        R, covariance_discrepancy, condition_tolerance
-      )
-      if (is.null(exact)) return(bad)
-      rho_K <- exact$rho
-      lambda_min <- exact$lambda_min
-      condition_is_bound <- 0
-      relative_error_proxy <- pmax(eta, roundoff_floor) / rho_K
-      if (any(!is.finite(relative_error_proxy)) ||
-          any(relative_error_proxy >= 1)) return(bad)
-    }
-
-    # First try the inexpensive triangular roundoff bound.  It is deliberately
-    # conservative, but when it succeeds no additional inverse is needed.  If
-    # it is inconclusive, use a componentwise a-posteriori residual bound below
-    # rather than rejecting an accurately solved ordinary system.
-    if (length(columns_to_certify) > 0L) {
-      comparison_gamma <- 2 * max(1L, m) * .Machine$double.eps
-      if (!is.finite(comparison_gamma) || comparison_gamma >= 1) return(bad)
-
-      w_checked <- w[, columns_to_certify, drop = FALSE]
-      z_checked <- z[, columns_to_certify, drop = FALSE]
-      solution_checked <- solution[, columns_to_certify, drop = FALSE]
-      abs_R <- abs(R)
-      Rw <- R %*% w_checked
-      raw_residual <- z_checked - t(R) %*% Rw
-      residual_bound <- abs(raw_residual) +
-        covariance_discrepancy %o%
-          apply(abs(w_checked), 2L, max)
-      if (any(!is.finite(residual_bound))) return(bad)
-
-      first_magnitude <- base::matrix(
-        0, nrow = m, ncol = length(columns_to_certify)
-      )
-      for (i in seq_len(m)) {
-        preceding <- if (i == 1L) {
-          0
-        } else {
-          colSums(
-            first_magnitude[seq_len(i - 1L), , drop = FALSE] *
-              abs_R[seq_len(i - 1L), i]
-          )
-        }
-        first_magnitude[i, ] <-
-          (abs(z_checked[i, ]) + preceding) / abs(R[i, i])
-      }
-      solution_magnitude <- base::matrix(
-        0, nrow = m, ncol = length(columns_to_certify)
-      )
-      for (ii in seq_len(m)) {
-        i <- m - ii + 1L
-        following <- if (i == m) {
-          0
-        } else {
-          colSums(
-            solution_magnitude[(i + 1L):m, , drop = FALSE] *
-              abs_R[i, (i + 1L):m]
-          )
-        }
-        solution_magnitude[i, ] <-
-          (first_magnitude[i, ] + following) / abs(R[i, i])
-      }
-      if (any(!is.finite(solution_magnitude))) return(bad)
-
-      accuracy_tolerance <- sqrt(.Machine$double.eps) / 4
-      cheap_certificate <- function(lambda_lower) {
-        if (!is.finite(lambda_lower) || lambda_lower <= 0) return(FALSE)
-        for (j in seq_along(columns_to_certify)) {
-          residual_max <- max(residual_bound[, j])
-          residual_norm <- if (residual_max == 0) {
-            0
-          } else {
-            residual_max * sqrt(sum((residual_bound[, j] / residual_max)^2))
-          }
-          error_bound <- residual_norm / lambda_lower
-          w_bound <-
-            (error_bound +
-               comparison_gamma * solution_magnitude[, j]) /
-            (1 - comparison_gamma)
-          solution_bound <- w_bound / scale
-          if (!is.finite(error_bound) || any(!is.finite(w_bound)) ||
-              any(!is.finite(solution_bound)) ||
-              any(solution_bound >
-                    accuracy_tolerance *
-                      pmax(1, abs(solution_checked[, j])))) {
-            return(FALSE)
-          }
-        }
-        TRUE
-      }
-
-      lambda_lower <- lambda_min - max(covariance_discrepancy)
-      cheap_certified <- cheap_certificate(lambda_lower)
-      if (!cheap_certified && condition_is_bound == 1) {
-        exact <- exact_root_condition(
-          R, covariance_discrepancy, condition_tolerance
-        )
-        if (is.null(exact)) return(bad)
-        rho_K <- exact$rho
-        lambda_min <- exact$lambda_min
-        condition_is_bound <- 0
-        relative_error_proxy <- pmax(eta, roundoff_floor) / rho_K
-        if (any(!is.finite(relative_error_proxy)) ||
-            any(relative_error_proxy >= 1)) return(bad)
-        lambda_lower <- lambda_min - max(covariance_discrepancy)
-        cheap_certified <- cheap_certificate(lambda_lower)
-      }
-
-      if (!cheap_certified) {
-        # Bound the error componentwise from the residual of the completed
-        # equilibrated covariance.  The gamma envelope accounts for rounding
-        # in the matrix-vector product even when its observed residual is zero.
-        # Certify the returned public solution after undoing equilibration;
-        # accuracy of the internal scaled coordinate is not part of the API.
-        product_length <- max(1L, m + 1L)
-        product_gamma <-
-          product_length * .Machine$double.eps /
-          (1 - product_length * .Machine$double.eps)
-        E_inverse <- tryCatch(
-          base::chol2inv(R),
-          error = function(e) NULL
-        )
-        if (is.null(E_inverse) || any(!is.finite(E_inverse)) ||
-            !is.finite(product_gamma)) return(bad)
-
-        inverse_error_proxy <-
-          8 * max(1L, m) * .Machine$double.eps / rho_K
-        if (!is.finite(inverse_error_proxy) || inverse_error_proxy >= 1) {
-          return(bad)
-        }
-        completed_residual <- abs(z_checked - E %*% w_checked) +
-          covariance_discrepancy %o%
-            apply(abs(w_checked), 2L, max) +
-          product_gamma * (
-            abs(z_checked) + abs(E) %*% abs(w_checked)
-        )
-        if (any(!is.finite(completed_residual))) return(bad)
-
-        # `inverse_error_proxy` is normwise, so account separately for the
-        # uncertainty in the computed inverse rather than treating it as an
-        # elementwise relative bound (which would not protect entries rounded
-        # near zero).
-        inverse_norm_error <-
-          inverse_error_proxy / (1 - inverse_error_proxy) *
-          max(rowSums(abs(E_inverse)))
-        component_bound <- abs(E_inverse) %*% completed_residual +
-          inverse_norm_error * rep(
-            colSums(completed_residual), each = m
-          )
-        returned_bound <- component_bound / scale
-        if (any(!is.finite(component_bound)) ||
-            any(!is.finite(returned_bound))) return(bad)
-
-        if (any(returned_bound >
-                  accuracy_tolerance *
-                    pmax(1, abs(solution_checked)))) return(bad)
-      }
-    }
     c(as.vector(solution), 1)
   }
 
@@ -925,19 +428,18 @@
     )
   }
 
-  RTMB::ADjoint(forward, reverse, name = "K2_solution_guard")
+  RTMB::ADjoint(forward, reverse, name = "K2_residual_check")
 })
 
 #' @keywords internal
-.K2_solution_guard <- local({
-  atomic <- .K2_solution_guard_atomic
-  function(solution, R, w, z, scale, covariance_discrepancy,
-           rho, lambda_min, condition_is_bound) {
+.K2_residual_check <- local({
+  atomic <- .K2_residual_check_atomic
+  function(solution, R, w, z) {
     m <- nrow(R)
     nrhs <- if (is.null(dim(solution))) 1L else ncol(solution)
     solution_vec <- as.vector(solution)
     payload <- RTMB::AD(numeric(
-      5L + m * m + 3L * length(solution_vec) + 2L * m
+      2L + m * m + 3L * length(solution_vec)
     ))
     payload[1:2] <- c(m, nrhs)
     cursor <- 3L
@@ -948,14 +450,6 @@
     payload[cursor:(cursor + length(solution_vec) - 1L)] <- as.vector(w)
     cursor <- cursor + length(solution_vec)
     payload[cursor:(cursor + length(solution_vec) - 1L)] <- as.vector(z)
-    cursor <- cursor + length(solution_vec)
-    payload[cursor:(cursor + m - 1L)] <- as.vector(scale)
-    cursor <- cursor + m
-    payload[cursor:(cursor + m - 1L)] <- covariance_discrepancy
-    cursor <- cursor + m
-    payload[cursor:(cursor + 2L)] <- c(
-      rho, lambda_min, condition_is_bound
-    )
     atomic_out <- atomic(payload)
     out <- atomic_out[seq_along(solution_vec)]
     if (!is.null(dim(solution))) attr(out, "dim") <- dim(solution)
@@ -1008,20 +502,12 @@
   } else {
     do.call(cbind, packed_terms)
   }
-  covariance_is_ad <-
-    inherits(packed, "advector") || inherits(packed, "adsparse") ||
-    (!is.null(S) &&
-      (inherits(S, "advector") || inherits(S, "adsparse")))
   factorization <- .weighted_gram_chol(packed, S)
-  factorization$covariance_is_ad <- covariance_is_ad
 
   if (!inherits(factorization$R, "advector") &&
       any(!is.finite(c(factorization$R, factorization$scale)))) {
     stop(
-      paste(
-        "K2 is singular, indefinite, or numerically ill-conditioned",
-        "at this evaluation."
-      ),
+      "K2 is singular, indefinite, or numerically invalid at this evaluation.",
       call. = FALSE
     )
   }
@@ -1031,30 +517,13 @@
 #' @keywords internal
 .K2_factor_solve <- function(K2_factor, tvec, parameter_vector, rhs) {
   factorization <- .K2_factor_chol(K2_factor, tvec, parameter_vector)
-  terminal <- .K2_terminal_root_guard(
-    factorization$R, factorization$covariance_discrepancy,
-    solve_mode = TRUE,
-    covariance_is_ad = factorization$covariance_is_ad
-  )
-  R <- terminal$R
-  if (!inherits(R, "advector") &&
-      any(!is.finite(c(
-        R, terminal$rho, terminal$lambda_min,
-        terminal$condition_is_bound
-      )))) {
-    stop("K2 solve would lose all numerical accuracy.", call. = FALSE)
-  }
+  R <- factorization$R
   z <- rhs / factorization$scale
   w <- solve(R, solve(t(R), z))
   solution <- w / factorization$scale
-  solution <- .K2_solution_guard(
-    solution, R, w, z, factorization$scale,
-    factorization$covariance_discrepancy,
-    terminal$rho, terminal$lambda_min,
-    terminal$condition_is_bound
-  )
+  solution <- .K2_residual_check(solution, R, w, z)
   if (!inherits(solution, "advector") && any(!is.finite(solution))) {
-    stop("K2 solve failed numerical accuracy certification.", call. = FALSE)
+    stop("K2 solve failed its numerical residual check.", call. = FALSE)
   }
   solution
 }
@@ -1062,17 +531,11 @@
 #' @keywords internal
 .K2_factor_logdet <- function(K2_factor, tvec, parameter_vector) {
   factorization <- .K2_factor_chol(K2_factor, tvec, parameter_vector)
-  terminal <- .K2_terminal_root_guard(
-    factorization$R, factorization$covariance_discrepancy,
-    solve_mode = FALSE
-  )
-  R <- terminal$R
-  if (!inherits(R, "advector") && any(!is.finite(R))) {
-    stop(
-      "K2 log-determinant derivatives would lose all numerical accuracy.",
-      call. = FALSE
-    )
-  }
-  2 * sum(log(diag(R))) +
+  R <- factorization$R
+  value <- 2 * sum(log(diag(R))) +
     2 * sum(log(factorization$scale))
+  if (!inherits(value, "advector") && any(!is.finite(value))) {
+    stop("K2 log-determinant is not finite.", call. = FALSE)
+  }
+  value
 }

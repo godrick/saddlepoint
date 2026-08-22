@@ -58,9 +58,9 @@
 
   summand_K2_factor <- .K2_factor_method(summand_cgf)
   # Reuse a child's structured solve/logdet pair only when its constructor has
-  # certified that pair for an enclosing covariance update.  Otherwise factor
-  # the completed RSS covariance, allowing the count term to complete a
-  # singular child's rank.  This is private capability propagation, not a
+  # declared that pair safe for an enclosing covariance update.  Otherwise
+  # factor the completed RSS covariance, allowing the count term to complete
+  # a singular child's rank.  This is private capability propagation, not a
   # distribution or wrapper identity check.
   prefer_structured_K2 <- .K2_structured_pair_is_safe(summand_cgf)
   extra_args <- list(...)
