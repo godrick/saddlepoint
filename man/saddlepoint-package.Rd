@@ -6,7 +6,7 @@
 \alias{saddlepoint-package}
 \title{saddlepoint: A Framework for the Saddlepoint Approximation with CGF Operations}
 \description{
-Tools for saddlepoint approximations built around composable cumulant generating function (CGF) objects. Provides CGFs for common distributions, operators to combine CGFs (i.i.d. replication, sums, linear maps, random sums and tilts), and routines for saddlepoint likelihood inference including maximum likelihood estimation. Uses RTMB for automatic differentiation where derivatives are required. The framework is described in Oketch, Fewster and Goodman (2026) \doi{10.48550/arXiv.2607.17464}.
+Tools for saddlepoint approximations built around composable cumulant generating function (CGF) objects. Provides CGFs for common distributions, operators to combine CGFs (i.i.d. replication, sums, linear maps, random sums and tilts), and routines for saddlepoint likelihood inference including maximum likelihood estimation. Uses 'RTMB' for automatic differentiation where derivatives are required. The framework is described in Oketch, Fewster and Goodman (2026) \doi{10.48550/arXiv.2607.17464}.
 }
 \section{Package development}{
 

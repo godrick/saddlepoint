@@ -9,7 +9,7 @@ authors:
     given-names: "Rachel M."
   - family-names: Goodman
     given-names: Jesse
-version: 0.9.0
+version: 0.9.1
 repository-code: "https://github.com/godrick/saddlepoint"
 url: "https://godrick.github.io/saddlepoint/"
 license: GPL-3.0-or-later
