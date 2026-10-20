@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/godrick/saddlepoint/blob/development/inst/CITATION)
+[`inst/CITATION`](https://github.com/godrick/saddlepoint/blob/master/inst/CITATION)
 
 Oketch G, Fewster RM, Goodman J (2026). “A general framework for
 computation and estimation using the saddlepoint approximation.”
